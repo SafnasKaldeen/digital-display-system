@@ -7,9 +7,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  compiler: {
-    removeConsole: false,
-  },
+  // Disable SWC minification - sometimes causes issues on older browsers
+  swcMinify: false,
   async headers() {
     return [
       {
@@ -28,17 +27,17 @@ const nextConfig = {
             value: "*",
           },
           {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "*",
+          },
+          // Remove strict transport security that might block assets
+          {
             key: "X-Content-Type-Options",
             value: "nosniff",
-          },
-        ],
-      },
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
           },
         ],
       },
