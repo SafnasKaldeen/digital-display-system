@@ -1,20 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // Disable for older browsers
+  reactStrictMode: true,
   images: {
     unoptimized: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Target older browsers
-  compiler: {
-    emotion: false,
-  },
-  experimental: {
-    // Disable modern features that might not work on old Chrome
-    optimizeCss: false,
-  },
+  // Disable SWC minification - sometimes causes issues on older browsers
+  swcMinify: false,
   async headers() {
     return [
       {
@@ -25,42 +19,25 @@ const nextConfig = {
             value: "all",
           },
           {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
             key: "Access-Control-Allow-Origin",
             value: "*",
           },
           {
             key: "Access-Control-Allow-Methods",
-            value: "GET,POST,PUT,DELETE,OPTIONS",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
           },
           {
             key: "Access-Control-Allow-Headers",
             value: "*",
           },
-        ],
-      },
-      {
-        source: "/_next/static/:path*",
-        headers: [
+          // Remove strict transport security that might block assets
           {
-            key: "Access-Control-Allow-Origin",
-            value: "*",
-          },
-          {
-            key: "Content-Type",
-            value: "application/javascript; charset=utf-8",
-          },
-        ],
-      },
-      {
-        source: "/_next/static/css/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: "*",
-          },
-          {
-            key: "Content-Type",
-            value: "text/css; charset=utf-8",
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
         ],
       },
