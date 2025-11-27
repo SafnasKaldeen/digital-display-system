@@ -1,11 +1,15 @@
+import { withNetlify } from "@netlify/next";
+
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig = withNetlify({
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    unoptimized: true, // keep if you don’t want Netlify Image Optimization
   },
-}
+  reactStrictMode: true,
+  output: "standalone", // ensures server components work
+});
 
-export default nextConfig
+export default nextConfig;
