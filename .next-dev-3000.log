@@ -1,0 +1,40 @@
+> home-dashboard-nexus@0.0.0 dev /Users/mac/Documents/GitHub/smarthome
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.146:3000
+   - Experiments (use with caution):
+     ⨯ esmExternals
+
+ ✓ Starting...
+ ⚠ The "experimental.esmExternals" option has been modified. experimental.esmExternals is not recommended to be modified as it may disrupt module resolution. It should be removed from your next.config.js.
+ ✓ Ready in 2.1s
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 5.7s (679 modules)
+ GET /_next/static/css/app/layout.css 404 in 6049ms
+ ✓ Compiled in 458ms (318 modules)
+ GET /_next/static/chunks/app/page.js 404 in 39ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1304ms (823 modules)
+ GET / 200 in 1650ms
+ ⚠ Found a change in next.config.js. Restarting the server to apply the changes...
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.146:3000
+   - Experiments (use with caution):
+     ⨯ esmExternals
+
+ ✓ Starting...
+ ⚠ The "experimental.esmExternals" option has been modified. experimental.esmExternals is not recommended to be modified as it may disrupt module resolution. It should be removed from your next.config.js.
+ ✓ Ready in 2.3s
+ ⚠ Found a change in next.config.js. Restarting the server to apply the changes...
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.146:3000
+   - Experiments (use with caution):
+     ⨯ esmExternals
+
+ ✓ Starting...
+ ⚠ The "experimental.esmExternals" option has been modified. experimental.esmExternals is not recommended to be modified as it may disrupt module resolution. It should be removed from your next.config.js.
+ ✓ Ready in 4.9s

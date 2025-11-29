@@ -1,0 +1,13 @@
+> home-dashboard-nexus@0.0.0 dev /Users/mac/Documents/GitHub/smarthome
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.146:3001
+   - Experiments (use with caution):
+     ⨯ esmExternals
+
+ ✓ Starting...
+ ⚠ The "experimental.esmExternals" option has been modified. experimental.esmExternals is not recommended to be modified as it may disrupt module resolution. It should be removed from your next.config.js.
+ ✓ Ready in 2.7s
+[?25h
