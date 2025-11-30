@@ -1054,21 +1054,6 @@ export default function MasjidEditorPanel({
               label: "Show Hijri Date",
               desc: "Display Islamic calendar",
             },
-            {
-              key: "showNextPrayer",
-              label: "Show Next Prayer",
-              desc: "Display next prayer countdown",
-            },
-            {
-              key: "showCurrentTime",
-              label: "Show Current Time",
-              desc: "Display current time",
-            },
-            {
-              key: "showWeather",
-              label: "Show Weather",
-              desc: "Display weather information",
-            },
           ].map((option) => (
             <label
               key={option.key}
