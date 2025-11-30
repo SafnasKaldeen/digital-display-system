@@ -1,31 +1,59 @@
-import { type NextRequest, NextResponse } from "next/server"
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get("auth_token")?.value
+// ============================================================
+// middleware.ts (in your app root)
+// ============================================================
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { verifyToken } from '@/lib/auth';
 
-  // Protected routes
-  if (request.nextUrl.pathname.startsWith("/dashboard")) {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
+const publicPaths = ['/login', '/register', '/api/auth/login', '/api/auth/register'];
+const adminPaths = ['/admin'];
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Allow public paths
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
   }
 
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
-    // TODO: Add role check for super_admin
+  // Allow public assets
+  if (pathname.startsWith('/_next') || pathname.startsWith('/static') || pathname.includes('.')) {
+    return NextResponse.next();
   }
 
-  if (request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/register")) {
-    if (token) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
+  // Check authentication
+  const token = request.cookies.get('auth_token')?.value;
+  
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next()
+  const user = await verifyToken(token);
+  
+  if (!user) {
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    response.cookies.set('auth_token', '', { maxAge: 0 });
+    return response;
+  }
+
+  // Check admin access
+  if (adminPaths.some(path => pathname.startsWith(path)) && user.role !== 'admin') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/login", "/register"],
-}
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|public).*)',
+  ],
+};
