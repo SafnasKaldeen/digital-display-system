@@ -253,7 +253,7 @@ export default function DisplaysPage() {
                 templateType={templateType}
                 displayUrl={`/displays/${display.id}/live`}
                 status="active"
-                location={`${display.name} - ${
+                location={`${display.config.masjidName || display.name} - ${
                   templateType.charAt(0).toUpperCase() + templateType.slice(1)
                 } Template`}
                 resolution="1920x1080"
