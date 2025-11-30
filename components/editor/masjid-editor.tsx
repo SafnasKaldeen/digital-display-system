@@ -493,7 +493,7 @@ export default function MasjidEditorPanel({
                 ...defaultConfig.colors,
                 ...colors,
               },
-              masjidName: displayName,
+              masjidName: savedConfig.masjidName || displayName,
               prayerTimes: {
                 ...defaultConfig.prayerTimes,
                 ...(savedConfig.prayerTimes || {}),

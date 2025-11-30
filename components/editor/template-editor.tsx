@@ -127,7 +127,7 @@ export function TemplateEditor({
             {/* <div>{config.masjidName}</div> */}
             <MasjidEditorPanel
               displayId={displayId}
-              displayName={displayName}
+              displayName={config.masjidName || displayName} // ✅ Use config value first
               templateType={templateType}
               config={config}
               onConfigChange={handleConfigChange}

@@ -95,6 +95,10 @@ export function LivePreview({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name:
+            displayData.config.masjidName ||
+            displayData.name ||
+            displayData.displayName,
           config: configToSave,
           templateType: displayData.templateType,
         }),
