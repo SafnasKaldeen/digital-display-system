@@ -36,9 +36,10 @@ interface UploadCriteria {
 }
 
 interface AuthUser {
-  userId: string;
+  id: string;
   email: string;
-  role: "super_admin" | "client";
+  role: "admin" | "client";
+  businessName?: string;
 }
 
 // Confirm Modal Component
@@ -318,7 +319,7 @@ export function MediaManager() {
     if (currentUser) {
       setUploadCriteria((prev) => ({
         ...prev,
-        userId: currentUser.userId,
+        userId: currentUser.id,
       }));
       fetchMedia();
     }
@@ -327,27 +328,20 @@ export function MediaManager() {
   const fetchCurrentUser = async () => {
     setIsLoadingUser(true);
 
-    const mockUser: AuthUser = {
-      userId: "1",
-      email: "mockuser@example.com",
-      role: "client",
-    };
-
     try {
       const response = await fetch("/api/auth/me");
       if (response.ok) {
         const data = await response.json();
+        console.log("User data received:", data);
         setCurrentUser(data.user);
       } else {
-        const data = mockUser;
-        setCurrentUser(data);
-        // setError("Failed to authenticate. Please log in.");
+        console.log("Auth check failed");
+        window.location.href = "/login";
       }
     } catch (err) {
       console.error("Failed to fetch user:", err);
-      const data = mockUser;
-      setCurrentUser(data);
-      // setError("Failed to load user information");
+      setError("Failed to load user information");
+      window.location.href = "/login";
     } finally {
       setIsLoadingUser(false);
     }
@@ -382,7 +376,7 @@ export function MediaManager() {
         formData.append("files", file);
       });
 
-      formData.append("id", currentUser.userId);
+      formData.append("id", currentUser.id);
       formData.append("environment", uploadCriteria.environment);
       formData.append("imageId", uploadCriteria.imageId);
 
@@ -477,6 +471,17 @@ export function MediaManager() {
   const totalSize = mediaItems.reduce((sum, item) => sum + item.fileSize, 0);
   const maxSize = 5 * 1024 * 1024 * 1024;
 
+  // Get user initials
+  const getInitials = (name: string) => {
+    if (!name) return "??";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (isLoadingUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
@@ -501,7 +506,7 @@ export function MediaManager() {
           </p>
           <Button
             onClick={() => (window.location.href = "/login")}
-            className="w-full bg-orange-500 hover:bg-orange-600"
+            className="w-full bg-pink-500 hover:bg-pink-600"
           >
             Go to Login
           </Button>
@@ -524,10 +529,14 @@ export function MediaManager() {
               </p>
             </div>
             <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2">
-              <User className="w-4 h-4 text-slate-400" />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                {currentUser.businessName
+                  ? getInitials(currentUser.businessName)
+                  : getInitials(currentUser.email)}
+              </div>
               <div>
                 <p className="text-sm font-medium text-slate-50">
-                  {currentUser.email}
+                  {currentUser.businessName || currentUser.email}
                 </p>
                 <p className="text-xs text-slate-400 capitalize">
                   {currentUser.role.replace("_", " ")}
@@ -542,7 +551,7 @@ export function MediaManager() {
         <Card className="bg-slate-800 border-slate-700 p-4 mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <HardDrive className="w-5 h-5 text-orange-500" />
+              <HardDrive className="w-5 h-5 text-pink-500" />
               <div>
                 <p className="text-sm text-slate-400">Storage Used</p>
                 <p className="text-lg font-semibold text-slate-50">
@@ -553,7 +562,7 @@ export function MediaManager() {
             </div>
             <div className="w-32 bg-slate-700 rounded-full h-2">
               <div
-                className="bg-orange-500 h-2 rounded-full transition-all"
+                className="bg-pink-500 h-2 rounded-full transition-all"
                 style={{ width: `${(totalSize / maxSize) * 100}%` }}
               />
             </div>
@@ -602,7 +611,7 @@ export function MediaManager() {
                   </label>
                   <input
                     type="text"
-                    value={currentUser.userId}
+                    value={currentUser.id}
                     disabled
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-400 text-sm cursor-not-allowed"
                   />
@@ -619,7 +628,7 @@ export function MediaManager() {
                         environment: e.target.value as "preview" | "production",
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-200 text-sm focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-200 text-sm focus:outline-none focus:border-pink-500"
                   >
                     <option value="preview">Preview</option>
                     <option value="production">Production</option>
@@ -638,7 +647,7 @@ export function MediaManager() {
                         imageId: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-200 text-sm focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-200 text-sm focus:outline-none focus:border-pink-500"
                     placeholder="img-001"
                   />
                 </div>
@@ -649,7 +658,7 @@ export function MediaManager() {
           <UploadZone
             onFileSelect={handleFileSelect}
             isUploading={isUploading}
-            id={currentUser.userId}
+            id={currentUser.id}
             environment={uploadCriteria.environment}
             imageId={uploadCriteria.imageId}
           />
