@@ -65,6 +65,8 @@ interface MasjidEditorPanelProps {
   config?: Partial<MasjidConfig>;
   onConfigChange: (config: MasjidConfig) => void;
   displayId?: string;
+  displayName?: string;
+  templateType?: "masjid" | "hospital" | "corporate" | "restaurant" | "retail";
   environment?: "preview" | "production";
 }
 
@@ -404,6 +406,8 @@ export default function MasjidEditorPanel({
   onConfigChange,
   displayId = "1",
   environment = "preview",
+  displayName = "Masjid Display",
+  templateType = "masjid",
 }: MasjidEditorPanelProps) {
   const defaultConfig: MasjidConfig = {
     template: "masjid-classic",
@@ -489,6 +493,7 @@ export default function MasjidEditorPanel({
                 ...defaultConfig.colors,
                 ...colors,
               },
+              masjidName: displayName,
               prayerTimes: {
                 ...defaultConfig.prayerTimes,
                 ...(savedConfig.prayerTimes || {}),
@@ -641,6 +646,7 @@ export default function MasjidEditorPanel({
       `}</style>
 
       <CollapsibleSection title="Branding" defaultOpen={true}>
+        {/* <pre className="text-xs">{JSON.stringify(customization, null, 2)}</pre> */}
         <div className="space-y-4">
           <div>
             <label className="text-sm text-gray-300 block mb-2">
@@ -648,7 +654,7 @@ export default function MasjidEditorPanel({
             </label>
             <input
               type="text"
-              value={customization.masjidName}
+              value={displayName}
               onChange={(e) => updateConfig({ masjidName: e.target.value })}
               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="Enter masjid name"

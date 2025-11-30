@@ -5,7 +5,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  Power,
   Monitor,
   MapPin,
   Clock,
@@ -13,6 +12,7 @@ import {
   Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PowerButton } from "./PowerButton";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -34,6 +34,7 @@ interface DisplaysPageCardProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onPreview: (id: string) => void;
+  onPowerToggle?: (id: string, status: "active" | "inactive") => void;
 }
 
 const templateLabels: Record<string, string> = {
@@ -67,8 +68,10 @@ export function DisplaysPageCard({
   onEdit,
   onDelete,
   onPreview,
+  onPowerToggle,
 }: DisplaysPageCardProps) {
   const [copied, setCopied] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(status);
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(`${BaseURL}${displayUrl}`);
@@ -76,23 +79,46 @@ export function DisplaysPageCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePowerToggle = (newStatus: "on" | "off") => {
+    const mappedStatus = newStatus === "on" ? "active" : "inactive";
+    setCurrentStatus(mappedStatus);
+    onPowerToggle?.(id, mappedStatus);
+  };
+
   const gradient =
     templateGradients[templateType] || templateGradients.corporate;
   const templateLabel = templateLabels[templateType] || "Custom";
 
   return (
-    <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/5">
+    <div
+      className={`bg-gray-900 rounded-2xl overflow-hidden border transition-all duration-300 ${
+        currentStatus === "active"
+          ? "border-gray-800 hover:border-gray-700 hover:shadow-lg hover:shadow-pink-500/5"
+          : "border-gray-800/50 opacity-60"
+      }`}
+    >
       {/* Thumbnail/Preview */}
-      <div className={`relative h-40 bg-gradient-to-br ${gradient}`}>
+      <div
+        className={`relative h-40 bg-gradient-to-br ${gradient} ${
+          currentStatus === "inactive" ? "grayscale" : ""
+        }`}
+      >
         {thumbnail ? (
           <img
             src={thumbnail}
             alt={name}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${
+              currentStatus === "inactive" ? "grayscale opacity-50" : ""
+            }`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Monitor size={48} className="text-gray-600" />
+            <Monitor
+              size={48}
+              className={`${
+                currentStatus === "inactive" ? "text-gray-700" : "text-gray-600"
+              }`}
+            />
           </div>
         )}
 
@@ -100,19 +126,19 @@ export function DisplaysPageCard({
         <div className="absolute top-3 left-3">
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-              status === "active"
+              currentStatus === "active"
                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                : "bg-gray-700/80 text-gray-300 border border-gray-600"
+                : "bg-gray-800/80 text-gray-500 border border-gray-700"
             }`}
           >
             <span
               className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${
-                status === "active"
+                currentStatus === "active"
                   ? "bg-green-400 animate-pulse"
-                  : "bg-gray-400"
+                  : "bg-gray-600"
               }`}
             ></span>
-            {status === "active" ? "Active" : "Inactive"}
+            {currentStatus === "active" ? "Active" : "Disabled"}
           </span>
         </div>
 
@@ -123,8 +149,12 @@ export function DisplaysPageCard({
           </span>
         </div>
 
-        {/* Actions Menu */}
-        <div className="absolute bottom-3 right-3">
+        {/* Power Button and Actions Menu */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+          <PowerButton
+            initialStatus={status === "active" ? "on" : "off"}
+            onChange={handlePowerToggle}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -152,17 +182,6 @@ export function DisplaysPageCard({
               >
                 <Edit size={16} className="mr-2" />
                 Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-white hover:bg-gray-800 cursor-pointer">
-                <Power size={16} className="mr-2" />
-                Toggle Power
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDelete(id)}
-                className="text-red-400 hover:bg-gray-800 cursor-pointer"
-              >
-                <Trash2 size={16} className="mr-2" />
-                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -208,7 +227,8 @@ export function DisplaysPageCard({
             variant="outline"
             size="sm"
             onClick={() => onPreview(id)}
-            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 hover:border-gray-600"
+            disabled={currentStatus === "inactive"}
+            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Eye size={14} className="mr-1.5" />
             Preview
@@ -223,6 +243,17 @@ export function DisplaysPageCard({
             Edit
           </Button>
         </div>
+
+        {/* Delete Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDelete(id)}
+          className="w-full mt-2 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50"
+        >
+          <Trash2 size={14} className="mr-1.5" />
+          Delete Display
+        </Button>
 
         {/* Display URL (collapsed) */}
         <div className="mt-3 pt-3 border-t border-gray-800">

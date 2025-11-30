@@ -123,10 +123,16 @@ export function TemplateEditor({
     switch (templateType) {
       case "masjid":
         return (
-          <MasjidEditorPanel
-            config={config}
-            onConfigChange={handleConfigChange}
-          />
+          <div>
+            {/* <div>{config.masjidName}</div> */}
+            <MasjidEditorPanel
+              displayId={displayId}
+              displayName={displayName}
+              templateType={templateType}
+              config={config}
+              onConfigChange={handleConfigChange}
+            />
+          </div>
         );
       case "hospital":
         return (

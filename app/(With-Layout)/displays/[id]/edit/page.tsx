@@ -6,15 +6,17 @@ import { useEffect, useState } from "react";
 import { TemplateEditor } from "@/components/editor/template-editor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, Eye } from "lucide-react";
+import { getDisplayById } from "@/app/actions/displays";
 
 interface DisplayData {
   id: string;
   name: string;
+  template_type: string;
   templateType: "masjid" | "hospital" | "corporate" | "restaurant" | "retail";
-  location: string;
+  location?: string;
   status: "active" | "inactive";
   displayUrl: string;
-  resolution: string;
+  resolution?: string;
   config: any;
 }
 
@@ -25,55 +27,56 @@ export default function EditDisplayPage() {
 
   const [display, setDisplay] = useState<DisplayData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDisplay = async () => {
+      if (!displayId) {
+        setError("No display ID provided");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Mock data - replace with actual API call
-        const mockDisplay: DisplayData = {
-          id: displayId,
-          name: "Main Hall Display",
-          templateType: "masjid",
-          location: "Masjid Al-Noor - Main Prayer Hall",
-          status: "active",
-          displayUrl: `https://display.example.com/${displayId}`,
-          resolution: "1920x1080",
-          config: {
-            template: "masjid-classic",
-            layout: "vertical",
-            prayerTimes: {
-              fajr: "05:30",
-              dhuhr: "12:45",
-              asr: "15:30",
-              maghrib: "18:15",
-              isha: "19:45",
-            },
-            iqamahOffsets: {
-              fajr: 15,
-              dhuhr: 10,
-              asr: 10,
-              maghrib: 5,
-              isha: 10,
-            },
-            colors: {
-              primary: "#1e40af",
-              secondary: "#7c3aed",
-              text: "#ffffff",
-              accent: "#f59e0b",
-            },
-            backgroundType: "solid",
-            backgroundColor: "#000000",
-            backgroundImage: [],
-            slideshowDuration: 5,
-            announcements: [{ text: "Welcome to Masjid Al-Noor", duration: 5 }],
-            showHijriDate: true,
-            font: "Inter, sans-serif",
-          },
+        console.log("Fetching display:", displayId);
+        const { data, error: fetchError } = await getDisplayById(displayId);
+
+        if (fetchError || !data) {
+          console.error("Error fetching display:", fetchError);
+          setError(fetchError || "Display not found");
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Display data fetched:", data);
+
+        // Map template_type to templateType for compatibility
+        const templateTypeMap: Record<
+          string,
+          "masjid" | "hospital" | "corporate"
+        > = {
+          masjid: "masjid",
+          hospital: "hospital",
+          corporate: "corporate",
         };
 
-        setDisplay(mockDisplay);
-      } catch (error) {
-        console.error("Failed to fetch display:", error);
+        const mappedDisplay: DisplayData = {
+          id: data.id,
+          name: data.name,
+          template_type: data.template_type,
+          templateType: templateTypeMap[data.template_type] || "masjid",
+          status: "active",
+          displayUrl: `${window.location.origin}/displays/${data.id}/live`,
+          config: data.config || {},
+          location: data.location || `${data.name} - Display`,
+          resolution: data.resolution || "1920x1080",
+        };
+
+        console.log("Mapped display:", mappedDisplay);
+        setDisplay(mappedDisplay);
+      } catch (err) {
+        console.error("Failed to fetch display:", err);
+        setError("An error occurred while loading the display");
       } finally {
         setIsLoading(false);
       }
@@ -112,12 +115,20 @@ export default function EditDisplayPage() {
         maghrib: 5,
         isha: 10,
       },
-      colors: display.config?.colors || {
-        primary: "#1e40af",
-        secondary: "#7c3aed",
-        text: "#ffffff",
-        accent: "#f59e0b",
-      },
+      colors: display.config?.colors ||
+        display.config?.colorTheme || {
+          primary: "#1e40af",
+          secondary: "#7c3aed",
+          text: "#ffffff",
+          accent: "#f59e0b",
+        },
+      colorTheme: display.config?.colorTheme ||
+        display.config?.colors || {
+          primary: "#1e40af",
+          secondary: "#7c3aed",
+          text: "#ffffff",
+          accent: "#f59e0b",
+        },
       backgroundType: display.config?.backgroundType || "solid",
       backgroundColor: display.config?.backgroundColor || "#000000",
       backgroundImage: display.config?.backgroundImage || [],
@@ -125,6 +136,8 @@ export default function EditDisplayPage() {
       announcements: display.config?.announcements || [],
       showHijriDate: display.config?.showHijriDate !== false,
       font: display.config?.font || "Inter, sans-serif",
+      masjidName: display.config?.masjidName || display.name,
+      logo: display.config?.logo || "",
     };
 
     // Encode and navigate to preview page
@@ -146,7 +159,7 @@ export default function EditDisplayPage() {
     );
   }
 
-  if (!display) {
+  if (error || !display) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -154,10 +167,13 @@ export default function EditDisplayPage() {
             <span className="text-3xl">📺</span>
           </div>
           <h2 className="text-xl font-semibold text-white mb-2">
-            Display Not Found
+            {error === "Display not found"
+              ? "Display Not Found"
+              : "Error Loading Display"}
           </h2>
           <p className="text-gray-400 mb-6">
-            The display you're looking for doesn't exist or has been removed.
+            {error ||
+              "The display you're looking for doesn't exist or has been removed."}
           </p>
           <Button
             onClick={() => router.push("/displays")}
@@ -214,7 +230,9 @@ export default function EditDisplayPage() {
 
       {/* Editor Content */}
       <main className="flex-1 overflow-hidden mb-6">
+        {/* <pre className="text-xs">{JSON.stringify(display.config, null, 2)}</pre> */}
         <TemplateEditor
+          displayName={display.name}
           displayId={displayId}
           templateType={display.templateType}
           initialConfig={display.config}

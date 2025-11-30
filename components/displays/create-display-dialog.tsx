@@ -1,27 +1,32 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { AlertCircle, X } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, X } from "lucide-react";
+import { createDisplay } from "@/app/actions/displays";
 
 interface CreateDisplayDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: (display: any) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (display: any) => void;
 }
 
-export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDisplayDialogProps) {
-  const [step, setStep] = useState<"details" | "template">("details")
+export function CreateDisplayDialog({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateDisplayDialogProps) {
+  const [step, setStep] = useState<"details" | "template">("details");
   const [formData, setFormData] = useState({
     displayName: "",
     templateType: "corporate",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const templates = [
     {
@@ -42,53 +47,60 @@ export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDispla
       description: "Meeting rooms, announcements, KPIs",
       icon: "🏢",
     },
-  ]
+  ];
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, displayName: e.target.value }))
-  }
+    setFormData((prev) => ({ ...prev, displayName: e.target.value }));
+  };
 
   const handleTemplateSelect = (templateId: string) => {
-    setFormData((prev) => ({ ...prev, templateType: templateId }))
-  }
+    setFormData((prev) => ({ ...prev, templateType: templateId }));
+  };
 
   const handleCreate = async () => {
-    setIsLoading(true)
-    setError("")
+    setIsLoading(true);
+    setError("");
 
     try {
-      const response = await fetch("/api/displays", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+      // Call the server action instead of fetch
+      // Don't pass config at all - let the server action set defaults
+      const { data: newDisplay, error: createError } = await createDisplay({
+        name: formData.displayName,
+        template_type: formData.templateType,
+      });
 
-      if (!response.ok) {
-        const data = await response.json()
-        setError(data.error || "Failed to create display")
-        return
+      if (createError) {
+        setError(createError);
+        return;
       }
 
-      const newDisplay = await response.json()
-      onSuccess(newDisplay)
-      onClose()
-      setFormData({ displayName: "", templateType: "corporate" })
-    } catch {
-      setError("An error occurred. Please try again.")
+      // Success - notify parent and reset
+      onSuccess(newDisplay);
+      onClose();
+      setFormData({ displayName: "", templateType: "corporate" });
+      setStep("details"); // Reset to first step
+    } catch (err) {
+      console.error("Error creating display:", err);
+      setError("An error occurred. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-2xl bg-slate-900 border-slate-800">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-50">Create New Display</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-50">
+            <h2 className="text-2xl font-bold text-slate-50">
+              Create New Display
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-50"
+            >
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -103,7 +115,9 @@ export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDispla
           {step === "details" ? (
             <div className="space-y-6">
               <div>
-                <label className="text-sm font-medium text-slate-200">Display Name</label>
+                <label className="text-sm font-medium text-slate-200">
+                  Display Name
+                </label>
                 <Input
                   type="text"
                   placeholder="e.g., Main Hall Display"
@@ -136,7 +150,9 @@ export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDispla
           ) : (
             <div className="space-y-6">
               <div>
-                <p className="text-sm text-slate-400 mb-4">Select a template to customize:</p>
+                <p className="text-sm text-slate-400 mb-4">
+                  Select a template to customize:
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {templates.map((template) => (
                     <button
@@ -148,9 +164,15 @@ export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDispla
                           : "border-slate-700 bg-slate-800 hover:border-slate-600"
                       }`}
                     >
-                      <span className="text-3xl mb-2 block">{template.icon}</span>
-                      <h3 className="font-semibold text-slate-50">{template.name}</h3>
-                      <p className="text-xs text-slate-400 mt-1">{template.description}</p>
+                      <span className="text-3xl mb-2 block">
+                        {template.icon}
+                      </span>
+                      <h3 className="font-semibold text-slate-50">
+                        {template.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {template.description}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -178,5 +200,5 @@ export function CreateDisplayDialog({ isOpen, onClose, onSuccess }: CreateDispla
         </div>
       </Card>
     </div>
-  )
+  );
 }
