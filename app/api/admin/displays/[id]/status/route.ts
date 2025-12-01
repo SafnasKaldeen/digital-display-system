@@ -1,4 +1,4 @@
-// app/api/admin/displays/route.ts
+// app/api/admin/displays/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
@@ -7,8 +7,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// GET - Fetch all displays (admin only)
-export async function GET(request: NextRequest) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> | { id: string } }
+) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -29,35 +31,51 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Properly resolve params
+    const params = await Promise.resolve(context.params);
+    const displayId = params.id;
+
+    console.log('PATCH - Display ID:', displayId); // Debug log
+
+    if (!displayId) {
+      return NextResponse.json(
+        { error: 'Display ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const { status } = await request.json();
+
+    console.log('PATCH - Status:', status); // Debug log
+
+    if (!status || !['active', 'disabled'].includes(status)) {
+      return NextResponse.json(
+        { error: 'Invalid status. Must be active or disabled' },
+        { status: 400 }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Fetch all displays with user information
-    const { data: displays, error } = await supabase
+    const { error } = await supabase
       .from('displays')
-      .select(`
-        *,
-        user:users!displays_user_id_fkey (
-          id,
-          email,
-          business_name
-        )
-      `)
-      .order('created_at', { ascending: false });
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', displayId);
 
     if (error) {
-      console.error('Error fetching displays:', error);
+      console.error('Error updating display status:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch displays' },
+        { error: 'Failed to update display status' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      displays: displays || [],
+      message: `Display ${status}`,
     });
   } catch (error) {
-    console.error('Get displays error:', error);
+    console.error('Update status error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

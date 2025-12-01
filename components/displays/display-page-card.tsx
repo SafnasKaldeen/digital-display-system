@@ -26,7 +26,7 @@ interface DisplaysPageCardProps {
   name: string;
   templateType: string;
   displayUrl: string;
-  status: "active" | "inactive";
+  status: "active" | "disabled";
   location?: string;
   resolution?: string;
   lastActive?: string;
@@ -34,7 +34,7 @@ interface DisplaysPageCardProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onPreview: (id: string) => void;
-  onPowerToggle?: (id: string, status: "active" | "inactive") => void;
+  onPowerToggle?: (id: string, status: "active" | "disabled") => void;
 }
 
 const templateLabels: Record<string, string> = {
@@ -71,7 +71,9 @@ export function DisplaysPageCard({
   onPowerToggle,
 }: DisplaysPageCardProps) {
   const [copied, setCopied] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(status);
+  const [currentStatus, setCurrentStatus] = useState<"active" | "disabled">(
+    status
+  );
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(`${BaseURL}${displayUrl}`);
@@ -80,7 +82,8 @@ export function DisplaysPageCard({
   };
 
   const handlePowerToggle = (newStatus: "on" | "off") => {
-    const mappedStatus = newStatus === "on" ? "active" : "inactive";
+    const mappedStatus: "active" | "disabled" =
+      newStatus === "on" ? "active" : "disabled";
     setCurrentStatus(mappedStatus);
     onPowerToggle?.(id, mappedStatus);
   };
@@ -100,7 +103,7 @@ export function DisplaysPageCard({
       {/* Thumbnail/Preview */}
       <div
         className={`relative h-40 bg-gradient-to-br ${gradient} ${
-          currentStatus === "inactive" ? "grayscale" : ""
+          currentStatus === "disabled" ? "grayscale" : ""
         }`}
       >
         {thumbnail ? (
@@ -108,7 +111,7 @@ export function DisplaysPageCard({
             src={thumbnail}
             alt={name}
             className={`w-full h-full object-cover ${
-              currentStatus === "inactive" ? "grayscale opacity-50" : ""
+              currentStatus === "disabled" ? "grayscale opacity-50" : ""
             }`}
           />
         ) : (
@@ -116,7 +119,7 @@ export function DisplaysPageCard({
             <Monitor
               size={48}
               className={`${
-                currentStatus === "inactive" ? "text-gray-700" : "text-gray-600"
+                currentStatus === "disabled" ? "text-gray-700" : "text-gray-600"
               }`}
             />
           </div>
@@ -152,7 +155,7 @@ export function DisplaysPageCard({
         {/* Power Button and Actions Menu */}
         <div className="absolute bottom-3 right-3 flex items-center gap-2">
           <PowerButton
-            initialStatus={status === "active" ? "on" : "off"}
+            initialStatus={currentStatus === "active" ? "on" : "off"}
             onChange={handlePowerToggle}
           />
           <DropdownMenu>
@@ -227,7 +230,7 @@ export function DisplaysPageCard({
             variant="outline"
             size="sm"
             onClick={() => onPreview(id)}
-            disabled={currentStatus === "inactive"}
+            disabled={currentStatus === "disabled"}
             className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Eye size={14} className="mr-1.5" />

@@ -12,9 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getDisplays, deleteDisplay } from "@/app/actions/displays";
 import { useRouter } from "next/navigation";
 import { CreateDisplayDialog } from "@/components/displays/create-display-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Display {
   id: string;
@@ -23,19 +34,35 @@ interface Display {
   config: any;
   created_at: string;
   updated_at: string;
+  user_id: string;
+  status: "active" | "disabled";
+  user?: {
+    business_name: string;
+    email: string;
+  };
+}
+
+interface Client {
+  id: string;
+  email: string;
+  business_name: string;
 }
 
 export default function DisplaysPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [displays, setDisplays] = useState<Display[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "active" | "inactive"
-  >("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTemplate, setFilterTemplate] = useState<string>("all");
+  const [filterClient, setFilterClient] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [displayToDelete, setDisplayToDelete] = useState<string | null>(null);
 
   // Fetch authenticated user
   useEffect(() => {
@@ -45,9 +72,14 @@ export default function DisplaysPage() {
         if (response.ok) {
           const data = await response.json();
           setUserId(data.user.id);
+          setUserRole(data.user.role);
+
+          // Only admins can access this page
+          if (data.user.role !== "admin") {
+            router.push("/dashboard");
+          }
         } else {
-          console.error("Failed to fetch user");
-          router.push("/login"); // Redirect to login if not authenticated
+          router.push("/login");
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -58,53 +90,133 @@ export default function DisplaysPage() {
     fetchUser();
   }, [router]);
 
+  // Load clients (for admin)
+  const loadClients = async () => {
+    try {
+      const response = await fetch("/api/admin/clients");
+      if (response.ok) {
+        const data = await response.json();
+        setClients(data.clients || []);
+      }
+    } catch (error) {
+      console.error("Error loading clients:", error);
+    }
+  };
+
+  // Load all displays (admin sees all)
   const loadDisplays = async () => {
-    if (!userId) return; // Don't load until we have userId
+    if (!userId || !userRole) return;
 
     setIsLoading(true);
     try {
-      const { data, error } = await getDisplays(userId);
+      const response = await fetch("/api/admin/displays");
 
-      if (error) {
-        console.error("Failed to load displays:", error);
+      if (response.ok) {
+        const data = await response.json();
+        setDisplays(data.displays || []);
       } else {
-        setDisplays(data || []);
+        toast({
+          title: "Error",
+          description: "Failed to load displays",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error loading displays:", err);
+      toast({
+        title: "Error",
+        description: "An error occurred while loading displays",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load displays when userId is available
   useEffect(() => {
-    if (userId) {
+    if (userId && userRole === "admin") {
       loadDisplays();
+      loadClients();
     }
-  }, [userId]);
+  }, [userId, userRole]);
 
   const handleEdit = (id: string) => {
     router.push(`/displays/${id}/edit`);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this display?")) {
-      return;
-    }
-
     try {
-      const { error } = await deleteDisplay(id);
+      const response = await fetch(`/api/admin/displays/${id}`, {
+        method: "DELETE",
+      });
 
-      if (error) {
-        console.error("Failed to delete display:", error);
-        alert("Failed to delete display. Please try again.");
-      } else {
+      if (response.ok) {
         setDisplays(displays.filter((d) => d.id !== id));
+        toast({
+          title: "Success",
+          description: "Display deleted successfully",
+        });
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete display",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error deleting display:", err);
-      alert("An error occurred while deleting the display.");
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the display",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDisplayToDelete(null);
+    }
+  };
+
+  const openDeleteDialog = (id: string) => {
+    setDisplayToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handlePowerToggle = async (
+    id: string,
+    newStatus: "active" | "disabled"
+  ) => {
+    try {
+      const response = await fetch(`/api/admin/displays/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDisplays(
+          displays.map((d) => (d.id === id ? { ...d, status: newStatus } : d))
+        );
+        toast({
+          title: "Success",
+          description: data.message || `Display ${newStatus}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update display status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while updating status",
+        variant: "destructive",
+      });
     }
   };
 
@@ -116,7 +228,6 @@ export default function DisplaysPage() {
     setDisplays([newDisplay, ...displays]);
   };
 
-  // Map template_type to templateType for filtering
   const getTemplateType = (template_type: string) => {
     const mapping: Record<string, string> = {
       masjid: "masjid",
@@ -129,14 +240,23 @@ export default function DisplaysPage() {
   };
 
   const filteredDisplays = displays.filter((display) => {
-    const matchesSearch = display.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || filterStatus === "active";
+    const matchesSearch =
+      display.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      display.user?.business_name
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === "all" || display.status === filterStatus;
+
     const matchesTemplate =
       filterTemplate === "all" ||
       getTemplateType(display.template_type) === filterTemplate;
-    return matchesSearch && matchesStatus && matchesTemplate;
+
+    const matchesClient =
+      filterClient === "all" || display.user_id === filterClient;
+
+    return matchesSearch && matchesStatus && matchesTemplate && matchesClient;
   });
 
   if (isLoading) {
@@ -154,6 +274,8 @@ export default function DisplaysPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 sm:p-8 min-h-screen bg-gray-950">
+      <Toaster />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -161,7 +283,7 @@ export default function DisplaysPage() {
             All Displays
           </h1>
           <p className="text-gray-400 text-sm sm:text-base mt-1">
-            Manage all your digital signage screens
+            Manage all digital signage screens across all clients
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -193,17 +315,14 @@ export default function DisplaysPage() {
           />
           <Input
             type="text"
-            placeholder="Search displays..."
+            placeholder="Search displays or clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-500"
           />
         </div>
-        <div className="flex gap-2">
-          <Select
-            value={filterStatus}
-            onValueChange={(value: any) => setFilterStatus(value)}
-          >
+        <div className="flex gap-2 flex-wrap">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -214,11 +333,12 @@ export default function DisplaysPage() {
               <SelectItem value="active" className="text-white">
                 Active
               </SelectItem>
-              <SelectItem value="inactive" className="text-white">
-                Inactive
+              <SelectItem value="disabled" className="text-white">
+                Disabled
               </SelectItem>
             </SelectContent>
           </Select>
+
           <Select value={filterTemplate} onValueChange={setFilterTemplate}>
             <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white">
               <SelectValue placeholder="Template" />
@@ -242,6 +362,26 @@ export default function DisplaysPage() {
               <SelectItem value="corporate" className="text-white">
                 Corporate
               </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterClient} onValueChange={setFilterClient}>
+            <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white">
+              <SelectValue placeholder="Client" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-800">
+              <SelectItem value="all" className="text-white">
+                All Clients
+              </SelectItem>
+              {clients.map((client) => (
+                <SelectItem
+                  key={client.id}
+                  value={client.id}
+                  className="text-white"
+                >
+                  {client.business_name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -278,16 +418,19 @@ export default function DisplaysPage() {
                 name={display.name}
                 templateType={templateType}
                 displayUrl={`/displays/${display.id}/live`}
-                status="active"
-                location={`${display.config.masjidName || display.name} - ${
+                status={display.status}
+                location={`${
+                  display.user?.business_name || "Unknown Client"
+                } - ${
                   templateType.charAt(0).toUpperCase() + templateType.slice(1)
                 } Template`}
                 resolution="1920x1080"
                 lastActive="Just now"
                 thumbnail={thumbnails[templateType] || thumbnails.masjid}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={openDeleteDialog}
                 onPreview={handlePreview}
+                onPowerToggle={handlePowerToggle}
               />
             );
           })}
@@ -319,6 +462,7 @@ export default function DisplaysPage() {
                 setSearchQuery("");
                 setFilterStatus("all");
                 setFilterTemplate("all");
+                setFilterClient("all");
               }}
               variant="outline"
               className="bg-gray-900 border-gray-800 text-white hover:bg-gray-800"
@@ -335,7 +479,35 @@ export default function DisplaysPage() {
         onClose={() => setIsDialogOpen(false)}
         onSuccess={handleAddDisplay}
         userId={userId}
+        clients={clients}
+        isAdmin={true}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-gray-900 border-gray-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              Are you sure you want to delete this display?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This action cannot be undone. This will permanently delete the
+              display and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => displayToDelete && handleDelete(displayToDelete)}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

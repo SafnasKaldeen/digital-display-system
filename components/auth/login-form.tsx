@@ -127,14 +127,14 @@ export function LoginForm() {
             </div>
 
             {/* Forgot Password Link */}
-            <div className="flex justify-end">
+            {/* <div className="flex justify-end">
               <a
                 href="/forgot-password"
                 className="text-sm text-slate-400 hover:text-pink-400 transition-colors"
               >
                 Forgot password?
               </a>
-            </div>
+            </div> */}
 
             {/* Submit Button */}
             <Button
@@ -157,7 +157,7 @@ export function LoginForm() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-8">
+          {/* <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-800"></div>
             </div>
@@ -166,10 +166,10 @@ export function LoginForm() {
                 New to Display Manager?
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Sign Up Link */}
-          <div className="text-center">
+          {/* <div className="text-center">
             <p className="text-slate-400 text-sm">
               Don't have an account?{" "}
               <a
@@ -179,7 +179,7 @@ export function LoginForm() {
                 Create one now
               </a>
             </p>
-          </div>
+          </div> */}
         </div>
       </Card>
 

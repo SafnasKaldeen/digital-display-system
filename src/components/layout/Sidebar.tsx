@@ -14,12 +14,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const navItems = [
+const commonNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Monitor, label: "Displays", href: "/displays" },
+  // { icon: Monitor, label: "Displays", href: "/displays" },
   { icon: Image, label: "Media Library", href: "/media" },
   // { icon: Palette, label: "Templates", href: "/templates" },
-  { icon: Users, label: "Locations", href: "/clients" },
+];
+
+const adminOnlyNavItems = [
+  { icon: Users, label: "Clients", href: "/clients" },
+  { icon: Monitor, label: "Displays", href: "/displays" },
 ];
 
 const bottomItems = [
@@ -30,7 +34,7 @@ const bottomItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,11 +46,9 @@ export function Sidebar() {
       const response = await fetch("/api/auth/me");
       if (response.ok) {
         const data = await response.json();
-        console.log("User data received:", data); // Debug log
-        // The API returns { success: true, user: {...} }
+        console.log("User data received:", data);
         setUserData(data.user);
       } else {
-        // Token invalid or expired, redirect to login
         console.log("Auth check failed, redirecting to login");
         router.push("/login");
       }
@@ -63,17 +65,15 @@ export function Sidebar() {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (response.ok) {
         router.push("/login");
-        router.refresh(); // Force refresh to clear any cached data
+        router.refresh();
       }
     } catch (error) {
       console.error("Logout failed:", error);
-      // Redirect anyway
       router.push("/login");
     }
   };
 
-  // Get user initials for fallback avatar
-  const getInitials = (name) => {
+  const getInitials = (name: string) => {
     if (!name) return "??";
     return name
       .split(" ")
@@ -82,6 +82,12 @@ export function Sidebar() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Determine which nav items to show based on user role
+  const navItems =
+    userData?.role === "admin"
+      ? [...commonNavItems, ...adminOnlyNavItems]
+      : commonNavItems;
 
   if (loading) {
     return (
@@ -164,18 +170,27 @@ export function Sidebar() {
       <Link
         href="/profile"
         className="relative w-16 h-16 rounded-full border-2 border-pink-300 flex-shrink-0 overflow-hidden bg-gray-800 hover:border-pink-200 transition-colors"
+        title={userData?.business_name || userData?.email || "Profile"}
       >
-        <img
-          src="https://hebbkx1sfanhila5yf.public.blob.vercel-storage.com/photo-1494790108377-be9c29b29330-0ITDG9UYNBJygMOGBGIv4aR4Qj9VKY.jpeg"
-          alt="User Profile"
-          className="w-full h-full object-cover rounded-full"
-          onError={(e) => {
-            // Fallback if image fails to load
-            e.currentTarget.style.display = "none";
-            e.currentTarget.parentElement!.innerHTML =
-              '<div class="w-full h-full bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-medium">SK</div>';
-          }}
-        />
+        {userData?.business_name ? (
+          <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-cyan-500/20 flex items-center justify-center text-white text-lg font-semibold">
+            {getInitials(userData.business_name)}
+          </div>
+        ) : (
+          <img
+            src="https://hebbkx1sfanhila5yf.public.blob.vercel-storage.com/photo-1494790108377-be9c29b29330-0ITDG9UYNBJygMOGBGIv4aR4Qj9VKY.jpeg"
+            alt="User Profile"
+            className="w-full h-full object-cover rounded-full"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                parent.innerHTML =
+                  '<div class="w-full h-full bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-medium">SK</div>';
+              }
+            }}
+          />
+        )}
       </Link>
 
       <style jsx>{`
