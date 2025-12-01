@@ -22,8 +22,8 @@ const commonNavItems = [
 ];
 
 const adminOnlyNavItems = [
-  { icon: Users, label: "Clients", href: "/clients" },
-  { icon: Monitor, label: "Displays", href: "/displays" },
+  { icon: Users, label: "Clients", href: "admin/clients" },
+  { icon: Monitor, label: "Displays", href: "admin/displays" },
 ];
 
 const bottomItems = [
