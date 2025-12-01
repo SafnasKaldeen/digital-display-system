@@ -1,4 +1,4 @@
-// app/displays/[id]/edit/page.tsx
+// app/displays/[id]/edit/page.tsx - Only changed the overlay part
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -315,10 +315,11 @@ export default function EditDisplayPage() {
 
       {/* Editor Content */}
       <main className="flex-1 overflow-hidden mb-6 relative">
-        {/* Overlay when disabled */}
+        {/* Overlay when disabled - JUST CHANGED THIS */}
         {isDisabled && (
-          <div className="absolute inset-0 bg-gray-950/60 backdrop-blur-sm z-10 flex items-center justify-center">
-            <div className="text-center max-w-md px-6">
+          <div className="absolute inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gray-950/90 backdrop-blur-sm"></div>
+            <div className="relative z-10 text-center max-w-md px-6">
               <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <Power size={40} className="text-gray-600" />
               </div>
@@ -353,14 +354,12 @@ export default function EditDisplayPage() {
           </div>
         )}
 
-        <div className={isDisabled ? "pointer-events-none select-none" : ""}>
-          <TemplateEditor
-            displayName={display.name}
-            displayId={displayId}
-            templateType={display.templateType}
-            initialConfig={display.config}
-          />
-        </div>
+        <TemplateEditor
+          displayName={display.name}
+          displayId={displayId}
+          templateType={display.templateType}
+          initialConfig={display.config}
+        />
       </main>
     </div>
   );
