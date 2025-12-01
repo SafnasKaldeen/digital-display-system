@@ -29,6 +29,7 @@ export default function DisplaysPage() {
   const router = useRouter();
   const [displays, setDisplays] = useState<Display[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "inactive"
@@ -36,10 +37,33 @@ export default function DisplaysPage() {
   const [filterTemplate, setFilterTemplate] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Fetch authenticated user
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          setUserId(data.user.id);
+        } else {
+          console.error("Failed to fetch user");
+          router.push("/login"); // Redirect to login if not authenticated
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        router.push("/login");
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
   const loadDisplays = async () => {
+    if (!userId) return; // Don't load until we have userId
+
     setIsLoading(true);
     try {
-      const { data, error } = await getDisplays();
+      const { data, error } = await getDisplays(userId);
 
       if (error) {
         console.error("Failed to load displays:", error);
@@ -53,9 +77,12 @@ export default function DisplaysPage() {
     }
   };
 
+  // Load displays when userId is available
   useEffect(() => {
-    loadDisplays();
-  }, []);
+    if (userId) {
+      loadDisplays();
+    }
+  }, [userId]);
 
   const handleEdit = (id: string) => {
     router.push(`/displays/${id}/edit`);
@@ -105,7 +132,7 @@ export default function DisplaysPage() {
     const matchesSearch = display.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || filterStatus === "active"; // All displays are active by default
+    const matchesStatus = filterStatus === "all" || filterStatus === "active";
     const matchesTemplate =
       filterTemplate === "all" ||
       getTemplateType(display.template_type) === filterTemplate;
@@ -231,7 +258,6 @@ export default function DisplaysPage() {
           {filteredDisplays.map((display) => {
             const templateType = getTemplateType(display.template_type);
 
-            // Get thumbnail based on template type
             const thumbnails: Record<string, string> = {
               masjid:
                 "https://images.unsplash.com/photo-1591154669695-5f2a8d20c089?w=400",
@@ -308,6 +334,7 @@ export default function DisplaysPage() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSuccess={handleAddDisplay}
+        userId={userId}
       />
     </div>
   );

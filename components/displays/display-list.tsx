@@ -21,14 +21,15 @@ export function DisplayList() {
   const [displays, setDisplays] = useState<Display[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
 
   const loadDisplays = async () => {
+    if (!userId) return;
+
     setIsLoading(true);
     try {
-      const { data, error } = await getDisplays();
-
-      console.log("Fetched displays:", data);
+      const { data, error } = await getDisplays(userId);
 
       if (error) {
         console.error("Failed to load displays:", error);
@@ -42,9 +43,33 @@ export function DisplayList() {
     }
   };
 
+  // Fetch authenticated user
   useEffect(() => {
-    loadDisplays();
-  }, []);
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          setUserId(data.user.id);
+        } else {
+          console.error("Failed to fetch user");
+          router.push("/login");
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        router.push("/login");
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
+  // Load displays when userId is available
+  useEffect(() => {
+    if (userId) {
+      loadDisplays();
+    }
+  }, [userId]);
 
   const handleAddDisplay = async (newDisplay: Display) => {
     setDisplays([newDisplay, ...displays]);
@@ -160,10 +185,12 @@ export function DisplayList() {
         </div>
       )}
 
+      {/* Pass userId to CreateDisplayDialog */}
       <CreateDisplayDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSuccess={handleAddDisplay}
+        userId={userId} // ADD THIS PROP
       />
     </div>
   );

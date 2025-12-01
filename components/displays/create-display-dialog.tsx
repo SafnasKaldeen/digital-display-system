@@ -13,12 +13,14 @@ interface CreateDisplayDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (display: any) => void;
+  userId: string | null; // ADD THIS
 }
 
 export function CreateDisplayDialog({
   isOpen,
   onClose,
   onSuccess,
+  userId, // ADD THIS
 }: CreateDisplayDialogProps) {
   const [step, setStep] = useState<"details" | "template">("details");
   const [formData, setFormData] = useState({
@@ -58,16 +60,24 @@ export function CreateDisplayDialog({
   };
 
   const handleCreate = async () => {
+    // ADD THIS CHECK
+    if (!userId) {
+      setError("User not authenticated. Please log in again.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      // Call the server action instead of fetch
-      // Don't pass config at all - let the server action set defaults
-      const { data: newDisplay, error: createError } = await createDisplay({
-        name: formData.displayName,
-        template_type: formData.templateType,
-      });
+      // Pass userId to createDisplay
+      const { data: newDisplay, error: createError } = await createDisplay(
+        {
+          name: formData.displayName,
+          template_type: formData.templateType,
+        },
+        userId // ADD THIS
+      );
 
       if (createError) {
         setError(createError);
@@ -78,7 +88,7 @@ export function CreateDisplayDialog({
       onSuccess(newDisplay);
       onClose();
       setFormData({ displayName: "", templateType: "corporate" });
-      setStep("details"); // Reset to first step
+      setStep("details");
     } catch (err) {
       console.error("Error creating display:", err);
       setError("An error occurred. Please try again.");

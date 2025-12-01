@@ -124,7 +124,7 @@ function getDefaultConfig(templateType: string): DisplayConfig {
   return defaults[template] || defaults['masjid-classic'];
 }
 
-export async function createDisplay(data: DisplayData) {
+export async function createDisplay(data: DisplayData, userId: string) {
   const supabase = await createClient(supabaseUrl, supabaseAnonKey)
   
   const displayId = crypto.randomUUID()
@@ -135,8 +135,8 @@ export async function createDisplay(data: DisplayData) {
   // Merge: defaults first, then any provided config, then ensure template is set
   const config = {
     ...defaultConfig,
-    ...(data.config || {}), // Only merge if config is provided
-    template: getTemplateFromType(data.template_type), // Always set template
+    ...(data.config || {}),
+    template: getTemplateFromType(data.template_type),
   }
 
   const { data: display, error } = await supabase
@@ -146,6 +146,7 @@ export async function createDisplay(data: DisplayData) {
       name: data.name,
       template_type: data.template_type,
       config: config,
+      user_id: userId, // ADD THIS LINE
     })
     .select()
     .single()
@@ -159,13 +160,20 @@ export async function createDisplay(data: DisplayData) {
   return { data: display, error: null }
 }
 
-export async function getDisplays() {
+export async function getDisplays(userId?: string) {
   const supabase = await createClient(supabaseUrl, supabaseAnonKey)
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('displays')
     .select('*')
     .order('created_at', { ascending: false })
+
+  // Filter by user_id if provided
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching displays:', error)
