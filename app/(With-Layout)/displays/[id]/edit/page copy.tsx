@@ -1,4 +1,3 @@
-// app/displays/[id]/edit/page.tsx - Only changed the overlay part
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -236,7 +235,9 @@ export default function EditDisplayPage() {
   const isAdmin = userRole === "admin";
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950">
+    <div className="h-screen flex flex-col bg-gray-950 relative">
+      {" "}
+      {/* ADDED relative here */}
       {/* Top Bar */}
       <header className="bg-gray-900 border-b border-gray-800 flex-shrink-0">
         <div className="px-6 py-4">
@@ -275,7 +276,6 @@ export default function EditDisplayPage() {
           </div>
         </div>
       </header>
-
       {/* Disabled State Warning */}
       {isDisabled && (
         <div className="px-6 pt-6">
@@ -312,48 +312,52 @@ export default function EditDisplayPage() {
           </Alert>
         </div>
       )}
+      {/* NEW OVERLAY PLACEMENT: Moved outside of <main> and kept 'absolute inset-0 z-50' 
+        to ensure it covers everything below the header (and the Alert if present).
+        We add 'pt-24' to push the modal content down below the fixed header height.
+      */}
+      {isDisabled && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-gray-950/90 backdrop-blur-sm"></div>
 
+          <div className="relative z-10 text-center max-w-md px-6 -mt-16">
+            {" "}
+            {/* -mt-16 helps center it better */}
+            <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
+              <Power size={40} className="text-gray-600" />
+            </div>
+            <h3 className="text-2xl font-semibold text-white mb-3">
+              Display Disabled
+            </h3>
+            <p className="text-gray-400 mb-6">
+              {isAdmin
+                ? "Enable the display to access the editor and make changes to your configuration."
+                : "This display is currently disabled. Contact your administrator to enable it."}
+            </p>
+            {isAdmin && (
+              <Button
+                onClick={handleEnableDisplay}
+                disabled={isEnabling}
+                className="bg-pink-300 text-gray-900 hover:bg-pink-400"
+              >
+                {isEnabling ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mr-2" />
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Power size={18} className="mr-2" />
+                    Enable Display Now
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Editor Content */}
       <main className="flex-1 overflow-hidden mb-6 relative">
-        {/* Overlay when disabled - JUST CHANGED THIS */}
-        {isDisabled && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gray-950/90 backdrop-blur-sm"></div>
-            <div className="relative z-10 text-center max-w-md px-6">
-              <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Power size={40} className="text-gray-600" />
-              </div>
-              <h3 className="text-2xl font-semibold text-white mb-3">
-                Display Disabled
-              </h3>
-              <p className="text-gray-400 mb-6">
-                {isAdmin
-                  ? "Enable the display to access the editor and make changes to your configuration."
-                  : "This display is currently disabled. Contact your administrator to enable it."}
-              </p>
-              {isAdmin && (
-                <Button
-                  onClick={handleEnableDisplay}
-                  disabled={isEnabling}
-                  className="bg-pink-300 text-gray-900 hover:bg-pink-400"
-                >
-                  {isEnabling ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mr-2" />
-                      Enabling...
-                    </>
-                  ) : (
-                    <>
-                      <Power size={18} className="mr-2" />
-                      Enable Display Now
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
         <TemplateEditor
           displayName={display.name}
           displayId={displayId}

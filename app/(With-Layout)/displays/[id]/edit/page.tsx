@@ -1,12 +1,12 @@
-// app/displays/[id]/edit/page.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TemplateEditor } from "@/components/editor/template-editor";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Eye } from "lucide-react";
+import { ArrowLeft, Power, AlertCircle } from "lucide-react";
 import { getDisplayById } from "@/app/actions/displays";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DisplayData {
   id: string;
@@ -14,7 +14,7 @@ interface DisplayData {
   template_type: string;
   templateType: "masjid" | "hospital" | "corporate" | "restaurant" | "retail";
   location?: string;
-  status: "active" | "inactive";
+  status: "active" | "disabled";
   displayUrl: string;
   resolution?: string;
   config: any;
@@ -28,6 +28,25 @@ export default function EditDisplayPage() {
   const [display, setDisplay] = useState<DisplayData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEnabling, setIsEnabling] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Fetch user role
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          setUserRole(data.user.role);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const fetchDisplay = async () => {
@@ -53,11 +72,13 @@ export default function EditDisplayPage() {
         // Map template_type to templateType for compatibility
         const templateTypeMap: Record<
           string,
-          "masjid" | "hospital" | "corporate"
+          "masjid" | "hospital" | "corporate" | "restaurant" | "retail"
         > = {
           masjid: "masjid",
           hospital: "hospital",
           corporate: "corporate",
+          restaurant: "restaurant",
+          retail: "retail",
         };
 
         const mappedDisplay: DisplayData = {
@@ -65,7 +86,7 @@ export default function EditDisplayPage() {
           name: data.name,
           template_type: data.template_type,
           templateType: templateTypeMap[data.template_type] || "masjid",
-          status: "active",
+          status: data.status === "active" ? "active" : "disabled",
           displayUrl: `${window.location.origin}/displays/${data.id}/live`,
           config: data.config || {},
           location: data.location || `${data.name} - Display`,
@@ -84,6 +105,29 @@ export default function EditDisplayPage() {
 
     fetchDisplay();
   }, [displayId]);
+
+  const handleEnableDisplay = async () => {
+    if (!display || userRole !== "admin") return;
+
+    setIsEnabling(true);
+    try {
+      const response = await fetch(`/api/admin/displays/${displayId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      });
+
+      if (response.ok) {
+        setDisplay({ ...display, status: "active" });
+      } else {
+        console.error("Failed to enable display");
+      }
+    } catch (error) {
+      console.error("Error enabling display:", error);
+    } finally {
+      setIsEnabling(false);
+    }
+  };
 
   const handlePreview = () => {
     if (!display) return;
@@ -187,8 +231,13 @@ export default function EditDisplayPage() {
     );
   }
 
+  const isDisabled = display.status === "disabled";
+  const isAdmin = userRole === "admin";
+
   return (
-    <div className="h-screen flex flex-col bg-gray-950">
+    <div className="h-screen flex flex-col bg-gray-950 relative">
+      {" "}
+      {/* ADDED relative here */}
       {/* Top Bar */}
       <header className="bg-gray-900 border-b border-gray-800 flex-shrink-0">
         <div className="px-6 py-4">
@@ -216,7 +265,7 @@ export default function EditDisplayPage() {
                         : "bg-gray-700 text-gray-300 border border-gray-600"
                     }`}
                   >
-                    {display.status}
+                    {display.status === "active" ? "Active" : "Disabled"}
                   </span>
                 </div>
                 <p className="text-sm text-gray-400 mt-0.5">
@@ -227,10 +276,88 @@ export default function EditDisplayPage() {
           </div>
         </div>
       </header>
+      {/* Disabled State Warning */}
+      {isDisabled && (
+        <div className="px-6 pt-6">
+          <Alert className="bg-amber-500/10 border-amber-500/30">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+            <AlertTitle className="text-amber-500 font-semibold mb-2">
+              Display is Disabled
+            </AlertTitle>
+            <AlertDescription className="text-amber-200/80 mb-3">
+              {isAdmin
+                ? "This display is currently disabled. Editing is restricted until you enable it. Enable the display to make changes to the configuration."
+                : "This display is currently disabled. Contact your administrator to enable it before making changes."}
+            </AlertDescription>
+            {isAdmin && (
+              <Button
+                onClick={handleEnableDisplay}
+                disabled={isEnabling}
+                size="sm"
+                className="bg-amber-500 text-gray-900 hover:bg-amber-400"
+              >
+                {isEnabling ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mr-2" />
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Power size={16} className="mr-2" />
+                    Enable Display
+                  </>
+                )}
+              </Button>
+            )}
+          </Alert>
+        </div>
+      )}
+      {/* NEW OVERLAY PLACEMENT: Moved outside of <main> and kept 'absolute inset-0 z-50' 
+        to ensure it covers everything below the header (and the Alert if present).
+        We add 'pt-24' to push the modal content down below the fixed header height.
+      */}
+      {isDisabled && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-gray-950/90 backdrop-blur-sm"></div>
 
+          <div className="relative z-10 text-center max-w-md px-6 -mt-16">
+            {" "}
+            {/* -mt-16 helps center it better */}
+            <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
+              <Power size={40} className="text-gray-600" />
+            </div>
+            <h3 className="text-2xl font-semibold text-white mb-3">
+              Display Disabled
+            </h3>
+            <p className="text-gray-400 mb-6">
+              {isAdmin
+                ? "Enable the display to access the editor and make changes to your configuration."
+                : "This display is currently disabled. Contact your administrator to enable it."}
+            </p>
+            {isAdmin && (
+              <Button
+                onClick={handleEnableDisplay}
+                disabled={isEnabling}
+                className="bg-pink-300 text-gray-900 hover:bg-pink-400"
+              >
+                {isEnabling ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mr-2" />
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Power size={18} className="mr-2" />
+                    Enable Display Now
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Editor Content */}
-      <main className="flex-1 overflow-hidden mb-6">
-        {/* <pre className="text-xs">{JSON.stringify(display.config, null, 2)}</pre> */}
+      <main className="flex-1 overflow-hidden mb-6 relative">
         <TemplateEditor
           displayName={display.name}
           displayId={displayId}
