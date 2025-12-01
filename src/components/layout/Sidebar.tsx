@@ -15,11 +15,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Monitor, label: "Displays", href: "/displays" },
   { icon: Image, label: "Media Library", href: "/media" },
   // { icon: Palette, label: "Templates", href: "/templates" },
-  { icon: Users, label: "Locations", href: "/locations" },
+  { icon: Users, label: "Locations", href: "/clients" },
 ];
 
 const bottomItems = [
