@@ -220,10 +220,12 @@ export default function LivePage({ params }: LivePageProps) {
         );
       case "hospital-modern":
         return (
-          <HospitalTemplate
-            customization={customization}
-            backgroundStyle={getBackgroundStyle()}
-          />
+          <div className="bg-white">
+            <HospitalTemplate
+              customization={customization}
+              backgroundStyle={getBackgroundStyle()}
+            />
+          </div>
         );
       case "corporate-dashboard":
         return (

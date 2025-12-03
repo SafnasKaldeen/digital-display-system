@@ -1,461 +1,125 @@
 import React, { useState, useEffect } from "react";
+import {
+  Sun,
+  MapPin,
+  Calendar,
+  User,
+  Clock,
+  Stethoscope,
+  Heart,
+  Award,
+  Users,
+} from "lucide-react";
 
-// Configuration JSON - Edit this to customize the display
-const CONFIG = {
-  hospital: {
-    name: "OLIVIA MEDICAL CENTER",
-    tagline: "Excellence in Healthcare Since 1995",
-    address: "123 Medical Plaza, Healthcare District, City 12345",
-    emergencyNumber: "911",
-    website: "www.oliviamedical.com",
-    email: "info@oliviamedical.com",
-    phone: "+1 (555) 123-4567",
-  },
-
-  theme: {
-    primaryColor: "#2563eb",
-    secondaryColor: "#7c3aed",
-    accentColor: "#f59e0b",
-    textColor: "#ffffff",
-    backgroundColor: "#1e293b",
-    font: "Inter, system-ui, sans-serif",
-  },
-
-  features: {
-    showDoctorProfiles: true,
-    showQueueNumbers: true,
-    showWeather: true,
-    showTestimonials: true,
-    showHealthTips: true,
-    showNewsticker: true,
-    showFacilities: true,
-    enableParticles: true,
-    enableVideoBackground: false,
-    showLanguageToggle: true,
-    showQRCodes: true,
-  },
-
-  animations: {
-    healthTipInterval: 8000,
-    doctorProfileInterval: 10000,
-    testimonialInterval: 10000,
-    particleCount: 30,
-    enableGlowEffects: true,
-    enableParallax: true,
-  },
-
-  visitingHours: {
-    morning: "8:00 AM - 11:00 AM",
-    evening: "4:00 PM - 7:00 PM",
-  },
-};
-
-// Mock Data
-const MOCK_DATA = {
-  appointments: [
-    {
-      title: "Dr. Sarah Johnson - Cardiologist",
-      time: "9:00 AM - 2:00 PM",
-      days: "Mon, Wed, Fri",
-      status: "Available",
-    },
-    {
-      title: "Dr. Michael Chen - Neurologist",
-      time: "10:00 AM - 4:00 PM",
-      days: "Tue, Thu",
-      status: "Busy",
-    },
-    {
-      title: "Dr. Emily Rodriguez - Pediatrician",
-      time: "8:00 AM - 6:00 PM",
-      days: "Mon - Fri",
-      status: "Available",
-    },
-    {
-      title: "Dr. James Wilson - Orthopedic",
-      time: "2:00 PM - 7:00 PM",
-      days: "Mon - Sat",
-      status: "Available",
-    },
-    {
-      title: "Dr. Lisa Brown - Dermatologist",
-      time: "11:00 AM - 5:00 PM",
-      days: "Wed, Fri, Sat",
-      status: "Next: 3:00 PM",
-    },
-    {
-      title: "Dr. Robert Taylor - ENT Specialist",
-      time: "9:00 AM - 3:00 PM",
-      days: "Mon, Thu",
-      status: "Available",
-    },
-    {
-      title: "Dr. Maria Garcia - Gynecologist",
-      time: "1:00 PM - 6:00 PM",
-      days: "Tue, Wed, Fri",
-      status: "Available",
-    },
-    {
-      title: "Dr. David Lee - General Physician",
-      time: "8:00 AM - 8:00 PM",
-      days: "Daily",
-      status: "Available",
-    },
-  ],
-
-  doctors: [
-    {
-      name: "Dr. Jessica Joan",
-      specialty: "Nephrology",
-      experience: "20 years",
-      education: "MD, Johns Hopkins University",
-      specializations: [
-        "Kidney Disease",
-        "Dialysis",
-        "Transplant Medicine",
-        "Hypertension",
-      ],
-      achievements: [
-        "Robert L. Nobel Price",
-        "Edison Awards",
-        "Canadian Cancer Society",
-      ],
-      availability: "Mon - Fri: 9:00 AM - 6:00 PM",
-      rating: 4.9,
-      patients: "3000+",
-      phone: "+1 (230)-369-155-23",
-      email: "jessica@joan.com",
-      location: "380 Albert ST, Melbourne",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/jassica.jpg",
-      bgColor: "from-blue-600 to-cyan-600",
-    },
-    {
-      name: "Dr. Alexandra",
-      specialty: "Gastroenterology",
-      experience: "18 years",
-      education: "MD, Harvard Medical School",
-      specializations: [
-        "Digestive Disorders",
-        "Endoscopy",
-        "Liver Disease",
-        "IBD Treatment",
-      ],
-      achievements: [
-        "Gastro Excellence Award 2023",
-        "500+ Procedures",
-        "Research Pioneer",
-      ],
-      availability: "Mon, Wed, Fri: 9:00 AM - 5:00 PM",
-      rating: 4.9,
-      patients: "4500+",
-      phone: "+1 (230)-369-155-24",
-      email: "alexandra@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/alexandra.jpg",
-      bgColor: "from-red-600 to-pink-600",
-    },
-    {
-      name: "Dr. Kimberly",
-      specialty: "Neurology",
-      experience: "15 years",
-      education: "MD, Stanford Medical School",
-      specializations: [
-        "Brain Surgery",
-        "Epilepsy",
-        "Stroke Management",
-        "Parkinson's Disease",
-      ],
-      achievements: [
-        "Excellence in Neurology 2024",
-        "Research Excellence Award",
-        "Brain Health Champion",
-      ],
-      availability: "Tue, Thu, Sat: 10:00 AM - 4:00 PM",
-      rating: 4.8,
-      patients: "2800+",
-      phone: "+1 (230)-369-155-25",
-      email: "kimberly@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/kimberly.jpg",
-      bgColor: "from-purple-600 to-indigo-600",
-    },
-    {
-      name: "Dr. Bella Carol",
-      specialty: "Obstetrics",
-      experience: "12 years",
-      education: "MD, Yale School of Medicine",
-      specializations: [
-        "Prenatal Care",
-        "High-Risk Pregnancy",
-        "Labor & Delivery",
-        "Maternal Health",
-      ],
-      achievements: [
-        "Best Obstetrician 2024",
-        "Maternal Care Advocate",
-        "Compassionate Care Award",
-      ],
-      availability: "Mon - Fri: 8:00 AM - 6:00 PM",
-      rating: 5.0,
-      patients: "5000+",
-      phone: "+1 (230)-369-155-26",
-      email: "bella@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/bella.jpg",
-      bgColor: "from-green-600 to-teal-600",
-    },
-    {
-      name: "Dr. Rebecca Rose",
-      specialty: "Gynecology",
-      experience: "22 years",
-      education: "MD, Mayo Clinic",
-      specializations: [
-        "Women's Health",
-        "Reproductive Medicine",
-        "Minimally Invasive Surgery",
-        "Cancer Screening",
-      ],
-      achievements: [
-        "Gynecology Excellence 2023",
-        "1200+ Surgeries",
-        "Women's Health Champion",
-      ],
-      availability: "Mon - Sat: 2:00 PM - 7:00 PM",
-      rating: 4.9,
-      patients: "4200+",
-      phone: "+1 (230)-369-155-27",
-      email: "rebecca@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/rebecca.jpg",
-      bgColor: "from-orange-600 to-amber-600",
-    },
-    {
-      name: "Dr. Stephanie Sue",
-      specialty: "Haematology",
-      experience: "16 years",
-      education: "MD, UCLA School of Medicine",
-      specializations: [
-        "Blood Disorders",
-        "Anemia Treatment",
-        "Leukemia Care",
-        "Bone Marrow",
-      ],
-      achievements: [
-        "Blood Health Expert 2024",
-        "Research Excellence",
-        "Haematology Innovation Prize",
-      ],
-      availability: "Wed, Fri, Sat: 11:00 AM - 5:00 PM",
-      rating: 4.8,
-      patients: "3200+",
-      phone: "+1 (230)-369-155-28",
-      email: "stephanie@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/stephanie.jpg",
-      bgColor: "from-pink-600 to-rose-600",
-    },
-    {
-      name: "Dr. Penelope",
-      specialty: "Physiotherapy",
-      experience: "14 years",
-      education: "DPT, Columbia University",
-      specializations: [
-        "Sports Rehabilitation",
-        "Pain Management",
-        "Mobility Therapy",
-        "Post-Surgery Recovery",
-      ],
-      achievements: [
-        "Physical Therapy Excellence",
-        "Recovery Specialist 2023",
-        "Patient Care Award",
-      ],
-      availability: "Mon - Thu: 7:00 AM - 3:00 PM",
-      rating: 4.9,
-      patients: "5500+",
-      phone: "+1 (230)-369-155-29",
-      email: "penelope@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/penelope.jpg",
-      bgColor: "from-indigo-600 to-blue-600",
-    },
-    {
-      name: "Dr. Lauren Leah",
-      specialty: "Oncology",
-      experience: "19 years",
-      education: "MD, Duke University",
-      specializations: [
-        "Cancer Treatment",
-        "Chemotherapy",
-        "Radiation Therapy",
-        "Palliative Care",
-      ],
-      achievements: [
-        "Cancer Care Excellence 2024",
-        "Hope Provider",
-        "Oncology Pioneer Award",
-      ],
-      availability: "Tue, Thu, Sat: 9:00 AM - 4:00 PM",
-      rating: 4.9,
-      patients: "2900+",
-      phone: "+1 (230)-369-155-30",
-      email: "lauren@oliviamedical.com",
-      location: "123 Medical Plaza, City",
-      image:
-        "https://health-point-nextjs-pro.vercel.app/images/doctors/lauren-leah.jpg",
-      bgColor: "from-teal-600 to-green-600",
-    },
-  ],
-
-  facilities: [
-    { name: "24/7 Emergency", icon: "🚑", status: "Active" },
-    { name: "ICU (12 beds)", icon: "🏥", status: "4 Available" },
-    { name: "Pharmacy", icon: "💊", status: "Open" },
-    { name: "Laboratory", icon: "🔬", status: "Open" },
-    { name: "X-Ray & CT Scan", icon: "📷", status: "Available" },
-    { name: "Ambulance", icon: "🚨", status: "3 Ready" },
-    { name: "Blood Bank", icon: "🩸", status: "All Groups" },
-    { name: "Dialysis", icon: "⚕️", status: "6 Machines" },
-    { name: "Maternity Ward", icon: "👶", status: "Open" },
-  ],
-
-  queueNumbers: [
-    { department: "General OPD", current: 47, waiting: 12 },
-    { department: "Cardiology", current: 23, waiting: 5 },
-    { department: "Pediatrics", current: 31, waiting: 8 },
-    { department: "Orthopedics", current: 15, waiting: 3 },
-  ],
-
-  healthTips: [
-    {
-      icon: "💧",
-      tip: "Drink 8-10 glasses of water daily to stay hydrated and support kidney function",
-    },
-    {
-      icon: "🏃",
-      tip: "30 minutes of daily exercise can reduce heart disease risk by 50%",
-    },
-    {
-      icon: "🥗",
-      tip: "Eat 5 servings of fruits and vegetables daily for optimal nutrition",
-    },
-    {
-      icon: "😴",
-      tip: "Quality sleep of 7-8 hours improves memory, immune system, and mood",
-    },
-    {
-      icon: "🧘",
-      tip: "Practice deep breathing or meditation to reduce stress and lower blood pressure",
-    },
-  ],
-
-  testimonials: [
-    {
-      patient: "John D.",
-      message:
-        "Excellent care during my cardiac surgery. The staff was amazing!",
-      rating: 5,
-    },
-    {
-      patient: "Maria S.",
-      message: "Best pediatric care for my daughter. Highly professional team.",
-      rating: 5,
-    },
-    {
-      patient: "Robert K.",
-      message: "Quick emergency response saved my life. Forever grateful!",
-      rating: 5,
-    },
-  ],
-
-  newsItems: [
-    "🎉 New State-of-the-Art Cardiac Care Unit Now Open",
-    "🏆 Awarded 'Best Hospital 2024' by Healthcare Excellence Board",
-    "💉 Free Health Checkup Camp Every Sunday 9 AM - 1 PM",
-    "🩺 COVID-19, Flu & Pneumonia Vaccines Available",
-    "🚑 Free Ambulance Service for Senior Citizens",
-    "👶 Special Neonatal ICU with 24/7 Pediatrician",
-  ],
-
-  achievements: [
-    { title: "JCI Accredited", year: "2023", icon: "🏅" },
-    { title: "ISO 9001 Certified", year: "2022", icon: "✅" },
-    { title: "NABH Accredited", year: "2021", icon: "⭐" },
-    { title: "Green Hospital", year: "2024", icon: "🌱" },
-  ],
-};
-
-export default function HospitalTemplate() {
+export default function HospitalDigitalSignage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [healthTipIndex, setHealthTipIndex] = useState(0);
-  const [doctorIndex, setDoctorIndex] = useState(0);
-  const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const [particles, setParticles] = useState([]);
-  const [slideIn, setSlideIn] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
-  // Update time every second
+  // ========== CUSTOMIZATION SETTINGS ==========
+  const settings = {
+    hospitalName: "MediTech Hospital",
+    tagline: "Excellence in Healthcare Since 1995",
+    tokenNumber: "A-127",
+
+    // Background & Colors
+    backgroundImage: "/hospital-reception.png",
+    primaryColor: "#06b6d4",
+    secondaryColor: "#14b8a6",
+    accentColor: "#f59e0b",
+
+    // Contact Info
+    phone: "+1 (555) 123-4567",
+    emergency: "911 / +1 (555) 999-0000",
+    website: "www.meditech.org",
+    address: "123 Medical Center Blvd, Healthcare City, HC 12345",
+
+    // Timing
+    slideInterval: 8000,
+  };
+
+  const doctors = [
+    {
+      name: "Dr. Sarah Johnson",
+      specialty: "Cardiology",
+      experience: "15+ Years",
+      image:
+        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop",
+      available: "Mon-Fri, 9 AM - 5 PM",
+    },
+    {
+      name: "Dr. Michael Chen",
+      specialty: "Neurology",
+      experience: "12+ Years",
+      image:
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop",
+      available: "Mon-Thu, 10 AM - 6 PM",
+    },
+    {
+      name: "Dr. Emily Rodriguez",
+      specialty: "Pediatrics",
+      experience: "10+ Years",
+      image:
+        "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=300&fit=crop",
+      available: "Mon-Sat, 8 AM - 4 PM",
+    },
+  ];
+
+  const services = [
+    { icon: Heart, name: "Cardiology", desc: "Heart Care Excellence" },
+    { icon: Stethoscope, name: "General Medicine", desc: "Primary Healthcare" },
+    { icon: Users, name: "Pediatrics", desc: "Child Healthcare" },
+    { icon: Award, name: "Surgery", desc: "Advanced Surgical Care" },
+  ];
+
+  const testimonials = [
+    {
+      text: "The best healthcare experience I've ever had. Professional, caring staff and state-of-the-art facilities.",
+      author: "John Smith",
+      rating: 5,
+    },
+    {
+      text: "Outstanding service! The doctors took time to explain everything and the facility is immaculate.",
+      author: "Maria Garcia",
+      rating: 5,
+    },
+    {
+      text: "Highly recommend! Quick appointments, minimal wait times, and exceptional care quality.",
+      author: "David Lee",
+      rating: 5,
+    },
+  ];
+
+  const stats = [
+    { number: "25K+", label: "Patients Treated Annually" },
+    { number: "50+", label: "Expert Doctors" },
+    { number: "98%", label: "Patient Satisfaction" },
+    { number: "24/7", label: "Emergency Services" },
+  ];
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Rotate health tips
   useEffect(() => {
     const interval = setInterval(() => {
-      setHealthTipIndex((prev) => (prev + 1) % MOCK_DATA.healthTips.length);
-    }, CONFIG.animations.healthTipInterval);
+      setCurrentSlide((prev) => (prev + 1) % 4);
+    }, settings.slideInterval);
     return () => clearInterval(interval);
   }, []);
 
-  // Rotate doctor profiles with animation
   useEffect(() => {
     const interval = setInterval(() => {
-      setSlideIn(false);
-      setTimeout(() => {
-        setDoctorIndex((prev) => (prev + 1) % MOCK_DATA.doctors.length);
-        setSlideIn(true);
-      }, 500);
-    }, CONFIG.animations.doctorProfileInterval);
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 7000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Rotate testimonials
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTestimonialIndex((prev) => (prev + 1) % MOCK_DATA.testimonials.length);
-    }, CONFIG.animations.testimonialInterval);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Generate floating particles
-  useEffect(() => {
-    if (CONFIG.features.enableParticles) {
-      const newParticles = Array.from(
-        { length: CONFIG.animations.particleCount },
-        (_, i) => ({
-          id: i,
-          left: Math.random() * 100,
-          duration: 15 + Math.random() * 20,
-          delay: Math.random() * 10,
-          size: 10 + Math.random() * 20,
-        })
-      );
-      setParticles(newParticles);
-    }
   }, []);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
       hour12: true,
     });
   };
@@ -469,524 +133,438 @@ export default function HospitalTemplate() {
     });
   };
 
-  const currentDoctor = MOCK_DATA.doctors[doctorIndex];
-
   return (
-    <div
-      className="relative w-full h-screen overflow-hidden"
-      style={{
-        backgroundColor: CONFIG.theme.backgroundColor,
-        fontFamily: CONFIG.theme.font,
-        minHeight: "1080px",
-      }}
-    >
-      {/* Animated Gradient Background */}
+    <div className="fixed inset-0 bg-white overflow-hidden">
+      {/* Background Image with Subtle Overlay */}
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${currentDoctor.bgColor} transition-all duration-1000`}
-      ></div>
-
-      {/* Floating Particles */}
-      {CONFIG.features.enableParticles &&
-        particles.map((particle) => (
-          <div
-            key={particle.id}
-            className="absolute rounded-full opacity-20 animate-float"
-            style={{
-              left: `${particle.left}%`,
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              backgroundColor: CONFIG.theme.accentColor,
-              animationDuration: `${particle.duration}s`,
-              animationDelay: `${particle.delay}s`,
-              filter: CONFIG.animations.enableGlowEffects
-                ? "blur(2px)"
-                : "none",
-            }}
-          ></div>
-        ))}
-
-      {/* Header */}
-      <header
-        className="relative z-10 px-8 py-6"
-        style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${settings.backgroundImage})` }}
       >
-        <div className="flex items-center justify-between">
-          {/* Left - Logo & Info */}
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl">
-              <span className="text-5xl">🏥</span>
-            </div>
-            <div>
-              <h1
-                className="text-5xl font-bold mb-2"
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-800/60 to-slate-900/70"></div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 h-full flex flex-col">
+        {/* Top Header Bar */}
+        <header
+          className="bg-black/60 backdrop-blur-md border-b-2 px-8 py-5"
+          style={{ borderColor: settings.primaryColor }}
+        >
+          <div className="flex items-center justify-between">
+            {/* Logo & Hospital Name */}
+            <div className="flex items-center gap-4">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
                 style={{
-                  color: CONFIG.theme.textColor,
-                  textShadow: CONFIG.animations.enableGlowEffects
-                    ? "0 0 20px rgba(255,255,255,0.5)"
-                    : "none",
+                  background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
                 }}
               >
-                {CONFIG.hospital.name}
-              </h1>
-              <p
-                className="text-xl opacity-90"
-                style={{ color: CONFIG.theme.textColor }}
-              >
-                {CONFIG.hospital.tagline}
-              </p>
-              <p
-                className="text-sm opacity-75 mt-1"
-                style={{ color: CONFIG.theme.textColor }}
-              >
-                📍 {CONFIG.hospital.address}
-              </p>
-            </div>
-          </div>
-
-          {/* Right - Time & Date */}
-          <div className="text-right">
-            <div
-              className="text-5xl font-bold mb-1"
-              style={{
-                color: "#ffd700",
-                textShadow: "0 0 20px rgba(255,215,0,0.6)",
-              }}
-            >
-              {formatTime(currentTime)}
-            </div>
-            <div className="text-lg" style={{ color: CONFIG.theme.textColor }}>
-              {formatDate(currentTime)}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div
-        className="relative z-10 flex gap-6 px-8 py-6"
-        style={{ height: "calc(100% - 240px)" }}
-      >
-        {/* Left Column - Queue & Appointments */}
-        <div className="w-1/5 space-y-4">
-          {/* Queue Numbers */}
-          {CONFIG.features.showQueueNumbers && (
-            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 shadow-2xl">
-              <h3
-                className="text-xl font-bold mb-3 text-center"
-                style={{ color: CONFIG.theme.accentColor }}
-              >
-                🎫 Live Queue
-              </h3>
-              <div className="space-y-2">
-                {MOCK_DATA.queueNumbers.map((queue, idx) => (
-                  <div key={idx} className="bg-black/30 rounded-lg p-3">
-                    <div className="flex justify-between items-center">
-                      <span
-                        className="text-sm font-semibold"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        {queue.department}
-                      </span>
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      <span
-                        className="text-2xl font-bold"
-                        style={{ color: CONFIG.theme.accentColor }}
-                      >
-                        #{queue.current}
-                      </span>
-                      <span
-                        className="text-sm opacity-75"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        Waiting: {queue.waiting}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <Heart className="w-8 h-8 text-white fill-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-1">
+                  {settings.hospitalName}
+                </h1>
+                <p
+                  className="text-base"
+                  style={{ color: settings.accentColor }}
+                >
+                  {settings.tagline}
+                </p>
               </div>
             </div>
-          )}
 
-          {/* Facilities */}
-          {CONFIG.features.showFacilities && (
-            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 shadow-2xl">
-              <h3
-                className="text-lg font-bold mb-3 text-center"
-                style={{ color: CONFIG.theme.accentColor }}
+            {/* Time & Date */}
+            <div className="text-right">
+              <div
+                className="text-5xl font-bold mb-1"
+                style={{ color: settings.primaryColor }}
               >
-                🏥 Facilities
-              </h3>
-              <div className="space-y-2">
-                {MOCK_DATA.facilities.slice(0, 6).map((facility, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-black/20 rounded-lg p-2 flex items-center gap-2"
-                  >
-                    <div className="text-2xl">{facility.icon}</div>
-                    <div className="flex-1">
-                      <div
-                        className="text-xs font-semibold"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        {facility.name}
-                      </div>
-                      <div
-                        className="text-xs opacity-75"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        {facility.status}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {formatTime(currentTime)}
+              </div>
+              <div className="text-base text-gray-300">
+                {formatDate(currentTime)}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        </header>
 
-        {/* Center Column - Featured Doctor Profile (Large) */}
-        <div className="flex-1 flex items-center justify-center">
-          <div
-            className={`w-full h-full bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden transition-all duration-700 ${
-              slideIn ? "opacity-100 scale-100" : "opacity-0 scale-95"
-            }`}
-          >
-            <div className="h-full flex">
-              {/* Left side - Doctor Image */}
-              <div className="w-2/5 bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-
-                {/* Doctor Photo */}
-                <div className="relative z-10 text-center">
-                  <div className="w-80 h-80 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm border-8 border-white/40 shadow-2xl overflow-hidden bg-white/10">
-                    <img
-                      src={currentDoctor.image}
-                      alt={currentDoctor.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.nextSibling.style.display = "flex";
-                      }}
+        {/* Main Content Area */}
+        <div className="flex-1 grid grid-cols-3 gap-6 p-6 overflow-hidden min-h-0">
+          {/* Left Panel - Dynamic Content Slides */}
+          <div className="flex flex-col overflow-hidden">
+            {/* Slide 1: Services */}
+            {currentSlide === 0 && (
+              <div className="h-full flex flex-col animate-in fade-in duration-1000">
+                <div
+                  className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl mb-4"
+                  style={{ borderColor: settings.primaryColor + "60" }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Stethoscope
+                      className="w-7 h-7"
+                      style={{ color: settings.primaryColor }}
                     />
-                    <div className="w-full h-full items-center justify-center hidden">
-                      <span className="text-9xl">👨‍⚕️</span>
-                    </div>
+                    <h2 className="text-2xl font-bold text-white">
+                      Our Services
+                    </h2>
                   </div>
-                  <div className="bg-black/50 backdrop-blur-md rounded-2xl px-6 py-3 inline-block">
-                    <div className="text-white text-sm font-semibold opacity-75 mb-1">
-                      YOUR LOGO HERE
+                </div>
+
+                <div className="flex-1 grid grid-rows-4 gap-4">
+                  {services.map((service, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:border-white/40 hover:bg-black/40 transition-all shadow-xl"
+                    >
+                      <div className="flex items-center gap-4">
+                        <service.icon
+                          className="w-10 h-10"
+                          style={{ color: settings.accentColor }}
+                        />
+                        <div>
+                          <h3 className="text-xl font-bold text-white mb-1">
+                            {service.name}
+                          </h3>
+                          <p className="text-sm text-gray-300">
+                            {service.desc}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-yellow-400">⭐</span>
-                      <span className="text-white text-2xl font-bold">
-                        {currentDoctor.rating}
-                      </span>
-                      <span className="text-white/75 text-sm">/ 5.0</span>
-                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Slide 2: Stats */}
+            {currentSlide === 1 && (
+              <div className="h-full flex flex-col animate-in fade-in duration-1000">
+                <div
+                  className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl mb-4"
+                  style={{ borderColor: settings.primaryColor + "60" }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Award
+                      className="w-7 h-7"
+                      style={{ color: settings.primaryColor }}
+                    />
+                    <h2 className="text-2xl font-bold text-white">
+                      Our Excellence
+                    </h2>
                   </div>
+                </div>
+
+                <div className="flex-1 grid grid-rows-4 gap-4">
+                  {stats.map((stat, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/20 text-center shadow-xl"
+                    >
+                      <div
+                        className="text-4xl font-bold mb-1"
+                        style={{ color: settings.primaryColor }}
+                      >
+                        {stat.number}
+                      </div>
+                      <div className="text-sm text-gray-300">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Slide 3: Testimonial */}
+            {currentSlide === 2 && (
+              <div className="h-full flex flex-col justify-center animate-in fade-in duration-1000">
+                <div
+                  className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl mb-4"
+                  style={{ borderColor: settings.primaryColor + "60" }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Users
+                      className="w-7 h-7"
+                      style={{ color: settings.primaryColor }}
+                    />
+                    <h2 className="text-2xl font-bold text-white">
+                      Patient Testimonials
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="bg-black/30 backdrop-blur-sm rounded-xl p-8 border border-white/20 shadow-xl">
+                  <div className="flex gap-2 mb-4">
+                    {[...Array(testimonials[currentTestimonial].rating)].map(
+                      (_, i) => (
+                        <span
+                          key={i}
+                          className="text-3xl"
+                          style={{ color: settings.accentColor }}
+                        >
+                          ★
+                        </span>
+                      )
+                    )}
+                  </div>
+                  <p className="text-xl text-gray-200 leading-relaxed mb-6 italic">
+                    "{testimonials[currentTestimonial].text}"
+                  </p>
+                  <p
+                    className="text-lg font-bold"
+                    style={{ color: settings.primaryColor }}
+                  >
+                    — {testimonials[currentTestimonial].author}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Slide 4: Doctors */}
+            {currentSlide === 3 && (
+              <div className="h-full flex flex-col animate-in fade-in duration-1000">
+                <div
+                  className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl mb-4"
+                  style={{ borderColor: settings.primaryColor + "60" }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <User
+                      className="w-7 h-7"
+                      style={{ color: settings.primaryColor }}
+                    />
+                    <h2 className="text-2xl font-bold text-white">
+                      Our Doctors
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-4 overflow-y-auto">
+                  {doctors.map((doctor, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:border-white/40 hover:bg-black/40 transition-all shadow-xl"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-20 h-20 flex-shrink-0">
+                          <div
+                            className="absolute -inset-1 rounded-full opacity-40"
+                            style={{
+                              background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                              filter: "blur(8px)",
+                            }}
+                          ></div>
+                          <div
+                            className="relative w-full h-full rounded-full p-1 shadow-xl"
+                            style={{
+                              background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                            }}
+                          >
+                            <img
+                              src={doctor.image}
+                              alt={doctor.name}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white mb-1">
+                            {doctor.name}
+                          </h3>
+                          <div
+                            className="inline-block px-3 py-1 rounded-full text-sm font-bold text-white mb-2"
+                            style={{
+                              background: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`,
+                            }}
+                          >
+                            {doctor.specialty}
+                          </div>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <div>⏱️ {doctor.experience}</div>
+                            <div>📅 {doctor.available}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Slide Indicators */}
+            <div className="flex justify-center gap-2 mt-4">
+              {[0, 1, 2, 3].map((idx) => (
+                <div
+                  key={idx}
+                  className="h-2 rounded-full transition-all duration-500"
+                  style={{
+                    width: idx === currentSlide ? "2.5rem" : "0.5rem",
+                    backgroundColor:
+                      idx === currentSlide ? settings.primaryColor : "#64748b",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Center Panel - Token & Emergency */}
+          <div className="flex flex-col gap-6">
+            {/* Token Number Display */}
+            <div
+              className="bg-black/40 backdrop-blur-md rounded-2xl p-8 border-2 shadow-2xl text-center"
+              style={{ borderColor: settings.primaryColor + "60" }}
+            >
+              <div className="text-lg font-semibold text-white mb-3">
+                Current Token Number
+              </div>
+              <div
+                className="text-8xl font-bold py-6 rounded-xl"
+                style={{
+                  color: settings.primaryColor,
+                  textShadow: `0 0 30px ${settings.primaryColor}80`,
+                }}
+              >
+                {settings.tokenNumber}
+              </div>
+              <div className="text-base text-gray-300 mt-3">
+                Please wait for your number
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="bg-red-900/40 backdrop-blur-md rounded-2xl p-6 border-2 border-red-500/60 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center animate-pulse shadow-lg">
+                  <span className="text-2xl">🚨</span>
+                </div>
+                <div className="text-2xl font-bold text-white">Emergency</div>
+              </div>
+              <div className="text-3xl font-bold text-red-400">
+                {settings.emergency}
+              </div>
+              <div className="text-sm text-gray-300 mt-2">
+                Available 24/7 for emergencies
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div
+              className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl"
+              style={{ borderColor: settings.primaryColor + "60" }}
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div
+                    className="text-3xl font-bold"
+                    style={{ color: settings.primaryColor }}
+                  >
+                    98%
+                  </div>
+                  <div className="text-xs text-gray-300">Satisfaction</div>
+                </div>
+                <div className="text-center">
+                  <div
+                    className="text-3xl font-bold"
+                    style={{ color: settings.accentColor }}
+                  >
+                    50+
+                  </div>
+                  <div className="text-xs text-gray-300">Doctors</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Contact Info */}
+          <div className="flex flex-col gap-4 overflow-y-auto">
+            <div
+              className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border-2 shadow-2xl"
+              style={{ borderColor: settings.primaryColor + "60" }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <MapPin
+                  className="w-7 h-7"
+                  style={{ color: settings.primaryColor }}
+                />
+                <h2 className="text-2xl font-bold text-white">
+                  Contact Information
+                </h2>
+              </div>
+            </div>
+
+            {/* Contact Details */}
+            <div className="space-y-4">
+              <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-xl">
+                <div
+                  className="text-base font-semibold mb-2 flex items-center gap-2"
+                  style={{ color: settings.accentColor }}
+                >
+                  <span className="text-2xl">📞</span>
+                  <span>Phone</span>
+                </div>
+                <div className="text-xl font-bold text-white">
+                  {settings.phone}
                 </div>
               </div>
 
-              {/* Right side - Doctor Information */}
-              <div className="w-3/5 p-12 flex flex-col justify-center bg-gradient-to-br from-black/40 to-black/60 backdrop-blur-sm">
-                <div className="mb-8">
-                  <div
-                    className="text-2xl font-semibold mb-3"
-                    style={{ color: CONFIG.theme.accentColor }}
-                  >
-                    Meet Your Doctor
-                  </div>
-                  <h2
-                    className="text-6xl font-bold mb-4"
-                    style={{
-                      color: CONFIG.theme.textColor,
-                      textShadow: "0 0 30px rgba(255,255,255,0.3)",
-                    }}
-                  >
-                    {currentDoctor.name}
-                  </h2>
-                  <div className="bg-blue-600 text-white px-6 py-3 rounded-xl inline-block text-2xl font-semibold mb-6">
-                    {currentDoctor.specialty}
-                  </div>
+              <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-xl">
+                <div
+                  className="text-base font-semibold mb-2 flex items-center gap-2"
+                  style={{ color: settings.accentColor }}
+                >
+                  <span className="text-2xl">🌐</span>
+                  <span>Website</span>
                 </div>
+                <div className="text-xl font-bold text-white">
+                  {settings.website}
+                </div>
+              </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <div
-                      className="text-sm font-semibold mb-2 opacity-75"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      📚 Education
-                    </div>
-                    <div
-                      className="text-lg"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      {currentDoctor.education}
-                    </div>
-                  </div>
+              <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-xl">
+                <div
+                  className="text-base font-semibold mb-2 flex items-center gap-2"
+                  style={{ color: settings.accentColor }}
+                >
+                  <span className="text-2xl">📍</span>
+                  <span>Address</span>
+                </div>
+                <div className="text-base text-gray-300 leading-relaxed">
+                  {settings.address}
+                </div>
+              </div>
 
-                  <div>
-                    <div
-                      className="text-sm font-semibold mb-2 opacity-75"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      🎓 Experience
-                    </div>
-                    <div
-                      className="text-lg"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      {currentDoctor.experience} | {currentDoctor.patients}{" "}
-                      Patients Treated
-                    </div>
-                  </div>
-
-                  <div>
-                    <div
-                      className="text-sm font-semibold mb-2 opacity-75"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      🏆 Specializations
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {currentDoctor.specializations.map((spec, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-white/20 px-4 py-2 rounded-lg text-sm"
-                          style={{ color: CONFIG.theme.textColor }}
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div
-                      className="text-sm font-semibold mb-2 opacity-75"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      ⏰ Availability
-                    </div>
-                    <div
-                      className="text-lg"
-                      style={{ color: CONFIG.theme.textColor }}
-                    >
-                      {currentDoctor.availability}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div
-                        className="text-xs font-semibold mb-1 opacity-75"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        📞 Phone
-                      </div>
-                      <div
-                        className="text-sm"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        {currentDoctor.phone}
-                      </div>
-                    </div>
-                    <div>
-                      <div
-                        className="text-xs font-semibold mb-1 opacity-75"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        📍 Location
-                      </div>
-                      <div
-                        className="text-sm"
-                        style={{ color: CONFIG.theme.textColor }}
-                      >
-                        {currentDoctor.location}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-white/20">
-                    <div className="flex flex-wrap gap-2">
-                      {currentDoctor.achievements
-                        .slice(0, 2)
-                        .map((achievement, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-yellow-500/20 px-3 py-1 rounded-lg text-xs flex items-center gap-1"
-                            style={{ color: "#ffd700" }}
-                          >
-                            🏆 {achievement}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
+              <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-xl">
+                <div
+                  className="text-base font-semibold mb-2 flex items-center gap-2"
+                  style={{ color: settings.accentColor }}
+                >
+                  <span className="text-2xl">⏰</span>
+                  <span>Hours</span>
+                </div>
+                <div className="text-sm text-gray-300 space-y-1">
+                  <div>Monday - Friday: 8 AM - 8 PM</div>
+                  <div>Saturday: 9 AM - 5 PM</div>
+                  <div>Sunday: Emergency Only</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column - Info Panels */}
-        <div className="w-1/5 space-y-4">
-          {/* Emergency */}
-          <div className="bg-red-600 rounded-2xl p-6 text-center shadow-2xl animate-pulse-glow">
-            <div className="text-5xl mb-3">🚑</div>
-            <div className="text-xl font-bold text-white mb-2">EMERGENCY</div>
-            <div className="text-4xl font-bold text-white mb-2">
-              {CONFIG.hospital.emergencyNumber}
+        {/* Bottom Ticker */}
+        <div
+          className="bg-black/60 backdrop-blur-md border-t-2 px-8 py-3"
+          style={{ borderColor: settings.primaryColor }}
+        >
+          <div className="flex items-center justify-between text-base">
+            <div className="text-white font-semibold">
+              ⚕️ Quality Healthcare • Compassionate Service • Advanced
+              Technology
             </div>
-            <div className="text-sm text-white/90">24/7 Available</div>
-          </div>
-
-          {/* Health Tip */}
-          {CONFIG.features.showHealthTips && (
-            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 shadow-2xl transition-all duration-700">
-              <div className="text-center">
-                <div className="text-5xl mb-3">
-                  {MOCK_DATA.healthTips[healthTipIndex].icon}
-                </div>
-                <div
-                  className="text-sm font-bold mb-2"
-                  style={{ color: CONFIG.theme.accentColor }}
-                >
-                  💡 Health Tip
-                </div>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: CONFIG.theme.textColor }}
-                >
-                  {MOCK_DATA.healthTips[healthTipIndex].tip}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Testimonial */}
-          {CONFIG.features.showTestimonials && (
-            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 shadow-2xl transition-all duration-700">
-              <div className="text-center">
-                <div
-                  className="text-sm font-bold mb-2"
-                  style={{ color: CONFIG.theme.accentColor }}
-                >
-                  💬 Patient Review
-                </div>
-                <p
-                  className="text-sm italic mb-3"
-                  style={{ color: CONFIG.theme.textColor }}
-                >
-                  "{MOCK_DATA.testimonials[testimonialIndex].message}"
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <span
-                    className="font-semibold text-sm"
-                    style={{ color: CONFIG.theme.textColor }}
-                  >
-                    - {MOCK_DATA.testimonials[testimonialIndex].patient}
-                  </span>
-                  <span style={{ color: CONFIG.theme.accentColor }}>
-                    {"⭐".repeat(
-                      MOCK_DATA.testimonials[testimonialIndex].rating
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Contact Info */}
-          <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 shadow-2xl">
-            <div
-              className="text-center space-y-2 text-xs"
-              style={{ color: CONFIG.theme.textColor }}
-            >
-              <div>📞 {CONFIG.hospital.phone}</div>
-              <div>✉️ {CONFIG.hospital.email}</div>
-              <div>🌐 {CONFIG.hospital.website}</div>
+            <div className="font-bold" style={{ color: settings.accentColor }}>
+              {settings.hospitalName} - Your Health, Our Priority
             </div>
           </div>
         </div>
       </div>
-
-      {/* Footer News Ticker */}
-      {CONFIG.features.showNewsticker && (
-        <footer
-          className="relative z-10 overflow-hidden py-4"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.7)",
-            height: "80px",
-          }}
-        >
-          <div className="flex items-center h-full">
-            <div className="animate-scroll-ticker whitespace-nowrap">
-              {[...MOCK_DATA.newsItems, ...MOCK_DATA.newsItems].map(
-                (news, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-block px-12 text-xl font-semibold"
-                    style={{ color: CONFIG.theme.textColor }}
-                  >
-                    {news}
-                  </span>
-                )
-              )}
-            </div>
-          </div>
-        </footer>
-      )}
-
-      <style jsx>{`
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0) translateX(0);
-          }
-          25% {
-            transform: translateY(-30px) translateX(10px);
-          }
-          50% {
-            transform: translateY(-60px) translateX(-10px);
-          }
-          75% {
-            transform: translateY(-30px) translateX(5px);
-          }
-        }
-
-        @keyframes scroll-ticker {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        @keyframes pulse-glow {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.85;
-          }
-        }
-
-        .animate-float {
-          animation: float linear infinite;
-        }
-
-        .animate-scroll-ticker {
-          animation: scroll-ticker 50s linear infinite;
-        }
-
-        .animate-pulse-glow {
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }
