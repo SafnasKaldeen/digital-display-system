@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  Award,
+  Calendar,
+} from "lucide-react";
 
 interface HospitalCustomization {
   hospitalName: string;
@@ -205,70 +211,110 @@ export function HospitalTemplate({
 
         {/* Main Content Area - 2 Columns */}
         <div className="flex-1 grid grid-cols-2 gap-6 p-6 overflow-hidden min-h-0">
-          {/* Left Panel - Doctor Carousel */}
+          {/* Left Panel - Enhanced Doctor Carousel */}
           <div className="flex flex-col justify-center">
             {doctors.length > 0 && (
-              <div className="bg-black/40 backdrop-blur-md rounded-3xl p-8 border-2 border-white/30 shadow-2xl">
-                <div className="flex flex-col items-center">
-                  <div className="relative w-80 h-80 mb-6">
-                    <div
-                      className="absolute -inset-2 rounded-full opacity-50 animate-pulse"
-                      style={{
-                        background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
-                        filter: "blur(20px)",
-                      }}
-                    ></div>
-                    <div
-                      className="relative w-full h-full rounded-full p-2 shadow-2xl"
-                      style={{
-                        background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
-                      }}
-                    >
-                      <img
-                        src={doctors[currentDoctor].image}
-                        alt={doctors[currentDoctor].name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    </div>
-                  </div>
-
-                  <h3 className="text-4xl font-bold text-white mb-3">
-                    {doctors[currentDoctor].name}
-                  </h3>
+              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl">
+                {/* Doctor Card */}
+                <div className="relative p-8">
+                  {/* Decorative Background Elements */}
                   <div
-                    className="inline-block px-8 py-3 rounded-full text-xl font-bold text-white mb-4"
-                    style={{
-                      background: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`,
-                    }}
-                  >
-                    {doctors[currentDoctor].specialty}
-                  </div>
-                  <div className="text-lg text-gray-300 space-y-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">⏱️</span>
-                      <span>{doctors[currentDoctor].experience}</span>
+                    className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10 -mr-20 -mt-20"
+                    style={{ backgroundColor: settings.primaryColor }}
+                  ></div>
+                  <div
+                    className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-10 -ml-16 -mb-16"
+                    style={{ backgroundColor: settings.secondaryColor }}
+                  ></div>
+
+                  {/* Content */}
+                  <div className="relative z-10">
+                    {/* Avatar with Glow Effect */}
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        {/* Glow effect */}
+                        <div
+                          className="absolute -inset-3 rounded-full opacity-50 blur-2xl animate-pulse"
+                          style={{
+                            background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                          }}
+                        ></div>
+
+                        {/* Avatar container */}
+                        <div
+                          className="relative w-48 h-48 rounded-full p-1.5 shadow-2xl"
+                          style={{
+                            background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                          }}
+                        >
+                          <img
+                            src={doctors[currentDoctor].image}
+                            alt={doctors[currentDoctor].name}
+                            className="w-full h-full rounded-full object-cover border-4 border-black/20"
+                          />
+                        </div>
+
+                        {/* Online Status Indicator */}
+                        <div
+                          className="absolute bottom-2 right-2 w-12 h-12 rounded-full border-4 border-black/30 flex items-center justify-center shadow-lg"
+                          style={{ backgroundColor: "#10b981" }}
+                        >
+                          <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">📅</span>
-                      <span>{doctors[currentDoctor].available}</span>
+
+                    {/* Doctor Info */}
+                    <div className="text-center mb-6">
+                      <h3 className="text-3xl font-bold text-white mb-3 tracking-wide">
+                        {doctors[currentDoctor].name}
+                      </h3>
+                      <div
+                        className="inline-block px-6 py-2.5 rounded-full text-lg font-bold text-white shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                        }}
+                      >
+                        {doctors[currentDoctor].specialty}
+                      </div>
+                    </div>
+
+                    {/* Details with Icons */}
+                    <div className="space-y-3 max-w-md mx-auto">
+                      <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm rounded-xl py-3 px-5 border border-white/10">
+                        <Award
+                          className="w-6 h-6 flex-shrink-0"
+                          style={{ color: settings.accentColor }}
+                        />
+                        <span className="font-medium text-white text-lg">
+                          {doctors[currentDoctor].experience} Experience
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm rounded-xl py-3 px-5 border border-white/10">
+                        <Calendar
+                          className="w-6 h-6 flex-shrink-0"
+                          style={{ color: settings.primaryColor }}
+                        />
+                        <span className="font-medium text-white text-lg">
+                          {doctors[currentDoctor].available}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Dots Indicator */}
                 {doctors.length > 1 && (
-                  <div className="flex items-center justify-center gap-6 mt-8">
-                    <button
-                      onClick={prevDoctor}
-                      className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all border border-white/30 hover:border-white/50"
-                    >
-                      <ChevronLeft className="w-7 h-7 text-white" />
-                    </button>
-                    <div className="flex gap-2">
+                  <div className="bg-black/20 backdrop-blur-sm px-8 py-5 border-t border-white/10">
+                    <div className="flex justify-center gap-2.5">
                       {doctors.map((_, idx) => (
                         <div
                           key={idx}
-                          className="w-3 h-3 rounded-full transition-all"
+                          className="transition-all duration-300 rounded-full"
                           style={{
+                            width: idx === currentDoctor ? "32px" : "12px",
+                            height: "12px",
                             backgroundColor:
                               idx === currentDoctor
                                 ? settings.primaryColor
@@ -277,12 +323,6 @@ export function HospitalTemplate({
                         />
                       ))}
                     </div>
-                    <button
-                      onClick={nextDoctor}
-                      className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all border border-white/30 hover:border-white/50"
-                    >
-                      <ChevronRight className="w-7 h-7 text-white" />
-                    </button>
                   </div>
                 )}
               </div>
