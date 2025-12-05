@@ -657,17 +657,17 @@ export function MasjidTemplate({
             {prayers.map((prayer) => (
               <div
                 key={prayer.name}
-                className="p-8 rounded-3xl backdrop-blur-sm"
+                className="p-6 rounded-3xl backdrop-blur-sm"
                 style={{
                   backgroundColor: `${customization.colors.primary}50`,
                   border: `6px solid ${customization.colors.accent}`,
                 }}
               >
-                <h4 className="text-3xl font-bold mb-4" style={textStyle}>
+                <h4 className="text-5xl font-bold mb-6" style={textStyle}>
                   {prayer.name}
                 </h4>
                 <p
-                  className="text-6xl font-extrabold mb-3"
+                  className="text-5xl font-extrabold mb-6"
                   style={{ ...textStyle, color: customization.colors.accent }}
                 >
                   {formatTime(prayer.time)}
