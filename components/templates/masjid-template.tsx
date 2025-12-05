@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 interface MasjidCustomization {
   template: string;
   layout: string;
+  masjidName: string;
   prayerTimes: {
     fajr: string;
     dhuhr: string;
@@ -288,124 +289,150 @@ export function MasjidTemplate({
     return hours === 0 && minutes <= 10;
   };
 
+  // Header component with masjid name
+  const MasjidHeader = () => (
+    <div className="text-center mb-6">
+      <h1
+        className="text-6xl font-bold leading-tight mb-3"
+        style={{
+          ...textStyle,
+          color: customization.colors.accent,
+          textShadow: "3px 3px 6px rgba(0, 0, 0, 0.9)",
+        }}
+      >
+        {customization.masjidName}
+      </h1>
+      <div
+        className="w-64 h-1.5 mx-auto rounded-full"
+        style={{ backgroundColor: customization.colors.accent }}
+      ></div>
+    </div>
+  );
+
   // VERTICAL LAYOUT - Split screen: prayers on left, info on right
   const renderVerticalLayout = () => {
     const isAdhanSoon = isCloseToAdhan();
 
     return (
-      // Increased padding and gap
-      <div className="w-full h-[100%] grid grid-cols-2 gap-12 p-16 overflow-hidden">
-        {/* LEFT SIDE - All Prayer Times */}
-        <div className="flex flex-col justify-center space-y-7">
-          {prayers.map((prayer) => (
-            <div
-              key={prayer.name}
-              // Increased vertical padding
-              className="flex items-center justify-between p-8 rounded-xl backdrop-blur-sm"
-              style={{
-                backgroundColor: `${customization.colors.primary}40`,
-                borderLeft: `8px solid ${customization.colors.accent}`, // Thicker accent bar
-              }}
-            >
-              <div className="flex-1">
-                <h3
-                  // Increased font size
-                  className="text-5xl font-extrabold leading-tight"
-                  style={textStyle}
-                >
-                  {prayer.name}
-                </h3>
-                <p
-                  // Increased font size
-                  className="text-3xl opacity-85 leading-tight mt-3"
-                  style={textStyle}
-                >
-                  Iqamah:{" "}
-                  {formatTime(calculateIqamahTime(prayer.time, prayer.offset))}
-                </p>
-              </div>
+      <div className="w-full h-[100%] flex flex-col p-10 overflow-hidden">
+        {/* Masjid Name Header - Compact for vertical layout */}
+        <MasjidHeader />
+
+        {/* Main Content - Adjusted to fit with masjid name */}
+        <div className="flex-1 grid grid-cols-2 gap-10">
+          {/* LEFT SIDE - All Prayer Times */}
+          <div className="flex flex-col justify-center space-y-6">
+            {prayers.map((prayer) => (
               <div
-                // Increased font size
-                className="text-6xl font-bold"
-                style={{ ...textStyle, color: customization.colors.accent }}
+                key={prayer.name}
+                className="flex items-center justify-between p-7 rounded-xl backdrop-blur-sm"
+                style={{
+                  backgroundColor: `${customization.colors.primary}40`,
+                  borderLeft: `7px solid ${customization.colors.accent}`,
+                }}
               >
-                {formatTime(prayer.time)}
+                <div className="flex-1">
+                  <h3
+                    className="text-5xl font-extrabold leading-tight"
+                    style={textStyle}
+                  >
+                    {prayer.name}
+                  </h3>
+                  <p
+                    className="text-3xl opacity-85 leading-tight mt-1"
+                    style={textStyle}
+                  >
+                    Iqamah:{" "}
+                    {formatTime(
+                      calculateIqamahTime(prayer.time, prayer.offset)
+                    )}
+                  </p>
+                </div>
+                <div
+                  className="text-6xl font-bold"
+                  style={{ ...textStyle, color: customization.colors.accent }}
+                >
+                  {formatTime(prayer.time)}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* RIGHT SIDE - Current Time, Countdown, Date */}
-        <div className="flex flex-col justify-between h-full">
-          {/* Next Prayer Countdown - Takes flex-1 to fill space */}
-          {nextEvent && (
-            <div
-              className="rounded-3xl backdrop-blur-sm text-center transition-all flex-1 flex flex-col justify-center p-10"
-              style={{ backgroundColor: `${customization.colors.accent}DD` }}
-            >
-              <p
-                className={`mb-4 ${isAdhanSoon ? "text-4xl" : "text-3xl"}`}
-                style={textStyle}
-              >
-                {nextEvent.type === "adhan"
-                  ? `Next Adhan: ${nextEvent.name}`
-                  : `${nextEvent.name} Iqamah`}
-              </p>
-              <p
-                className={`font-extrabold font-mono ${
-                  isAdhanSoon ? "text-[10rem]" : "text-9xl"
-                }`}
-                style={textStyle}
-              >
-                {nextEvent.timeUntil}
-              </p>
-              {isAdhanSoon && (
-                <p className="text-3xl mt-4 animate-pulse" style={textStyle}>
-                  🕌 Adhan Time Approaching
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Current Time Display - Takes flex-1 to fill space */}
-          <div
-            className="p-10 rounded-3xl backdrop-blur-sm text-center flex-1 flex flex-col justify-center mt-7"
-            style={{ backgroundColor: `${customization.colors.primary}60` }}
-          >
-            <p className="text-2xl opacity-80 mb-3" style={textStyle}>
-              Current Time
-            </p>
-            <p className="text-8xl font-bold font-mono mb-3" style={textStyle}>
-              {currentTime.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </p>
-            <p className="text-4xl opacity-90" style={textStyle}>
-              {currentTime.toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
+            ))}
           </div>
 
-          {/* Hijri Date - Fixed height at bottom */}
-          {hijriDate && customization.showHijriDate && (
+          {/* RIGHT SIDE - Current Time, Countdown, Date */}
+          <div className="flex flex-col justify-between h-full">
+            {/* Next Prayer Countdown */}
+            {nextEvent && (
+              <div
+                className="rounded-3xl backdrop-blur-sm text-center transition-all flex-1 flex flex-col justify-center p-8"
+                style={{ backgroundColor: `${customization.colors.accent}DD` }}
+              >
+                <p
+                  className={`mb-3 ${isAdhanSoon ? "text-4xl" : "text-3xl"}`}
+                  style={textStyle}
+                >
+                  {nextEvent.type === "adhan"
+                    ? `Next Adhan: ${nextEvent.name}`
+                    : `${nextEvent.name} Iqamah`}
+                </p>
+                <p
+                  className={`font-extrabold font-mono ${
+                    isAdhanSoon ? "text-[8rem]" : "text-7xl"
+                  }`}
+                  style={textStyle}
+                >
+                  {nextEvent.timeUntil}
+                </p>
+                {isAdhanSoon && (
+                  <p className="text-3xl mt-3 animate-pulse" style={textStyle}>
+                    🕌 Adhan Time Approaching
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Current Time Display */}
             <div
-              className="p-8 rounded-3xl backdrop-blur-sm text-center mt-7"
-              style={{ backgroundColor: `${customization.colors.primary}50` }}
+              className="p-8 rounded-3xl backdrop-blur-sm text-center flex-1 flex flex-col justify-center mt-6"
+              style={{ backgroundColor: `${customization.colors.primary}60` }}
             >
-              <p className="text-2xl opacity-80 mb-3" style={textStyle}>
-                Islamic Date
+              <p className="text-2xl opacity-80 mb-2" style={textStyle}>
+                Current Time
               </p>
-              <p className="text-4xl font-semibold" style={textStyle}>
-                {hijriDate}
+              <p
+                className="text-7xl font-bold font-mono mb-2"
+                style={textStyle}
+              >
+                {currentTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </p>
+              <p className="text-3xl opacity-90" style={textStyle}>
+                {currentTime.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </p>
             </div>
-          )}
+
+            {/* Hijri Date */}
+            {hijriDate && customization.showHijriDate && (
+              <div
+                className="p-6 rounded-3xl backdrop-blur-sm text-center mt-6"
+                style={{ backgroundColor: `${customization.colors.primary}50` }}
+              >
+                <p className="text-2xl opacity-80 mb-2" style={textStyle}>
+                  Islamic Date
+                </p>
+                <p className="text-3xl font-semibold" style={textStyle}>
+                  {hijriDate}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -418,26 +445,24 @@ export function MasjidTemplate({
     const isAdhanSoon = isCloseToAdhan();
 
     return (
-      // Increased vertical space and padding
-      <div className="w-full h-[90%] flex flex-col justify-center px-20 py-12 space-y-12 overflow-hidden">
-        {/* Top Section - Current Time & Date */}
+      <div className="w-full h-full flex flex-col justify-center px-20 py-8 space-y-12 overflow-hidden">
+        {/* Top Section - Masjid Name */}
+        <div className="mb-4">
+          <MasjidHeader />
+        </div>
+
+        {/* Middle Section - Current Time, Date & Countdown */}
         <div className="grid grid-cols-3 gap-12">
           <div
-            // Increased padding
             className="col-span-2 p-14 rounded-3xl backdrop-blur-sm"
             style={{ backgroundColor: `${customization.colors.primary}60` }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p
-                  // Increased font size
-                  className="text-3xl opacity-80 mb-6"
-                  style={textStyle}
-                >
+                <p className="text-3xl opacity-80 mb-6" style={textStyle}>
                   Current Time
                 </p>
                 <p
-                  // Increased font size
                   className="text-[7rem] font-extrabold font-mono leading-none"
                   style={textStyle}
                 >
@@ -450,11 +475,7 @@ export function MasjidTemplate({
                 </p>
               </div>
               <div className="text-right">
-                <p
-                  // Increased font size
-                  className="text-5xl"
-                  style={textStyle}
-                >
+                <p className="text-5xl" style={textStyle}>
                   {currentTime.toLocaleDateString("en-US", {
                     weekday: "short",
                     month: "short",
@@ -462,11 +483,7 @@ export function MasjidTemplate({
                   })}
                 </p>
                 {hijriDate && customization.showHijriDate && (
-                  <p
-                    // Increased font size
-                    className="text-3xl opacity-80 mt-5"
-                    style={textStyle}
-                  >
+                  <p className="text-3xl opacity-80 mt-5" style={textStyle}>
                     {hijriDate}
                   </p>
                 )}
@@ -474,24 +491,21 @@ export function MasjidTemplate({
             </div>
           </div>
 
-          {/* Countdown - Larger when Adhan is soon */}
+          {/* Countdown */}
           {nextEvent && (
             <div
-              // Increased padding
               className={`rounded-3xl backdrop-blur-sm flex flex-col justify-center items-center transition-all ${
                 isAdhanSoon ? "p-12 animate-pulse" : "p-12"
               }`}
               style={{ backgroundColor: `${customization.colors.accent}DD` }}
             >
               <p
-                // Increased font size
                 className={`mb-5 ${isAdhanSoon ? "text-4xl" : "text-3xl"}`}
                 style={textStyle}
               >
                 {nextEvent.type === "adhan" ? "Next Adhan" : "Iqamah"}
               </p>
               <p
-                // Increased font size
                 className={`font-bold mb-5 ${
                   isAdhanSoon ? "text-6xl" : "text-5xl"
                 }`}
@@ -500,7 +514,6 @@ export function MasjidTemplate({
                 {nextEvent.name}
               </p>
               <p
-                // Increased font size
                 className={`font-extrabold font-mono ${
                   isAdhanSoon ? "text-9xl" : "text-8xl"
                 }`}
@@ -524,14 +537,12 @@ export function MasjidTemplate({
             return (
               <div
                 key={prayer.name}
-                // Increased padding
                 className="p-10 rounded-3xl backdrop-blur-sm text-center transition-all"
                 style={{
                   backgroundColor: isPassed
                     ? `${customization.colors.primary}30`
                     : `${customization.colors.primary}60`,
                   border: `6px solid ${
-                    // Thicker border
                     isPassed
                       ? customization.colors.primary
                       : customization.colors.accent
@@ -539,33 +550,20 @@ export function MasjidTemplate({
                   opacity: isPassed ? 0.7 : 1,
                 }}
               >
-                <h3
-                  // Increased font size
-                  className="text-4xl font-bold mb-5"
-                  style={textStyle}
-                >
+                <h3 className="text-4xl font-bold mb-5" style={textStyle}>
                   {prayer.name}
                 </h3>
                 <div
-                  // Increased font size
                   className="text-7xl font-extrabold mb-6"
                   style={{ ...textStyle, color: customization.colors.accent }}
                 >
                   {formatTime(prayer.time)}
                 </div>
                 <div className="pt-5 border-t-2 border-white/30">
-                  <p
-                    // Increased font size
-                    className="text-2xl opacity-80 mb-3"
-                    style={textStyle}
-                  >
+                  <p className="text-2xl opacity-80 mb-3" style={textStyle}>
                     Iqamah
                   </p>
-                  <p
-                    // Increased font size
-                    className="text-3xl font-semibold"
-                    style={textStyle}
-                  >
+                  <p className="text-3xl font-semibold" style={textStyle}>
                     {formatTime(
                       calculateIqamahTime(prayer.time, prayer.offset)
                     )}
@@ -584,9 +582,15 @@ export function MasjidTemplate({
     const isAdhanSoon = isCloseToAdhan();
 
     return (
-      <div className="w-full h-full flex items-center justify-center px-24 py-12 overflow-hidden">
-        <div className="text-center space-y-12 w-full max-w-8xl">
-          {/* Hijri Date + Current Time */}
+      <div className="w-full h-full flex flex-col items-center justify-center px-24 py-8 overflow-hidden">
+        {/* Masjid Name Header */}
+        <div className="mb-8">
+          <MasjidHeader />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 w-full max-w-8xl space-y-12">
+          {/* Hijri Date + Current Time Row */}
           <div className="flex justify-between items-end px-4">
             <div className="text-left">
               <p className="text-3xl opacity-80" style={textStyle}>
@@ -632,7 +636,6 @@ export function MasjidTemplate({
                   ? `${nextEvent.name} Adhan`
                   : `${nextEvent.name} Iqamah`}
               </p>
-
               <p
                 className={`font-extrabold font-mono leading-none ${
                   isAdhanSoon ? "text-[11rem]" : "text-[9rem]"
@@ -641,7 +644,6 @@ export function MasjidTemplate({
               >
                 {nextEvent.timeUntil}
               </p>
-
               {isAdhanSoon && (
                 <p className="text-4xl mt-8" style={textStyle}>
                   🕌 Adhan Time Approaching
@@ -664,17 +666,12 @@ export function MasjidTemplate({
                 <h4 className="text-3xl font-bold mb-4" style={textStyle}>
                   {prayer.name}
                 </h4>
-
                 <p
                   className="text-6xl font-extrabold mb-3"
-                  style={{
-                    ...textStyle,
-                    color: customization.colors.accent,
-                  }}
+                  style={{ ...textStyle, color: customization.colors.accent }}
                 >
                   {formatTime(prayer.time)}
                 </p>
-
                 <p className="text-2xl opacity-80" style={textStyle}>
                   +{prayer.offset} min Iqamah
                 </p>
@@ -705,14 +702,10 @@ export function MasjidTemplate({
       {customization.announcements &&
         customization.announcements.length > 0 && (
           <div
-            // Increased vertical padding
             className="fixed bottom-0 left-0 right-0 py-8 overflow-hidden z-20"
-            style={{
-              backgroundColor: `${customization.colors.primary}DD`,
-            }}
+            style={{ backgroundColor: `${customization.colors.primary}DD` }}
           >
             <div
-              // Increased font size
               className="whitespace-nowrap text-4xl font-semibold px-16"
               style={textStyle}
             >

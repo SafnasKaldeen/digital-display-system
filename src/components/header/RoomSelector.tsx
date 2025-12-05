@@ -10,12 +10,12 @@ import {
 } from "lucide-react";
 
 const templates = [
-  { id: "All Screens", icon: LayoutGrid },
-  { id: "Masjid Screens", icon: Building2 },
-  { id: "Hospital Screens", icon: Hospital },
-  { id: "Restaurant Screens", icon: UtensilsCrossed },
-  { id: "Retail Screens", icon: ShoppingBag },
-  { id: "Corporate Screens", icon: Briefcase },
+  { id: "All Screens", icon: LayoutGrid, show: true },
+  { id: "Masjid Screens", icon: Building2, show: true },
+  { id: "Hospital Screens", icon: Hospital, show: true },
+  { id: "Restaurant Screens", icon: UtensilsCrossed, show: false },
+  { id: "Retail Screens", icon: ShoppingBag, show: false },
+  { id: "Corporate Screens", icon: Briefcase, show: false },
 ] as const;
 
 export type Room = (typeof templates)[number]["id"];
@@ -39,7 +39,12 @@ export function RoomSelector({
             id === selectedRoom
               ? "bg-white text-gray-900"
               : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-          }`}
+          }
+               ${
+                 !templates.find((template) => template.id === id)?.show
+                   ? "opacity-40 cursor-not-allowed hover:bg-gray-800"
+                   : ""
+               }`}
         >
           <Icon size={16} className="flex-shrink-0" />
           <span className="hidden sm:inline">{id}</span>
