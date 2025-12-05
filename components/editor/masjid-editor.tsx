@@ -1,11 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+  RotateCcw,
+} from "lucide-react";
+import { getPrayerTimes } from "@/lib/supabase";
 
 // Types
 interface PrayerTimes {
   fajr: string;
+  sunrise: string;
   dhuhr: string;
   asr: string;
   maghrib: string;
@@ -14,6 +24,7 @@ interface PrayerTimes {
 
 interface IqamahOffsets {
   fajr: number;
+  sunrise: number;
   dhuhr: number;
   asr: number;
   maghrib: number;
@@ -171,7 +182,7 @@ function ImageUploader({
         const allMedia = await response.json();
         const filteredImages = allMedia
           .filter(
-            (item: any) => item.userId === userId && item.type === imageType // Only filter by userId and type
+            (item: any) => item.userId === userId && item.type === imageType
           )
           .map((item: any) => item.fileUrl);
 
@@ -418,17 +429,22 @@ export default function MasjidEditorPanel({
   templateType = "masjid",
   userId,
 }: MasjidEditorPanelProps) {
+  // Default hardcoded prayer times
+  const defaultPrayerTimes: PrayerTimes = {
+    fajr: "05:30",
+    sunrise: "07:00",
+    dhuhr: "12:30",
+    asr: "15:45",
+    maghrib: "18:00",
+    isha: "19:30",
+  };
+
   const defaultConfig: MasjidConfig = {
     template: "masjid-classic",
-    prayerTimes: {
-      fajr: "05:30",
-      dhuhr: "12:30",
-      asr: "15:45",
-      maghrib: "18:00",
-      isha: "19:30",
-    },
+    prayerTimes: defaultPrayerTimes,
     iqamahOffsets: {
       fajr: 15,
+      sunrise: 10,
       dhuhr: 10,
       asr: 10,
       maghrib: 5,
@@ -467,6 +483,9 @@ export default function MasjidEditorPanel({
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(
     userId
   );
+  const [supabaseDefaultPrayerTimes, setSupabaseDefaultPrayerTimes] =
+    useState<PrayerTimes | null>(null);
+  const [isResettingPrayerTimes, setIsResettingPrayerTimes] = useState(false);
 
   // Fetch user ID if not provided
   useEffect(() => {
@@ -492,6 +511,63 @@ export default function MasjidEditorPanel({
     fetchUserId();
   }, [userId]);
 
+  // Function to fetch Supabase prayer times
+  const fetchSupabasePrayerTimes = async (): Promise<PrayerTimes | null> => {
+    try {
+      const today = new Date();
+      const prayerTimesData = await getPrayerTimes(displayId, today);
+
+      if (prayerTimesData) {
+        console.log("Supabase prayer times fetched:", prayerTimesData);
+        return {
+          fajr: prayerTimesData.fajr || defaultPrayerTimes.fajr,
+          sunrise: prayerTimesData.sunrise || defaultPrayerTimes.sunrise,
+          dhuhr: prayerTimesData.dhuhr || defaultPrayerTimes.dhuhr,
+          asr: prayerTimesData.asr || defaultPrayerTimes.asr,
+          maghrib: prayerTimesData.maghrib || defaultPrayerTimes.maghrib,
+          isha: prayerTimesData.isha || defaultPrayerTimes.isha,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching Supabase prayer times:", error);
+      return null;
+    }
+  };
+
+  // Reset prayer times to Supabase defaults
+  const resetPrayerTimesToSupabase = async () => {
+    setIsResettingPrayerTimes(true);
+    try {
+      const supabaseTimes = await fetchSupabasePrayerTimes();
+
+      if (supabaseTimes) {
+        updateConfig({ prayerTimes: supabaseTimes });
+        setSupabaseDefaultPrayerTimes(supabaseTimes);
+      } else {
+        // If no Supabase data, reset to hardcoded defaults
+        updateConfig({ prayerTimes: defaultPrayerTimes });
+      }
+    } catch (error) {
+      console.error("Error resetting prayer times:", error);
+    } finally {
+      setIsResettingPrayerTimes(false);
+    }
+  };
+
+  // Check if current prayer times differ from Supabase defaults
+  const arePrayerTimesModified = () => {
+    if (!supabaseDefaultPrayerTimes) return false;
+
+    return Object.keys(customization.prayerTimes).some((prayer) => {
+      const prayerKey = prayer as keyof PrayerTimes;
+      return (
+        customization.prayerTimes[prayerKey] !==
+        supabaseDefaultPrayerTimes[prayerKey]
+      );
+    });
+  };
+
   // Fetch initial config from Supabase when displayId changes
   useEffect(() => {
     const fetchConfig = async () => {
@@ -505,6 +581,11 @@ export default function MasjidEditorPanel({
       setIsLoadingConfig(true);
 
       try {
+        // Fetch Supabase prayer times
+        const supabaseTimes = await fetchSupabasePrayerTimes();
+        setSupabaseDefaultPrayerTimes(supabaseTimes);
+
+        // Fetch saved configuration
         const response = await fetch(`/api/displays/${displayId}/config`);
         console.log("Config fetch response status:", response.status);
 
@@ -522,6 +603,30 @@ export default function MasjidEditorPanel({
               savedConfig.colors ||
               defaultConfig.colors;
 
+            // Priority: saved config > Supabase > hardcoded defaults
+            let finalPrayerTimes = defaultPrayerTimes;
+
+            // First use saved config if it has prayer times
+            if (
+              savedConfig.prayerTimes &&
+              Object.keys(savedConfig.prayerTimes).length > 0
+            ) {
+              finalPrayerTimes = {
+                ...defaultPrayerTimes,
+                ...savedConfig.prayerTimes,
+              };
+              console.log("Using saved config prayer times");
+            }
+            // Otherwise use Supabase if available
+            else if (supabaseTimes) {
+              finalPrayerTimes = supabaseTimes;
+              console.log("Using Supabase prayer times (no saved config)");
+            }
+            // Otherwise use hardcoded defaults
+            else {
+              console.log("Using hardcoded default prayer times");
+            }
+
             const mergedConfig: MasjidConfig = {
               ...defaultConfig,
               ...savedConfig,
@@ -530,10 +635,7 @@ export default function MasjidEditorPanel({
                 ...colors,
               },
               masjidName: savedConfig.masjidName || displayName,
-              prayerTimes: {
-                ...defaultConfig.prayerTimes,
-                ...(savedConfig.prayerTimes || {}),
-              },
+              prayerTimes: finalPrayerTimes,
               iqamahOffsets: {
                 ...defaultConfig.iqamahOffsets,
                 ...(savedConfig.iqamahOffsets || {}),
@@ -553,14 +655,34 @@ export default function MasjidEditorPanel({
             setCustomization(mergedConfig);
             onConfigChange(mergedConfig);
           } else {
-            console.log("No saved config found in response, using defaults");
-            setCustomization(defaultConfig);
-            onConfigChange(defaultConfig);
+            console.log("No saved config found in response");
+
+            // Use Supabase if available, otherwise hardcoded defaults
+            const prayerTimes = supabaseTimes || defaultPrayerTimes;
+
+            const configWithPrayerTimes = {
+              ...defaultConfig,
+              masjidName: displayName,
+              prayerTimes: prayerTimes,
+            };
+
+            setCustomization(configWithPrayerTimes);
+            onConfigChange(configWithPrayerTimes);
           }
         } else {
-          console.log("Config fetch failed, using defaults");
-          setCustomization(defaultConfig);
-          onConfigChange(defaultConfig);
+          console.log("Config fetch failed");
+
+          // Use Supabase if available, otherwise hardcoded defaults
+          const prayerTimes = supabaseTimes || defaultPrayerTimes;
+
+          const configWithPrayerTimes = {
+            ...defaultConfig,
+            masjidName: displayName,
+            prayerTimes: prayerTimes,
+          };
+
+          setCustomization(configWithPrayerTimes);
+          onConfigChange(configWithPrayerTimes);
         }
       } catch (error) {
         console.error("Error fetching config:", error);
@@ -742,51 +864,104 @@ export default function MasjidEditorPanel({
 
       <CollapsibleSection title="Prayer Times">
         <div className="space-y-4">
-          {Object.entries(customization.prayerTimes).map(([prayer, time]) => (
-            <div key={prayer} className="space-y-2">
-              <label className="text-sm text-gray-300 capitalize font-medium">
-                {prayer}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) =>
-                      updatePrayerTime(
-                        prayer as keyof PrayerTimes,
-                        e.target.value
-                      )
-                    }
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Adhan</p>
-                </div>
-                <div>
-                  <input
-                    type="number"
-                    min="0"
-                    max="60"
-                    value={
-                      customization.iqamahOffsets[prayer as keyof IqamahOffsets]
-                    }
-                    onChange={(e) =>
-                      updateIqamahOffset(
-                        prayer as keyof IqamahOffsets,
-                        parseInt(e.target.value) || 0
-                      )
-                    }
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 text-center focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    +
-                    {customization.iqamahOffsets[prayer as keyof IqamahOffsets]}{" "}
-                    min Iqamah
-                  </p>
-                </div>
-              </div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-200">
+              Daily Prayer Times
+            </h3>
+            <button
+              onClick={resetPrayerTimesToSupabase}
+              disabled={isResettingPrayerTimes || !supabaseDefaultPrayerTimes}
+              className={`text-xs px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
+                arePrayerTimesModified() && supabaseDefaultPrayerTimes
+                  ? "bg-pink-500 hover:bg-pink-600 text-white"
+                  : "bg-gray-700 text-gray-400 cursor-not-allowed"
+              } ${
+                isResettingPrayerTimes ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+              title={
+                supabaseDefaultPrayerTimes
+                  ? "Reset to defaults"
+                  : "No Supabase data available"
+              }
+            >
+              <RotateCcw
+                className={`w-3 h-3 ${
+                  isResettingPrayerTimes ? "animate-spin" : ""
+                }`}
+              />
+              {isResettingPrayerTimes ? "Resetting..." : "Reset to Default"}
+            </button>
+          </div>
+
+          {arePrayerTimesModified() && supabaseDefaultPrayerTimes && (
+            <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs text-yellow-400">
+              ⚠️ Prayer times have been modified from Supabase defaults
             </div>
-          ))}
+          )}
+
+          {Object.entries(customization.prayerTimes).map(([prayer, time]) => {
+            const prayerKey = prayer as keyof PrayerTimes;
+            const isModified =
+              supabaseDefaultPrayerTimes &&
+              time !== supabaseDefaultPrayerTimes[prayerKey];
+
+            return (
+              <div key={prayer} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300 capitalize font-medium">
+                    {prayer}
+                  </label>
+                  {isModified && (
+                    <span className="text-xs text-yellow-400 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                      Modified
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) =>
+                        updatePrayerTime(prayerKey, e.target.value)
+                      }
+                      className={`w-full bg-gray-800 border ${
+                        isModified ? "border-yellow-500/50" : "border-gray-700"
+                      } rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500`}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Adhan</p>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={customization.iqamahOffsets[prayerKey]}
+                      onChange={(e) =>
+                        updateIqamahOffset(
+                          prayerKey,
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 text-center focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      +{customization.iqamahOffsets[prayerKey]} min Iqamah
+                    </p>
+                  </div>
+                </div>
+                {isModified && supabaseDefaultPrayerTimes && (
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <span>Default:</span>
+                    <span className="text-green-400">
+                      {supabaseDefaultPrayerTimes[prayerKey]}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </CollapsibleSection>
 
