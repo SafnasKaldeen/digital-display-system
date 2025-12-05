@@ -1,7 +1,7 @@
 // app/displays/[id]/live/page.tsx
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { Loader2, AlertCircle, Power } from "lucide-react";
 import { MasjidTemplate } from "@/components/templates/masjid-template";
 import { HospitalTemplate } from "@/components/templates/hospital-template";
@@ -22,12 +22,16 @@ export default function LivePage({ params }: LivePageProps) {
   const [scale, setScale] = useState(1);
   const [isDisabled, setIsDisabled] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
+  const previousConfigRef = useRef<string>("");
 
   // Fetch config from database
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        setIsLoading(true);
+        // Only show loading on initial fetch
+        if (!customization) {
+          setIsLoading(true);
+        }
         setError(null);
 
         const response = await fetch(`/api/displays/${id}/config`);
@@ -69,7 +73,15 @@ export default function LivePage({ params }: LivePageProps) {
           };
         }
 
-        setCustomization(config);
+        // Only update state if config actually changed
+        const newConfigString = JSON.stringify(config);
+        if (newConfigString !== previousConfigRef.current) {
+          console.log("Config changed, updating display");
+          previousConfigRef.current = newConfigString;
+          setCustomization(config);
+        } else {
+          console.log("Config unchanged, skipping update");
+        }
       } catch (err) {
         console.error("Error fetching config:", err);
         setError(err instanceof Error ? err.message : "Failed to load display");
@@ -80,8 +92,8 @@ export default function LivePage({ params }: LivePageProps) {
 
     fetchConfig();
 
-    // Optional: Set up polling to check for config updates every 30 seconds
-    const interval = setInterval(fetchConfig, 30000);
+    // Poll every 5 minutes for updates (but won't re-render if nothing changed)
+    const interval = setInterval(fetchConfig, 300000);
 
     return () => clearInterval(interval);
   }, [id]);
