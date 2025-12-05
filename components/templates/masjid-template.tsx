@@ -463,7 +463,7 @@ export function MasjidTemplate({
                   Current Time
                 </p>
                 <p
-                  className="text-[7rem] font-extrabold font-mono leading-none"
+                  className="text-[6rem] font-extrabold font-mono leading-none"
                   style={textStyle}
                 >
                   {currentTime.toLocaleTimeString("en-US", {
@@ -515,7 +515,7 @@ export function MasjidTemplate({
               </p>
               <p
                 className={`font-extrabold font-mono ${
-                  isAdhanSoon ? "text-9xl" : "text-8xl"
+                  isAdhanSoon ? "text-8xl" : "text-7xl"
                 }`}
                 style={textStyle}
               >
