@@ -1,4 +1,3 @@
-
 // ============================================================
 // middleware.ts (in your app root)
 // ============================================================
@@ -14,6 +13,11 @@ export async function middleware(request: NextRequest) {
   
   // Allow public paths
   if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  // Allow ONLY the live display route to be public (NEW)
+  if (pathname.match(/^\/displays\/[^\/]+\/live$/)) {
     return NextResponse.next();
   }
 
