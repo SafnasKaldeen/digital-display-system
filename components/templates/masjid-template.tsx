@@ -64,6 +64,7 @@ export function MasjidTemplate({
   useEffect(() => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentSeconds = now.getSeconds();
 
     const prayers = [
       {
@@ -100,11 +101,17 @@ export function MasjidTemplate({
       const adhanTime = adhanHours * 60 + adhanMinutes;
       const iqamahTime = adhanTime + prayer.offset;
 
-      if (adhanTime > currentMinutes) {
-        const diff = adhanTime - currentMinutes;
-        const hours = Math.floor(diff / 60);
-        const minutes = diff % 60;
-        const seconds = 60 - now.getSeconds();
+      // Calculate total minutes from midnight
+      const currentTotalMinutes = currentMinutes + currentSeconds / 60;
+
+      if (adhanTime > currentTotalMinutes) {
+        // Next is Adhan
+        const diffInMinutes = adhanTime - currentTotalMinutes;
+        const totalSecondsUntil = Math.floor(diffInMinutes * 60);
+
+        const hours = Math.floor(totalSecondsUntil / 3600);
+        const minutes = Math.floor((totalSecondsUntil % 3600) / 60);
+        const seconds = totalSecondsUntil % 60;
 
         setNextEvent({
           name: prayer.name,
@@ -117,11 +124,17 @@ export function MasjidTemplate({
         break;
       }
 
-      if (adhanTime <= currentMinutes && iqamahTime > currentMinutes) {
-        const diff = iqamahTime - currentMinutes;
-        const hours = Math.floor(diff / 60);
-        const minutes = diff % 60;
-        const seconds = 60 - now.getSeconds();
+      if (
+        adhanTime <= currentTotalMinutes &&
+        iqamahTime > currentTotalMinutes
+      ) {
+        // Currently between Adhan and Iqamah
+        const diffInMinutes = iqamahTime - currentTotalMinutes;
+        const totalSecondsUntil = Math.floor(diffInMinutes * 60);
+
+        const hours = Math.floor(totalSecondsUntil / 3600);
+        const minutes = Math.floor((totalSecondsUntil % 3600) / 60);
+        const seconds = totalSecondsUntil % 60;
 
         setNextEvent({
           name: prayer.name,
@@ -136,18 +149,25 @@ export function MasjidTemplate({
     }
 
     if (!foundNext) {
+      // All prayers passed for today, calculate until tomorrow's Fajr
       const [hours, minutes] = prayers[0].adhan.split(":").map(Number);
       const fajrMinutes = hours * 60 + minutes;
-      const diff = 24 * 60 - currentMinutes + fajrMinutes;
-      const displayHours = Math.floor(diff / 60);
-      const displayMinutes = diff % 60;
+
+      // Minutes left in today + fajr minutes tomorrow
+      const minutesLeftToday = 24 * 60 - (currentMinutes + currentSeconds / 60);
+      const totalDiffInMinutes = minutesLeftToday + fajrMinutes;
+      const totalSecondsUntil = Math.floor(totalDiffInMinutes * 60);
+
+      const displayHours = Math.floor(totalSecondsUntil / 3600);
+      const displayMinutes = Math.floor((totalSecondsUntil % 3600) / 60);
+      const displaySeconds = totalSecondsUntil % 60;
 
       setNextEvent({
         name: prayers[0].name,
         type: "adhan",
         timeUntil: `${displayHours.toString().padStart(2, "0")}:${displayMinutes
           .toString()
-          .padStart(2, "0")}:00`,
+          .padStart(2, "0")}:${displaySeconds.toString().padStart(2, "0")}`,
       });
     }
   }, [currentTime, customization.prayerTimes, customization.iqamahOffsets]);
