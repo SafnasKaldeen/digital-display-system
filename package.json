@@ -29,6 +29,7 @@
     "clsx": "^2.1.1",
     "flipclock": "^1.0.1",
     "jose": "^6.1.2",
+    "jquery": "^3.7.1",
     "jsonwebtoken": "latest",
     "lovable-tagger": "^1.1.8",
     "lucide-react": "^0.454.0",

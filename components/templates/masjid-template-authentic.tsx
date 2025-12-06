@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FlipClockWrapper } from "./components/masjid/FlipClockWrapper";
+import FlipClockWrapper from "./components/masjid/FlipClockWrapper";
 
 interface PrayerTimes {
   fajr: string;
@@ -280,6 +280,8 @@ export function MasjidTemplateAuthentic({
   };
 
   const nextPrayer = getNextPrayer();
+  const nextPrayerName = nextPrayer.name.toLowerCase();
+
   const countdownState = getCountdownState();
 
   const calculateSunriseTime = () => {
@@ -410,8 +412,8 @@ export function MasjidTemplateAuthentic({
           </div>
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-12">
-          <FlipClockWrapper targetTime={nextPrayer.time} />
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-8">
+          <FlipClockWrapper />
           {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
           <div className="w-full max-w-7xl relative">
@@ -518,7 +520,15 @@ export function MasjidTemplateAuthentic({
                       color:
                         countdownState.type === "adhan"
                           ? customization.colors.secondary
-                          : customization.colors.accent,
+                          : countdownState.seconds > 300
+                          ? "#10B981" // Green for >5 min
+                          : countdownState.seconds > 60
+                          ? "#F59E0B" // Yellow for 1-5 min
+                          : countdownState.seconds > 30
+                          ? "#F97316" // Orange for 30-60 sec
+                          : countdownState.seconds > 10
+                          ? "#EF4444" // Red for 10-30 sec
+                          : "#DC2626", // Bright red for <10 sec
                       animation: "subtlePulse 2s ease-in-out infinite",
                     }}
                   >
@@ -532,24 +542,49 @@ export function MasjidTemplateAuthentic({
                       fontWeight: 900,
                       color:
                         countdownState.type === "adhan"
-                          ? customization.colors.secondary
-                          : customization.colors.accent,
+                          ? countdownState.seconds > 300
+                            ? "#10B981" // Green for >5 min
+                            : countdownState.seconds > 60
+                            ? "#F59E0B" // Yellow for 1-5 min
+                            : countdownState.seconds > 30
+                            ? "#F97316" // Orange for 30-60 sec
+                            : countdownState.seconds > 10
+                            ? "#EF4444" // Red for 10-30 sec
+                            : "#DC2626" // Bright red for <10 sec
+                          : countdownState.seconds > 300
+                          ? "#10B981" // Green for >5 min
+                          : countdownState.seconds > 60
+                          ? "#F59E0B" // Yellow for 1-5 min
+                          : countdownState.seconds > 30
+                          ? "#F97316" // Orange for 30-60 sec
+                          : countdownState.seconds > 10
+                          ? "#EF4444" // Red for 10-30 sec
+                          : "#DC2626", // Bright red for <10 sec
                       textShadow:
                         countdownState.type === "adhan"
-                          ? `
-                          0 0 20px ${customization.colors.secondary}80,
-                          0 0 40px ${customization.colors.secondary}60,
-                          0 0 60px ${customization.colors.secondary}40,
-                          6px 6px 20px rgba(0,0,0,0.9)
-                        `
-                          : `
-                          0 0 20px ${customization.colors.accent}80,
-                          0 0 40px ${customization.colors.accent}60,
-                          0 0 60px ${customization.colors.accent}40,
-                          6px 6px 20px rgba(0,0,0,0.9)
-                        `,
+                          ? countdownState.seconds > 300
+                            ? `0 0 20px #10B98180, 0 0 40px #10B98160, 0 0 60px #10B98140, 6px 6px 20px rgba(0,0,0,0.9)`
+                            : countdownState.seconds > 60
+                            ? `0 0 20px #F59E0B80, 0 0 40px #F59E0B60, 0 0 60px #F59E0B40, 6px 6px 20px rgba(0,0,0,0.9)`
+                            : countdownState.seconds > 30
+                            ? `0 0 20px #F9731680, 0 0 40px #F9731660, 0 0 60px #F9731640, 6px 6px 20px rgba(0,0,0,0.9)`
+                            : countdownState.seconds > 10
+                            ? `0 0 20px #EF444480, 0 0 40px #EF444460, 0 0 60px #EF444440, 6px 6px 20px rgba(0,0,0,0.9)`
+                            : `0 0 20px #DC262680, 0 0 40px #DC262660, 0 0 60px #DC262640, 6px 6px 20px rgba(0,0,0,0.9)`
+                          : countdownState.seconds > 300
+                          ? `0 0 20px #10B98180, 0 0 40px #10B98160, 0 0 60px #10B98140, 6px 6px 20px rgba(0,0,0,0.9)`
+                          : countdownState.seconds > 60
+                          ? `0 0 20px #F59E0B80, 0 0 40px #F59E0B60, 0 0 60px #F59E0B40, 6px 6px 20px rgba(0,0,0,0.9)`
+                          : countdownState.seconds > 30
+                          ? `0 0 20px #F9731680, 0 0 40px #F9731660, 0 0 60px #F9731640, 6px 6px 20px rgba(0,0,0,0.9)`
+                          : countdownState.seconds > 10
+                          ? `0 0 20px #EF444480, 0 0 40px #EF444460, 0 0 60px #EF444440, 6px 6px 20px rgba(0,0,0,0.9)`
+                          : `0 0 20px #DC262680, 0 0 40px #DC262660, 0 0 60px #DC262640, 6px 6px 20px rgba(0,0,0,0.9)`,
                       letterSpacing: "0.1em",
-                      animation: "subtlePulse 2s ease-in-out infinite",
+                      animation:
+                        countdownState.seconds > 10
+                          ? "subtlePulse 2s ease-in-out infinite"
+                          : "subtlePulse 1s ease-in-out infinite", // Faster pulse for last 10 seconds
                     }}
                   >
                     {formatCountdown(countdownState.seconds)}
@@ -562,58 +597,68 @@ export function MasjidTemplateAuthentic({
 
         <div className="relative z-10 px-0 pb-4">
           <div className="grid grid-cols-6 gap-6 max-w-[95%] mx-auto">
-            {prayers.map((prayer, index) => (
-              <div
-                key={index}
-                className={`relative overflow-hidden rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
-                  index === 5
-                    ? "bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 shadow-xl shadow-yellow-500/50"
-                    : "bg-gradient-to-br from-teal-600/90 to-cyan-700/90 backdrop-blur-sm"
-                }`}
-                style={{
-                  border:
-                    index === 5
+            {prayers.map((prayer, index) => {
+              // Check if this is the next prayer (excluding Sunrise as it doesn't have Iqamah)
+              const isNextPrayer = prayer.name.toLowerCase() === nextPrayerName;
+
+              return (
+                <div
+                  key={index}
+                  className={`relative overflow-hidden rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                    isNextPrayer
+                      ? "bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 shadow-xl shadow-yellow-500/50"
+                      : "bg-gradient-to-br from-teal-600/90 to-cyan-700/90 backdrop-blur-sm"
+                  }`}
+                  style={{
+                    border: isNextPrayer
                       ? "3px solid rgba(251, 191, 36, 0.6)"
                       : "2px solid rgba(255, 255, 255, 0.15)",
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0"></div>
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0"></div>
 
-                <div className="relative p-6 text-center">
-                  <div
-                    className="text-4xl font-bold mb-3 tracking-wide"
-                    style={{
-                      ...textStyle,
-                      color: index === 5 ? "#1e293b" : "#ffffff",
-                    }}
-                  >
-                    {prayer.name}{" "}
-                    <span className="text-2xl">({prayer.nameAr})</span>
-                  </div>
-                  <div
-                    className="text-6xl font-black"
-                    style={{
-                      ...textStyle,
-                      color: index === 5 ? "#1e293b" : "#fbbf24",
-                      textShadow:
-                        index === 5
+                  <div className="relative p-6 text-center">
+                    <div
+                      className="text-4xl font-bold mb-3 tracking-wide"
+                      style={{
+                        ...textStyle,
+                        color: isNextPrayer ? "#1e293b" : "#ffffff",
+                      }}
+                    >
+                      {prayer.name}{" "}
+                      <span className="text-2xl">({prayer.nameAr})</span>
+                    </div>
+                    <div
+                      className="text-6xl font-black"
+                      style={{
+                        ...textStyle,
+                        color: isNextPrayer ? "#1e293b" : "#fbbf24",
+                        textShadow: isNextPrayer
                           ? "2px 2px 4px rgba(0,0,0,0.2)"
                           : "2px 2px 8px rgba(0,0,0,0.9)",
-                    }}
-                  >
-                    {prayer.adhan}
-                  </div>
-                </div>
+                      }}
+                    >
+                      {prayer.adhan}
+                    </div>
 
-                <div
-                  className={`absolute bottom-0 left-0 right-0 h-1.5 ${
-                    index === 5
-                      ? "bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300"
-                      : "bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400"
-                  }`}
-                ></div>
-              </div>
-            ))}
+                    {/* Add a "NEXT" badge for the next prayer */}
+                    {isNextPrayer && (
+                      <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full rotate-12 shadow-lg">
+                        NEXT
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 h-1.5 ${
+                      isNextPrayer
+                        ? "bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300"
+                        : "bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400"
+                    }`}
+                  ></div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
