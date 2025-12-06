@@ -518,9 +518,7 @@ export function MasjidTemplateAuthentic({
                     style={{
                       ...textStyle,
                       color:
-                        countdownState.type === "adhan"
-                          ? customization.colors.secondary
-                          : countdownState.seconds > 300
+                        countdownState.seconds > 300
                           ? "#10B981" // Green for >5 min
                           : countdownState.seconds > 60
                           ? "#F59E0B" // Yellow for 1-5 min
@@ -541,17 +539,7 @@ export function MasjidTemplateAuthentic({
                       fontFamily: "'Orbitron', monospace",
                       fontWeight: 900,
                       color:
-                        countdownState.type === "adhan"
-                          ? countdownState.seconds > 300
-                            ? "#10B981" // Green for >5 min
-                            : countdownState.seconds > 60
-                            ? "#F59E0B" // Yellow for 1-5 min
-                            : countdownState.seconds > 30
-                            ? "#F97316" // Orange for 30-60 sec
-                            : countdownState.seconds > 10
-                            ? "#EF4444" // Red for 10-30 sec
-                            : "#DC2626" // Bright red for <10 sec
-                          : countdownState.seconds > 300
+                        countdownState.seconds > 300
                           ? "#10B981" // Green for >5 min
                           : countdownState.seconds > 60
                           ? "#F59E0B" // Yellow for 1-5 min
@@ -561,17 +549,7 @@ export function MasjidTemplateAuthentic({
                           ? "#EF4444" // Red for 10-30 sec
                           : "#DC2626", // Bright red for <10 sec
                       textShadow:
-                        countdownState.type === "adhan"
-                          ? countdownState.seconds > 300
-                            ? `0 0 20px #10B98180, 0 0 40px #10B98160, 0 0 60px #10B98140, 6px 6px 20px rgba(0,0,0,0.9)`
-                            : countdownState.seconds > 60
-                            ? `0 0 20px #F59E0B80, 0 0 40px #F59E0B60, 0 0 60px #F59E0B40, 6px 6px 20px rgba(0,0,0,0.9)`
-                            : countdownState.seconds > 30
-                            ? `0 0 20px #F9731680, 0 0 40px #F9731660, 0 0 60px #F9731640, 6px 6px 20px rgba(0,0,0,0.9)`
-                            : countdownState.seconds > 10
-                            ? `0 0 20px #EF444480, 0 0 40px #EF444460, 0 0 60px #EF444440, 6px 6px 20px rgba(0,0,0,0.9)`
-                            : `0 0 20px #DC262680, 0 0 40px #DC262660, 0 0 60px #DC262640, 6px 6px 20px rgba(0,0,0,0.9)`
-                          : countdownState.seconds > 300
+                        countdownState.seconds > 300
                           ? `0 0 20px #10B98180, 0 0 40px #10B98160, 0 0 60px #10B98140, 6px 6px 20px rgba(0,0,0,0.9)`
                           : countdownState.seconds > 60
                           ? `0 0 20px #F59E0B80, 0 0 40px #F59E0B60, 0 0 60px #F59E0B40, 6px 6px 20px rgba(0,0,0,0.9)`
@@ -584,11 +562,12 @@ export function MasjidTemplateAuthentic({
                       animation:
                         countdownState.seconds > 10
                           ? "subtlePulse 2s ease-in-out infinite"
-                          : "subtlePulse 1s ease-in-out infinite", // Faster pulse for last 10 seconds
+                          : "subtlePulse 1s ease-in-out infinite",
                     }}
                   >
                     {formatCountdown(countdownState.seconds)}
                   </div>
+                  cool
                 </div>
               </div>
             )}
@@ -601,52 +580,17 @@ export function MasjidTemplateAuthentic({
               // Check if this is the next prayer (excluding Sunrise as it doesn't have Iqamah)
               const isNextPrayer = prayer.name.toLowerCase() === nextPrayerName;
 
-              // Determine if countdown is active and get countdown color if needed
-              const getCountdownColor = () => {
-                if (
-                  !countdownState ||
-                  countdownState.prayerName.toLowerCase() !==
-                    prayer.name.toLowerCase()
-                ) {
-                  return null;
-                }
-
-                if (countdownState.seconds > 300) {
-                  // >5 min
-                  return "#10B981"; // Green
-                } else if (countdownState.seconds > 60) {
-                  // 1-5 min
-                  return "#F59E0B"; // Yellow
-                } else if (countdownState.seconds > 30) {
-                  // 30-60 sec
-                  return "#F97316"; // Orange
-                } else if (countdownState.seconds > 10) {
-                  // 10-30 sec
-                  return "#EF4444"; // Red
-                } else {
-                  // 0-10 sec
-                  return "#DC2626"; // Bright Red
-                }
-              };
-
-              const countdownColor = getCountdownColor();
-              const isCountdownActive = !!countdownColor;
-
               return (
                 <div
                   key={index}
                   className={`relative overflow-hidden rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                     isNextPrayer
                       ? "bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 shadow-xl shadow-yellow-500/50"
-                      : isCountdownActive
-                      ? "bg-gradient-to-br from-gray-800 to-gray-900 shadow-xl shadow-gray-900/50"
                       : "bg-gradient-to-br from-teal-600/90 to-cyan-700/90 backdrop-blur-sm"
                   }`}
                   style={{
                     border: isNextPrayer
                       ? "3px solid rgba(251, 191, 36, 0.6)"
-                      : isCountdownActive
-                      ? `3px solid ${countdownColor}80`
                       : "2px solid rgba(255, 255, 255, 0.15)",
                   }}
                 >
@@ -657,16 +601,7 @@ export function MasjidTemplateAuthentic({
                       className="text-4xl font-bold mb-3 tracking-wide"
                       style={{
                         ...textStyle,
-                        color: isNextPrayer
-                          ? "#1e293b"
-                          : isCountdownActive
-                          ? countdownColor
-                          : "#ffffff",
-                        textShadow: isCountdownActive
-                          ? `0 0 10px ${countdownColor}80`
-                          : isNextPrayer
-                          ? "2px 2px 4px rgba(0,0,0,0.2)"
-                          : "2px 2px 8px rgba(0,0,0,0.9)",
+                        color: isNextPrayer ? "#1e293b" : "#ffffff",
                       }}
                     >
                       {prayer.name}{" "}
@@ -676,46 +611,19 @@ export function MasjidTemplateAuthentic({
                       className="text-6xl font-black"
                       style={{
                         ...textStyle,
-                        color: isNextPrayer
-                          ? "#1e293b"
-                          : isCountdownActive
-                          ? countdownColor
-                          : "#fbbf24",
-                        textShadow: isCountdownActive
-                          ? `0 0 15px ${countdownColor}80, 0 0 30px ${countdownColor}60`
-                          : isNextPrayer
+                        color: isNextPrayer ? "#1e293b" : "#fbbf24",
+                        textShadow: isNextPrayer
                           ? "2px 2px 4px rgba(0,0,0,0.2)"
                           : "2px 2px 8px rgba(0,0,0,0.9)",
-                        animation: isCountdownActive
-                          ? countdownState.seconds > 10
-                            ? "subtlePulse 2s ease-in-out infinite"
-                            : "subtlePulse 1s ease-in-out infinite"
-                          : "none",
                       }}
                     >
                       {prayer.adhan}
                     </div>
 
                     {/* Add a "NEXT" badge for the next prayer */}
-                    {isNextPrayer && !isCountdownActive && (
+                    {isNextPrayer && (
                       <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full rotate-12 shadow-lg">
                         NEXT
-                      </div>
-                    )}
-
-                    {/* Add a countdown timer badge when countdown is active */}
-                    {isCountdownActive && (
-                      <div
-                        className="absolute -top-1 -right-1 text-white text-xs font-bold px-4 py-1 rounded-full rotate-12 shadow-lg"
-                        style={{
-                          backgroundColor: countdownColor,
-                          animation:
-                            countdownState.seconds > 10
-                              ? "subtlePulse 2s ease-in-out infinite"
-                              : "subtlePulse 1s ease-in-out infinite",
-                        }}
-                      >
-                        {formatCountdown(countdownState.seconds)}
                       </div>
                     )}
                   </div>
@@ -724,8 +632,6 @@ export function MasjidTemplateAuthentic({
                     className={`absolute bottom-0 left-0 right-0 h-1.5 ${
                       isNextPrayer
                         ? "bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300"
-                        : isCountdownActive
-                        ? `bg-gradient-to-r ${countdownColor}80 via ${countdownColor} to ${countdownColor}80`
                         : "bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400"
                     }`}
                   ></div>
