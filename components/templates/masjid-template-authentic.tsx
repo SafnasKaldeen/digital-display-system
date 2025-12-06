@@ -296,7 +296,7 @@ export function MasjidTemplateAuthentic({
       }
     };
 
-    return `${day}${getSuffix(day)} , ${weekday} - ${month} - ${year}`;
+    return `${day}${getSuffix(day)}, ${weekday} - ${month} - ${year}`;
   };
 
   const nextPrayer = getNextPrayer();
