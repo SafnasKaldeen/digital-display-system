@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import FlipClockCountdown from "@leenguyen/react-flip-clock-countdown";
-import "@leenguyen/react-flip-clock-countdown/dist/index.css";
+import { FlipClockWrapper } from "./components/masjid/FlipClockWrapper";
 
 interface PrayerTimes {
   fajr: string;
@@ -319,37 +318,7 @@ export function MasjidTemplateAuthentic({
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-12">
-          <div className="mb-8 mt-4 relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-2xl rounded-full"></div>
-
-            <FlipClockCountdown
-              to={nextPrayer.time}
-              renderMap={["hours", "minutes", "seconds"]}
-              labels={["Days", "Hours", "Minutes", "Seconds"]}
-              labelStyle={{ display: "none" }}
-              showLabels={false}
-              showSeparators={true}
-              daysInHours={true}
-              digitBlockStyle={{
-                width: 220,
-                height: 240,
-                fontSize: 200,
-                fontWeight: "700",
-                backgroundColor: "#1a1a1a",
-                color: "#f5f5f5",
-                borderRadius: 8,
-                boxShadow:
-                  "0 8px 16px rgba(0,0,0,0.9), inset 0 -4px 8px rgba(0,0,0,0.6), inset 0 4px 8px rgba(255,255,255,0.03)",
-                border: "1px solid #0a0a0a",
-              }}
-              dividerStyle={{ color: "transparent", height: 0 }}
-              separatorStyle={{
-                color: "#666",
-                size: "32px",
-              }}
-              duration={0.5}
-            />
-          </div>
+          <FlipClockWrapper targetTime={nextPrayer.time} />
 
           <div className="w-full max-w-7xl grid grid-cols-2 gap-12">
             <div className="flex flex-col items-center justify-center py-2 px-8">
