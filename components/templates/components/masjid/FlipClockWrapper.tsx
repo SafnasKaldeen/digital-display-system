@@ -10,7 +10,7 @@ export const FlipClockWrapper: React.FC<FlipClockWrapperProps> = ({
   targetTime,
 }) => {
   return (
-    <div className="mb-20 mt-0 relative">
+    <div className="mb-16 mt-0 relative">
       <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-2xl rounded-full"></div>
 
       <FlipClockCountdown

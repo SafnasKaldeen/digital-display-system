@@ -412,6 +412,7 @@ export function MasjidTemplateAuthentic({
 
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-12">
           <FlipClockWrapper targetTime={nextPrayer.time} />
+          {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
           <div className="w-full max-w-7xl relative">
             {!countdownState && (
