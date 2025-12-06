@@ -91,9 +91,7 @@ export function MasjidTemplateAuthentic({
       const data = await response.json();
       if (data.code === 200) {
         const hijri = data.data.hijri;
-        setHijriDate(
-          `${hijri.day}th - ${hijri.month.en} ( ${hijri.month.number}th month ) - ${hijri.year}`
-        );
+        setHijriDate(`${hijri.day}th - ${hijri.month.en} - ${hijri.year}`);
       }
     } catch (error) {
       console.error("Error fetching Hijri date:", error);
@@ -408,10 +406,10 @@ export function MasjidTemplateAuthentic({
           }}
         ></div>
 
-        <div className="relative z-10 flex flex-col items-center p-8 pb-4 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="relative z-10 flex flex-col items-center px-0 p-8 pb-4 bg-gradient-to-b from-black/40 to-transparent">
           <div className="text-center mb-2">
             <span
-              className="text-5xl font-bold tracking-wide"
+              className="text-6xl font-bold tracking-wide"
               style={{ ...textStyle, color: customization.colors.accent }}
             >
               {hijriDate && customization.showHijriDate && (
@@ -438,7 +436,7 @@ export function MasjidTemplateAuthentic({
           <FlipClockWrapper />
           {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
-          <div className="w-full max-w-7xl relative">
+          <div className="w-full max-w-8xl relative">
             {!countdownState && (
               <div className="grid grid-cols-2 gap-12">
                 <div className="flex flex-col items-center justify-center py-2 px-8">
@@ -452,7 +450,7 @@ export function MasjidTemplateAuthentic({
                     {nextPrayer.name.toUpperCase()}
                   </h3>
                   <div
-                    className="text-[9rem] font-black leading-none"
+                    className="text-[12rem] font-black leading-none"
                     style={{
                       fontFamily: "'Orbitron', monospace",
                       fontWeight: 900,
@@ -478,7 +476,7 @@ export function MasjidTemplateAuthentic({
                     IQAMAH
                   </h3>
                   <div
-                    className="text-[9rem] font-black leading-none"
+                    className="text-[12rem] font-black leading-none"
                     style={{
                       fontFamily: "'Orbitron', monospace",
                       fontWeight: 900,
@@ -618,21 +616,22 @@ export function MasjidTemplateAuthentic({
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0"></div>
 
-                  <div className="relative p-4 text-center">
+                  <div className="relative px-4 pt-1 pb-0 text-center">
                     <div
-                      className="text-4xl font-bold mb-3 tracking-wide"
+                      className="text-4xl font-bold mb-2 tracking-wide"
                       style={{
                         ...textStyle,
                         color: isNextPrayer ? "#1e293b" : "#ffffff",
                       }}
                     >
                       {prayer.name}{" "}
-                      <span className="text-2xl">({prayer.nameAr})</span>
+                      <span className="text-3xl">({prayer.nameAr})</span>
                     </div>
                     <div
                       className="text-6xl font-black"
                       style={{
                         ...textStyle,
+                        fontSize: "6rem",
                         color: isNextPrayer ? "#1e293b" : "#fbbf24",
                         textShadow: isNextPrayer
                           ? "2px 2px 4px rgba(0,0,0,0.2)"
