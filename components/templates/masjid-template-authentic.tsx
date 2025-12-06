@@ -60,9 +60,8 @@ export function MasjidTemplateAuthentic({
   const [hijriDate, setHijriDate] = useState("");
   const [showInstructions, setShowInstructions] = useState(true);
   const [instructionsPrayer, setInstructionsPrayer] = useState("");
-  const [prayerInstructionImage, setPrayerInstructionImage] = useState(
-    "/how-to-perform-muslim-prayer.png"
-  );
+  const [prayerInstructionImage, setPrayerInstructionImage] = useState("");
+
   const [prayerInstructionDuration, setPrayerInstructionDuration] =
     useState(10);
   useEffect(() => {
@@ -82,7 +81,18 @@ export function MasjidTemplateAuthentic({
 
       return () => clearInterval(interval);
     }
-  }, [customization.announcements, currentAnnouncement]);
+    if (customization.prayerInstructionImage) {
+      setPrayerInstructionImage(customization.prayerInstructionImage);
+    }
+    if (customization.prayerInstructionDuration) {
+      setPrayerInstructionDuration(customization.prayerInstructionDuration);
+    }
+  }, [
+    customization.announcements,
+    currentAnnouncement,
+    customization.prayerInstructionImage,
+    customization.prayerInstructionDuration,
+  ]);
 
   useEffect(() => {
     fetchHijriDate();
@@ -91,6 +101,16 @@ export function MasjidTemplateAuthentic({
   // Check if Iqamah time has passed and show instructions
   useEffect(() => {
     const checkInstructions = () => {
+      // Only check if image is provided and duration is greater than 0
+      if (
+        !customization.prayerInstructionImage ||
+        customization.prayerInstructionDuration <= 0
+      ) {
+        setShowInstructions(false);
+        setInstructionsPrayer("");
+        return;
+      }
+
       const now = new Date();
       const currentMinutes =
         now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
@@ -131,10 +151,10 @@ export function MasjidTemplateAuthentic({
         const timeSinceIqamah = currentMinutes - iqamahMinutes;
 
         // Show instructions if within the duration window after Iqamah
-        if (
-          timeSinceIqamah >= 0 &&
-          timeSinceIqamah <= customization.prayerInstructionDuration
-        ) {
+        // Convert duration from seconds to minutes for comparison
+        const durationInMinutes = customization.prayerInstructionDuration / 60;
+
+        if (timeSinceIqamah >= 0 && timeSinceIqamah <= durationInMinutes) {
           setShowInstructions(true);
           setInstructionsPrayer(prayer.name);
           return;
@@ -452,7 +472,6 @@ export function MasjidTemplateAuthentic({
           href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Inter:wght@400;700&display=swap"
           rel="stylesheet"
         />
-
         <style>
           {`
             @keyframes subtlePulse {
@@ -507,7 +526,6 @@ export function MasjidTemplateAuthentic({
             }
           `}
         </style>
-
         <div
           className="absolute inset-0 opacity-5"
           style={{
@@ -515,50 +533,30 @@ export function MasjidTemplateAuthentic({
             backgroundSize: "30px 30px",
           }}
         ></div>
-
         {/* Prayer Instructions Overlay - Full Screen, Nothing Hidden */}
-        {(showInstructions && customization.prayerInstructionImage) ||
-          (prayerInstructionImage && (
+        {showInstructions &&
+          customization.prayerInstructionImage &&
+          customization.prayerInstructionDuration > 0 && (
             <div
-              className="fixed inset-0 flex items-center justify-center z-[9999]"
+              className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/95"
               style={{
-                backgroundColor: "rgba(0, 0, 0, 0.95)",
                 animation: "fadeInScale 0.6s ease-out",
               }}
             >
-              <div className="relative w-full h-full flex flex-col items-center justify-center">
-                <div className="flex  items-center justify-center z-[9999] bg-black/95">
-                  <div
-                    className="relative rounded-3xl overflow-hidden"
-                    style={{
-                      maxHeight: "120vh", // 90% of viewport height
-                      width: "auto",
-                      maxWidth: "100vw", // optional: limit width
-                      border: `8px solid ${customization.colors.accent}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      animation:
-                        "fadeInScale 0.8s ease-out 0.2s backwards, glowPulse 3s ease-in-out infinite 0.8s",
-                    }}
-                  >
-                    <img
-                      src={
-                        customization.prayerInstructionImage ||
-                        prayerInstructionImage
-                      }
-                      alt="Prayer Instructions"
-                      style={{
-                        maxHeight: "150vh", // ensures image covers 90% of height
-                        width: "auto", // maintains aspect ratio
-                        display: "block",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
+              <img
+                src={
+                  customization.prayerInstructionImage || prayerInstructionImage
+                }
+                alt="Prayer Instructions"
+                className="max-h-[95vh] max-w-[95vw] object-contain rounded-3xl border-8"
+                style={{
+                  borderColor: customization.colors.accent,
+                  animation:
+                    "fadeInScale 0.8s ease-out 0.2s backwards, glowPulse 3s ease-in-out infinite 0.8s",
+                }}
+              />
             </div>
-          ))}
+          )}
 
         <div className="relative z-10 flex flex-col items-center px-0 p-8 pb-4 bg-gradient-to-b from-black/40 to-transparent">
           <div className="text-center mb-2">
@@ -585,7 +583,6 @@ export function MasjidTemplateAuthentic({
             </h1>
           </div>
         </div>
-
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-4">
           <FlipClockWrapper />
           {/* <FlipClockWrapper currentTime={currentTime} /> */}
@@ -741,15 +738,13 @@ export function MasjidTemplateAuthentic({
                   >
                     {formatCountdown(countdownState.seconds)}
                   </div>
-                  cool
                 </div>
               </div>
             )}
           </div>
         </div>
-
         <div className="relative z-10 px-0 pb-4">
-          <div className="grid grid-cols-6 gap-3 max-w-[1%] mx-auto">
+          <div className="grid grid-cols-6 gap-3 max-w-[95%] mx-auto">
             {prayers.map((prayer, index) => {
               // Check if this is the next prayer (excluding Sunrise as it doesn't have Iqamah)
               const isNextPrayer = prayer.name.toLowerCase() === nextPrayerName;
@@ -815,7 +810,6 @@ export function MasjidTemplateAuthentic({
             })}
           </div>
         </div>
-
         <div className="absolute top-0 left-0 w-32 h-32 opacity-20">
           <svg viewBox="0 0 100 100" fill="currentColor" className="text-white">
             <path d="M0,0 L100,0 L100,100 Q50,50 0,100 Z" />
@@ -826,7 +820,6 @@ export function MasjidTemplateAuthentic({
             <path d="M100,0 L0,0 L0,100 Q50,50 100,100 Z" />
           </svg>
         </div>
-
         {customization.announcements &&
           customization.announcements.length > 0 && (
             <div

@@ -34,6 +34,8 @@ interface MasjidCustomization {
   announcements: Array<{ text: string; duration: number }>;
   showHijriDate: boolean;
   font: string;
+  prayerInstructionImage: string;
+  prayerInstructionDuration: number;
 }
 
 interface MasjidTemplateProps {

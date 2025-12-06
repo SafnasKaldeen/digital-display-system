@@ -70,6 +70,8 @@ interface MasjidConfig {
   animationSpeed: "slow" | "normal" | "fast";
   layout: "authentic" | "vertical" | "horizontal" | "centered";
   colorTheme?: Colors;
+  prayerInstructionImage: string;
+  prayerInstructionDuration: number;
 }
 
 interface MasjidEditorPanelProps {
@@ -158,7 +160,7 @@ function ImageUploader({
   maxImages?: number;
   userId?: string;
   displayId?: string;
-  imageType: "logo" | "background" | "slideshow";
+  imageType: "logo" | "background" | "slideshow" | "prayer-instruction";
   environment?: "preview" | "production";
 }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -325,6 +327,8 @@ function ImageUploader({
                       ? "Logo"
                       : imageType === "background"
                       ? "Background"
+                      : imageType === "prayer-instruction"
+                      ? "Prayer Instructions"
                       : "Images"
                   }`}
             </span>
@@ -475,6 +479,8 @@ export default function MasjidEditorPanel({
     showWeather: true,
     animationSpeed: "normal",
     layout: "authentic",
+    prayerInstructionImage: "",
+    prayerInstructionDuration: 10,
   };
 
   const [customization, setCustomization] =
@@ -1261,6 +1267,62 @@ export default function MasjidEditorPanel({
                 )}
             </>
           )}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Prayer Instructions">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-300 block mb-2">
+              Instruction Image
+            </label>
+            <p className="text-xs text-gray-400 mb-3">
+              This image will be displayed after each Iqamah time for the
+              duration you specify below.
+            </p>
+            <ImageUploader
+              images={
+                customization.prayerInstructionImage
+                  ? [customization.prayerInstructionImage]
+                  : []
+              }
+              onChange={(imgs) =>
+                updateConfig({ prayerInstructionImage: imgs[0] || "" })
+              }
+              maxImages={1}
+              userId={currentUserId}
+              displayId={displayId}
+              imageType="prayer-instruction"
+              environment={environment}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-300 block mb-2">
+              Display Duration: {customization.prayerInstructionDuration}{" "}
+              seconds
+            </label>
+            <p className="text-xs text-gray-400 mb-2">
+              How long to show the prayer instructions after Iqamah
+            </p>
+            <input
+              type="range"
+              min="10"
+              max="600"
+              step="10"
+              value={customization.prayerInstructionDuration}
+              onChange={(e) =>
+                updateConfig({
+                  prayerInstructionDuration: parseInt(e.target.value),
+                })
+              }
+              className="w-full accent-pink-500"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>10 sec</span>
+              <span>10 min (600 sec)</span>
+            </div>
+          </div>
         </div>
       </CollapsibleSection>
 
