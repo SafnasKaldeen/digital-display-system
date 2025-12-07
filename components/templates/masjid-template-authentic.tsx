@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import FlipClockWrapper from "./components/masjid/FlipClockWrapper";
 import { PrayerInstructions } from "./components/masjid/PrayerInstructions";
+import { IshraqCountdown } from "./components/masjid/IshraqCountdown";
 
 interface PrayerTimes {
   fajr: string;
+  sunrise: string; // ADD THIS LINE
   dhuhr: string;
   asr: string;
   maghrib: string;
@@ -12,6 +14,7 @@ interface PrayerTimes {
 
 interface IqamahOffsets {
   fajr: number;
+  sunrise: number; // ADD THIS LINE
   dhuhr: number;
   asr: number;
   maghrib: number;
@@ -67,6 +70,9 @@ export function MasjidTemplateAuthentic({
     useState(10);
 
   const [instructionsRemainingTime, setInstructionsRemainingTime] = useState(0);
+  // Add these state variables with your other useState declarations:
+  const [showIshraqCountdown, setShowIshraqCountdown] = useState(false);
+  const [ishraqRemainingSeconds, setIshraqRemainingSeconds] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -178,6 +184,43 @@ export function MasjidTemplateAuthentic({
     const interval = setInterval(checkInstructions, 1000);
     return () => clearInterval(interval);
   }, [customization]);
+
+  useEffect(() => {
+    const checkIshraqTime = () => {
+      const now = new Date();
+      const currentMinutes =
+        now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+      // Hardcoded sunrise time for testing
+      const [sunriseHours, sunriseMinutes] = customization.prayerTimes.sunrise
+        .split(":")
+        .map(Number);
+      const sunriseMinutesTotal = sunriseHours * 60 + sunriseMinutes;
+
+      // Ishraq is 20 minutes after sunrise
+      const ishraqMinutes = sunriseMinutesTotal + 20;
+
+      // Calculate time difference
+      const timeSinceSunrise = currentMinutes - sunriseMinutesTotal;
+
+      // Show countdown if between sunrise and 20 minutes after (Ishraq time)
+      if (timeSinceSunrise >= 0 && timeSinceSunrise <= 20) {
+        const remainingMinutes = 20 - timeSinceSunrise;
+        const remainingSeconds = Math.max(0, Math.floor(remainingMinutes * 60));
+
+        setShowIshraqCountdown(true);
+        setIshraqRemainingSeconds(remainingSeconds);
+        return;
+      }
+
+      setShowIshraqCountdown(false);
+      setIshraqRemainingSeconds(0);
+    };
+
+    checkIshraqTime();
+    const interval = setInterval(checkIshraqTime, 1000);
+    return () => clearInterval(interval);
+  }, [customization.prayerTimes.sunrise]);
 
   const fetchHijriDate = async () => {
     try {
@@ -466,9 +509,26 @@ export function MasjidTemplateAuthentic({
     textShadow: "2px 2px 8px rgba(0,0,0,0.9)",
   };
 
+  // Add this check BEFORE the prayer instructions check in your render:
+  // Show Ishraq countdown if it's time
+  if (showIshraqCountdown) {
+    // if (true) {
+    return (
+      <IshraqCountdown
+        accentColor={customization.colors.accent}
+        secondaryColor={customization.colors.secondary}
+        remainingSeconds={ishraqRemainingSeconds}
+        onClose={() => {
+          setShowIshraqCountdown(false);
+          setIshraqRemainingSeconds(0);
+        }}
+      />
+    );
+  }
+
   // If showing instructions, ONLY show the instructions component
-  // if (showInstructions && customization.prayerInstructionImage) {
-  if (true) {
+  if (showInstructions && customization.prayerInstructionImage) {
+    // if (true) {
     return (
       <PrayerInstructions
         imageUrl={customization.prayerInstructionImage}

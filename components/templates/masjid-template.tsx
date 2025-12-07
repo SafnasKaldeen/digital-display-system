@@ -10,6 +10,7 @@ interface MasjidCustomization {
   masjidName: string;
   prayerTimes: {
     fajr: string;
+    sunrise: string;
     dhuhr: string;
     asr: string;
     maghrib: string;
