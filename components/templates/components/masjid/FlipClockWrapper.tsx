@@ -71,7 +71,7 @@ const FlipClockWrapper: React.FC = () => {
       theme: theme({
         dividers: ":",
         css: fcCss({
-          fontSize: "220px", // Larger font to match your design
+          fontSize: "240px", // Larger font to match your design
           lineHeight: "160px", // Match the height of your design
         }),
         // Additional theme options if the library supports them
