@@ -588,21 +588,21 @@ export function MasjidTemplateAuthentic({
             </div>
           )}
 
-        <div className="relative z-10 flex flex-col items-center px-0 pt-0 pb-8 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="relative z-10 flex flex-col items-center px-0 pt-0 pb-6 bg-gradient-to-b from-black/40 to-transparent">
           <div className="flex items-center gap-3">
             <span className="text-5xl">🕌</span>
             <h1
-              className="text-5xl mt-6 font-bold tracking-wide uppercase"
+              className="text-5xl mt-4 font-bold tracking-wide uppercase"
               style={textStyle}
             >
               {customization.masjidName}
             </h1>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-6">
             <span
               className={`text-${
-                customization.showHijriDate ? "6xl" : "7xl"
+                customization.showHijriDate ? "6xl" : "8xl"
               } font-extrabold tracking-wider`}
               style={{ ...textStyle, color: customization.colors.accent }}
             >
@@ -615,7 +615,7 @@ export function MasjidTemplateAuthentic({
             </span>
           </div>
         </div>
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-2">
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-2 pt-0">
           <FlipClockWrapper />
           {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
