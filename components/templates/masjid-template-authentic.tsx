@@ -494,9 +494,14 @@ export function MasjidTemplateAuthentic({
         }}
       >
         <link
+          href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Oxanium:wght@200..800&display=swap"
+          rel="stylesheet"
+        />
+        <link
           href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Inter:wght@400;700&display=swap"
           rel="stylesheet"
         />
+
         <style>
           {`
             @keyframes subtlePulse {
@@ -583,10 +588,22 @@ export function MasjidTemplateAuthentic({
             </div>
           )}
 
-        <div className="relative z-10 flex flex-col items-center px-0 p-8 pb-4 bg-gradient-to-b from-black/40 to-transparent">
-          <div className="text-center mb-2">
+        <div className="relative z-10 flex flex-col items-center px-0 pt-0 pb-8 bg-gradient-to-b from-black/40 to-transparent">
+          <div className="flex items-center gap-3">
+            <span className="text-5xl">🕌</span>
+            <h1
+              className="text-5xl mt-6 font-bold tracking-wide uppercase"
+              style={textStyle}
+            >
+              {customization.masjidName}
+            </h1>
+          </div>
+
+          <div className="text-center mt-8">
             <span
-              className="text-6xl font-bold tracking-wide"
+              className={`text-${
+                hijriDate ? "6xl" : "7xl"
+              } font-bold tracking-wide`}
               style={{ ...textStyle, color: customization.colors.accent }}
             >
               {hijriDate && customization.showHijriDate && (
@@ -596,16 +613,6 @@ export function MasjidTemplateAuthentic({
               )}
               {formatCustomDate(currentTime)}
             </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-5xl">🕌</span>
-            <h1
-              className="text-6xl mt-6 font-bold tracking-wide uppercase"
-              style={textStyle}
-            >
-              {customization.masjidName}
-            </h1>
           </div>
         </div>
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-2">
@@ -626,9 +633,9 @@ export function MasjidTemplateAuthentic({
                     {nextPrayer.name.toUpperCase()}
                   </h3>
                   <div
-                    className="text-[16rem] font-black leading-none"
+                    className="text-[18rem] font-black leading-none"
                     style={{
-                      fontFamily: "'Amiri', monospace",
+                      fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
                       color: customization.colors.secondary,
                       textShadow: `
@@ -652,9 +659,9 @@ export function MasjidTemplateAuthentic({
                     IQAMAH
                   </h3>
                   <div
-                    className="text-[16rem] font-black leading-none"
+                    className="text-[18rem] font-black leading-none"
                     style={{
-                      fontFamily: "'Amiri', monospace",
+                      fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
                       color: customization.colors.accent,
                       textShadow: `
@@ -682,7 +689,7 @@ export function MasjidTemplateAuthentic({
                     <div
                       className="text-4xl font-black"
                       style={{
-                        fontFamily: "'Amiri', monospace",
+                        fontFamily: "'Oxanium', monospace",
                         color: customization.colors.secondary,
                       }}
                     >
@@ -699,7 +706,7 @@ export function MasjidTemplateAuthentic({
                     <div
                       className="text-4xl font-black"
                       style={{
-                        fontFamily: "'Amiri', monospace",
+                        fontFamily: "'Oxanium', monospace",
                         color: customization.colors.accent,
                       }}
                     >
@@ -730,9 +737,9 @@ export function MasjidTemplateAuthentic({
                     {countdownState.type === "adhan" ? "ADHAN IN" : "IQAMAH IN"}
                   </h3>
                   <div
-                    className="text-[18rem] font-black leading-none"
+                    className="text-[20rem] font-black leading-none"
                     style={{
-                      fontFamily: "'Amiri', monospace",
+                      fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
                       color:
                         countdownState.seconds > 300

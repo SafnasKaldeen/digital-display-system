@@ -99,7 +99,7 @@ const FlipClockWrapper: React.FC = () => {
   }, []);
 
   return (
-    <div className="mb-10 mt-0 relative">
+    <div className="mb-6 mt-0 relative">
       <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-2xl rounded-full"></div>
       <div className="relative">
         <div
