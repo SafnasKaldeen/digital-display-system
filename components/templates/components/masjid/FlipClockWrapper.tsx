@@ -12,7 +12,28 @@ const FlipClockWrapper: React.FC = () => {
 
     // Create custom styles to match your countdown design
     const customStyles = `
-      .flip-clock-card {
+    .flip-clock-card-item-inner .top,
+    .flip-clock-card-item-inner .bottom {
+      font-weight: 1000 !important;
+      color: #ffffff !important;
+      background: #0d0d0d !important;       /* very dark */
+      border-color: #000 !important;         /* dark border */
+      
+
+      /* Optional: makes digits appear thicker */
+      text-shadow:
+        0 0 2px rgba(255,255,255,0.6),
+        0 0 3px rgba(255,255,255,0.5) !important;
+
+      /* Ensures font scaling works */
+      font-family: inherit !important;
+    }
+      .fc-digit {
+        color: #f5f5f5 !important;
+        font-weight: 1200 !important;
+        font-size: 300px !important;
+      }
+      .fc-face {
         background-color: #1a1a1a !important;
         border-radius: 8px !important;
         border: 1px solid #0a0a0a !important;
@@ -20,26 +41,8 @@ const FlipClockWrapper: React.FC = () => {
           0 8px 16px rgba(0,0,0,0.9),
           inset 0 -4px 8px rgba(0,0,0,0.6),
           inset 0 4px 8px rgba(255,255,255,0.03) !important;
-        padding: 8px 16px !important;
-        overflow: hidden !important;
       }
-      .flip-clock-card-item-inner {
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .flip-clock-card-item-inner .top,
-      .flip-clock-card-item-inner .bottom {
-        font-weight: 1000 !important;
-        color: #ffffff !important;
-        background: #0d0d0d !important;
-        border-color: #000 !important;
-        padding: 8px 0 !important;
-        text-shadow:
-          0 0 2px rgba(255,255,255,0.6),
-          0 0 3px rgba(255,255,255,0.5) !important;
-        font-family: inherit !important;
-      }
-      .flip-clock-divider {
+      .fc-divider {
         color: #666 !important;
         font-size: 32px !important;
         font-weight: 700 !important;
@@ -68,37 +71,24 @@ const FlipClockWrapper: React.FC = () => {
       theme: theme({
         dividers: ":",
         css: fcCss({
-          fontSize: "288px", // Increased by 20% (240 * 1.2)
-          lineHeight: "192px", // Increased by 20% (160 * 1.2)
+          fontSize: "220px", // Larger font to match your design
+          lineHeight: "160px", // Match the height of your design
         }),
         // Additional theme options if the library supports them
-        faceWidth: 264, // Increased by 20% (220 * 1.2)
-        faceHeight: 216, // Increased by 20% (180 * 1.2)
+        faceWidth: 220,
+        faceHeight: 180,
       }),
     });
 
     // Try to apply additional styling if possible
     setTimeout(() => {
-      const cards = containerRef.current?.querySelectorAll(".flip-clock-card");
-      cards?.forEach((card) => {
-        (card as HTMLElement).style.padding = "8px 16px";
-        (card as HTMLElement).style.width = "264px"; // Increased by 20%
-        (card as HTMLElement).style.height = "216px"; // Increased by 20%
-      });
-
-      const tops = containerRef.current?.querySelectorAll(
-        ".flip-clock-card-item-inner .top"
-      );
-      const bottoms = containerRef.current?.querySelectorAll(
-        ".flip-clock-card-item-inner .bottom"
-      );
-
-      tops?.forEach((top) => {
-        (top as HTMLElement).style.padding = "8px 0";
-      });
-
-      bottoms?.forEach((bottom) => {
-        (bottom as HTMLElement).style.padding = "8px 0";
+      const faces = containerRef.current?.querySelectorAll(".fc-face");
+      faces?.forEach((face) => {
+        (face as HTMLElement).style.width = "220px";
+        (face as HTMLElement).style.height = "220px";
+        (face as HTMLElement).style.display = "flex";
+        (face as HTMLElement).style.alignItems = "center";
+        (face as HTMLElement).style.justifyContent = "center";
       });
     }, 100);
 
