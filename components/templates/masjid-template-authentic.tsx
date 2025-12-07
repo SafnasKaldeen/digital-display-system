@@ -588,7 +588,7 @@ export function MasjidTemplateAuthentic({
             </div>
           )}
 
-        <div className="relative z-10 flex flex-col items-center px-0 pt-0 pb-6 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="relative z-10 flex flex-col items-center px-0 pt-0 bg-gradient-to-b from-black/40 to-transparent">
           <div className="flex items-center gap-3">
             <span className="text-5xl">🕌</span>
             <h1
@@ -619,10 +619,11 @@ export function MasjidTemplateAuthentic({
           <FlipClockWrapper />
           {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
-          <div className="w-full max-w-8xl relative">
+          <div className="w-full max-w-8xl relative -mb-16">
+            {" "}
             {!countdownState && (
               <div className="grid grid-cols-2 gap-12">
-                <div className="flex flex-col items-center justify-center py-2 px-8">
+                <div className="flex flex-col items-center justify-center py-2 my-0 px-8 ">
                   <h3
                     className="text-8xl font-black tracking-tight mb-0"
                     style={{
@@ -633,7 +634,7 @@ export function MasjidTemplateAuthentic({
                     {nextPrayer.name.toUpperCase()}
                   </h3>
                   <div
-                    className="text-[14rem] font-black leading-none"
+                    className="text-[18rem] font-black leading-none"
                     style={{
                       fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
@@ -659,7 +660,7 @@ export function MasjidTemplateAuthentic({
                     IQAMAH
                   </h3>
                   <div
-                    className="text-[14rem] font-black leading-none"
+                    className="text-[18rem] font-black leading-none"
                     style={{
                       fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
@@ -678,7 +679,6 @@ export function MasjidTemplateAuthentic({
                 </div>
               </div>
             )}
-
             {countdownState && (
               <div className="relative flex items-center justify-center">
                 <div className="absolute left-8 opacity-20 blur-sm scale-75 transition-all duration-500">
@@ -737,7 +737,7 @@ export function MasjidTemplateAuthentic({
                     {countdownState.type === "adhan" ? "ADHAN IN" : "IQAMAH IN"}
                   </h3>
                   <div
-                    className="text-[16rem] font-black leading-none"
+                    className="text-[18rem] font-black leading-none"
                     style={{
                       fontFamily: "'Oxanium', monospace",
                       fontWeight: 1000,
