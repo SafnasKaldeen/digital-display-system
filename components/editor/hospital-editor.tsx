@@ -978,17 +978,44 @@ export function HospitalEditor({
       {/* Hospital Branding */}
       <CollapsibleSection title="🏥 Hospital Branding">
         <div className="space-y-3">
+          <div>Hospital Name and Tagline</div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
-              Department
+              Hospital Name
             </label>
             <Input
-              value={departmentInfo}
+              value={hospitalName}
               onChange={(e) =>
-                handleFieldChange("departmentInfo", e.target.value)
+                handleFieldChange("hospitalName", e.target.value)
               }
-              placeholder="Emergency Department"
+              placeholder="MediTech Hospital"
               className="bg-slate-700 border-slate-600 text-slate-50"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Tagline</label>
+            <Input
+              value={tagline}
+              onChange={(e) => handleFieldChange("tagline", e.target.value)}
+              placeholder="Excellence in Healthcare Since 1995"
+              className="bg-slate-700 border-slate-600 text-slate-50"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Hospital Logo
+            </label>
+            <ImageUploader
+              images={hospitalLogo ? [hospitalLogo] : []}
+              onChange={(imgs) =>
+                handleFieldChange("hospitalLogo", imgs[0] || "")
+              }
+              maxImages={1}
+              userId={currentUserId}
+              displayId={displayId}
+              imageType="logo"
+              environment={environment}
             />
           </div>
         </div>
