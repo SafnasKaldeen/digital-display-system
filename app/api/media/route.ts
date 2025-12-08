@@ -1,38 +1,47 @@
 // app/api/media/route.ts
-import { list } from '@vercel/blob';
+import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function GET(request: Request) {
   try {
-    // Get userId from query params (optional - for filtering on server side)
     const { searchParams } = new URL(request.url);
     const filterUserId = searchParams.get('userId');
 
-    const { blobs } = await list();
+    // Get all resources from Cloudinary
+    const result = await cloudinary.api.resources({
+      type: 'upload',
+      max_results: 500,
+      resource_type: 'image',
+    });
     
-    const mediaItems = blobs.map((blob) => {
-      const pathParts = blob.pathname.split('/');
+    const mediaItems = result.resources.map((resource: any) => {
+      const pathParts = resource.public_id.split('/');
       const fileName = pathParts[pathParts.length - 1];
       
       return {
-        id: blob.pathname,
+        id: resource.public_id,
         fileName: fileName,
-        fileType: blob.pathname.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "image" : "video",
-        fileUrl: blob.url,
-        fileSize: blob.size,
-        uploadedAt: blob.uploadedAt,
+        fileType: resource.resource_type === 'video' ? 'video' : 'image',
+        fileUrl: resource.secure_url,
+        fileSize: resource.bytes,
+        uploadedAt: resource.created_at,
         userId: pathParts[0] || '',
         displayId: pathParts[1] || '',
         type: pathParts[2] || ''
       };
     });
 
-    // Filter by userId if provided - gets ALL images for that user regardless of display
     const filteredItems = filterUserId 
       ? mediaItems.filter(item => item.userId === filterUserId)
       : mediaItems;
 
-    console.log(`Total blobs: ${mediaItems.length}, Filtered for user ${filterUserId}: ${filteredItems.length}`);
+    console.log(`Total resources: ${mediaItems.length}, Filtered for user ${filterUserId}: ${filteredItems.length}`);
 
     return NextResponse.json(filteredItems);
   } catch (error) {

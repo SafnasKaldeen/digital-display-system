@@ -1,12 +1,17 @@
 // app/api/media/upload/route.ts
-import { put } from '@vercel/blob';
+import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     
-    // Get files (support both 'files' and 'images' for compatibility)
     let files = formData.getAll('images') as File[];
     if (files.length === 0) {
       files = formData.getAll('files') as File[];
@@ -46,47 +51,51 @@ export async function POST(request: Request) {
     }
 
     const uploadPromises = files.map(async (file) => {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         throw new Error(`${file.name} is not an image file`);
       }
 
-      // Generate unique filename with timestamp
       const timestamp = Date.now();
-      // Structure: userId/displayId/type/timestamp-filename
-      const filename = `${userId}/${displayId}/${type}/${timestamp}-${file.name}`;
+      const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
       
-      console.log('Uploading file:', filename);
+      // Cloudinary folder structure: userId/displayId/type
+      const folder = `${userId}/${displayId}/${type}`;
+      const publicId = `${timestamp}-${fileNameWithoutExt}`;
       
-      // Configure blob options
-      const blobOptions: any = {
-        access: 'public',
-        addRandomSuffix: true,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      };
+      console.log('Uploading file to folder:', folder);
       
-      const blob = await put(filename, file, blobOptions);
+      // Convert File to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64 = buffer.toString('base64');
+      const dataUri = `data:${file.type};base64,${base64}`;
       
-      console.log('Upload successful:', blob.url);
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(dataUri, {
+        folder: folder,
+        public_id: publicId,
+        resource_type: 'auto',
+      });
+      
+      console.log('Upload successful:', result.secure_url);
       
       return {
-        url: blob.url,
-        pathname: blob.pathname,
-        downloadUrl: blob.downloadUrl,
+        url: result.secure_url,
+        publicId: result.public_id,
         userId: userId,
         displayId: displayId,
         type: type,
       };
     });
 
-    const uploadedBlobs = await Promise.all(uploadPromises);
+    const uploadedFiles = await Promise.all(uploadPromises);
 
-    console.log(`Successfully uploaded ${uploadedBlobs.length} files`);
+    console.log(`Successfully uploaded ${uploadedFiles.length} files`);
 
     return NextResponse.json({
       success: true,
-      urls: uploadedBlobs.map(blob => blob.url),
-      blobs: uploadedBlobs,
+      urls: uploadedFiles.map(file => file.url),
+      blobs: uploadedFiles,
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -97,26 +106,21 @@ export async function POST(request: Request) {
   }
 }
 
-// Optional: Add DELETE endpoint to clean up images
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const url = searchParams.get('url');
+    const publicId = searchParams.get('publicId');
     
-    if (!url) {
+    if (!publicId) {
       return NextResponse.json(
-        { error: 'URL parameter required' },
+        { error: 'publicId parameter required' },
         { status: 400 }
       );
     }
 
-    // Import del from @vercel/blob
-    const { del } = await import('@vercel/blob');
-    await del(url, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    await cloudinary.uploader.destroy(publicId);
 
-    console.log('Successfully deleted:', url);
+    console.log('Successfully deleted:', publicId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

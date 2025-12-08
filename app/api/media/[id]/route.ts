@@ -1,18 +1,23 @@
 // app/api/media/[id]/route.ts
-import { del } from '@vercel/blob';
+import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await params before accessing properties (Next.js 15 requirement)
     const { id } = await params;
-    const pathname = decodeURIComponent(id);
+    const publicId = decodeURIComponent(id);
     
-    // Delete from Vercel Blob
-    await del(pathname);
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(publicId);
 
     return NextResponse.json({
       success: true,
