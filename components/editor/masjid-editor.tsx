@@ -240,20 +240,20 @@ export default function MasjidEditorPanel({
                 finalPrayerTimes = scheduleTimes;
               } else {
                 const easternTimes = await fetchPrayerTimesFromSchedule(
-                  "default - EASTERN"
+                  "default - BATTICALOA"
                 );
                 if (easternTimes) {
                   finalPrayerTimes = easternTimes;
-                  finalScheduleLabel = "default - EASTERN";
+                  finalScheduleLabel = "default - BATTICALOA";
                 }
               }
             } else {
               const easternTimes = await fetchPrayerTimesFromSchedule(
-                "default - EASTERN"
+                "default - BATTICALOA"
               );
               if (easternTimes) {
                 finalPrayerTimes = easternTimes;
-                finalScheduleLabel = "default - EASTERN";
+                finalScheduleLabel = "default - BATTICALOA";
               }
             }
 
@@ -297,10 +297,10 @@ export default function MasjidEditorPanel({
             setHasInitialized(true);
           } else {
             const easternTimes = await fetchPrayerTimesFromSchedule(
-              "default - EASTERN"
+              "default - BATTICALOA"
             );
             const prayerTimes = easternTimes || defaultPrayerTimes;
-            const scheduleLabel = easternTimes ? "default - EASTERN" : "";
+            const scheduleLabel = easternTimes ? "default - BATTICALOA" : "";
 
             const configWithPrayerTimes = {
               ...defaultConfig,
@@ -315,10 +315,10 @@ export default function MasjidEditorPanel({
           }
         } else {
           const easternTimes = await fetchPrayerTimesFromSchedule(
-            "default - EASTERN"
+            "default - BATTICALOA"
           );
           const prayerTimes = easternTimes || defaultPrayerTimes;
-          const scheduleLabel = easternTimes ? "default - EASTERN" : "";
+          const scheduleLabel = easternTimes ? "default - BATTICALOA" : "";
 
           const configWithPrayerTimes = {
             ...defaultConfig,

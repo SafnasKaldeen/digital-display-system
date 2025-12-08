@@ -49,37 +49,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const label = searchParams.get("label");
-
-    if (!label) {
-      return NextResponse.json(
-        { error: "Label is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    const { error } = await supabase
-      .from("prayer_times")
-      .delete()
-      .eq("label", label);
-
-    if (error) {
-      console.error("Error deleting schedule:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error in DELETE /api/prayer-schedules:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
