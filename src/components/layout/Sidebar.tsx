@@ -77,12 +77,20 @@ export function Sidebar() {
 
   const getInitials = (name: string) => {
     if (!name) return "??";
-    return name
-      .split(" ")
-      .map((n) => n[0])
+
+    const words = name.trim().split(/\s+/);
+
+    // If one word, return first two letters
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+
+    // If more than one word, return first letter of first two words
+    return words
+      .slice(0, 2)
+      .map((word) => word[0])
       .join("")
-      .toUpperCase()
-      .slice(0, 2);
+      .toUpperCase();
   };
 
   // Determine which nav items to show based on user role
@@ -187,8 +195,10 @@ export function Sidebar() {
               e.currentTarget.style.display = "none";
               const parent = e.currentTarget.parentElement;
               if (parent) {
-                parent.innerHTML =
-                  '<div class="w-full h-full bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-medium">SK</div>';
+                const initials = userData?.email
+                  ? getInitials(userData.email.split("@")[0])
+                  : "??";
+                parent.innerHTML = `<div class="w-full h-full bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-medium">${initials}</div>`;
               }
             }}
           />
