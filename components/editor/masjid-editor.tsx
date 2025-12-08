@@ -547,7 +547,7 @@ export default function MasjidEditorPanel({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Announcements">
+      {/* <CollapsibleSection title="Announcements">
         <div className="space-y-3">
           {customization.announcements.map((announcement, idx) => (
             <div
@@ -603,7 +603,7 @@ export default function MasjidEditorPanel({
             <span className="text-sm">Add Announcement</span>
           </button>
         </div>
-      </CollapsibleSection>
+      </CollapsibleSection> */}
 
       <CollapsibleSection title="Colors & Styling">
         <div className="space-y-4">
