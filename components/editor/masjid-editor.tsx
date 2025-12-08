@@ -6,6 +6,7 @@ import PrayerTimesManager from "./PrayerTimesManager";
 import CollapsibleSection from "./CollapsibleSection";
 import ColorPicker from "./ColorPicker";
 import ImageUploader from "./ImageUploader";
+import AnnouncementsManager from "./AnnouncementsManager";
 
 // Types
 interface PrayerTimes {
@@ -68,6 +69,16 @@ interface MasjidConfig {
   colorTheme?: Colors;
   prayerInstructionImage: string;
   prayerInstructionDuration: number;
+  announcementImages: AnnouncementImage[];
+}
+
+interface AnnouncementImage {
+  id: string;
+  url: string;
+  duration: number;
+  frequency: number; // Keep frequency for backward compatibility
+  schedule?: string[]; // Add schedule as optional property for migration
+  name?: string;
 }
 
 interface MasjidEditorPanelProps {
@@ -138,6 +149,7 @@ export default function MasjidEditorPanel({
     layout: "authentic",
     prayerInstructionImage: "",
     prayerInstructionDuration: 10,
+    announcementImages: [],
   };
 
   const [customization, setCustomization] =
@@ -519,6 +531,19 @@ export default function MasjidEditorPanel({
             setCustomization(newConfig);
             onConfigChange(newConfig);
           }}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Advertisements">
+        <AnnouncementsManager
+          announcements={customization.announcementImages || []}
+          onChange={(announcementImages) =>
+            updateConfig({ announcementImages })
+          }
+          userId={currentUserId}
+          displayId={displayId}
+          environment={environment}
+          ImageUploader={ImageUploader}
         />
       </CollapsibleSection>
 

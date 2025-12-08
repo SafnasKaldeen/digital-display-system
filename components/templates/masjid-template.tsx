@@ -1,3 +1,4 @@
+// components/templates/masjid-template.tsx
 "use client";
 
 import type React from "react";
@@ -37,6 +38,13 @@ interface MasjidCustomization {
   font: string;
   prayerInstructionImage: string;
   prayerInstructionDuration: number;
+  announcementImages: Array<{
+    id: string;
+    url: string;
+    duration: number;
+    frequency: number;
+    name?: string;
+  }>;
 }
 
 interface MasjidTemplateProps {

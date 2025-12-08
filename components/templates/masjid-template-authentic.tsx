@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import FlipClockWrapper from "./components/masjid/FlipClockWrapper";
 import { PrayerInstructions } from "./components/masjid/PrayerInstructions";
 import { IshraqCountdown } from "./components/masjid/IshraqCountdown";
 
 interface PrayerTimes {
   fajr: string;
-  sunrise: string; // ADD THIS LINE
+  sunrise: string;
   dhuhr: string;
   asr: string;
   maghrib: string;
@@ -14,7 +14,7 @@ interface PrayerTimes {
 
 interface IqamahOffsets {
   fajr: number;
-  sunrise: number; // ADD THIS LINE
+  sunrise: number;
   dhuhr: number;
   asr: number;
   maghrib: number;
@@ -33,6 +33,15 @@ interface Announcement {
   duration: number;
 }
 
+interface AnnouncementImage {
+  id: string;
+  url: string;
+  duration: number;
+  frequency?: number; // Keep for backward compatibility
+  schedule?: string[]; // Optional for backward compatibility
+  name?: string;
+}
+
 interface MasjidCustomization {
   template: string;
   layout: string;
@@ -44,6 +53,7 @@ interface MasjidCustomization {
   backgroundImage: string[];
   slideshowDuration: number;
   announcements: Announcement[];
+  announcementImages: AnnouncementImage[];
   showHijriDate: boolean;
   font: string;
   prayerInstructionImage: string;
@@ -62,17 +72,28 @@ export function MasjidTemplateAuthentic({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentAnnouncement, setCurrentAnnouncement] = useState(0);
   const [hijriDate, setHijriDate] = useState("");
-  const [showInstructions, setShowInstructions] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [instructionsPrayer, setInstructionsPrayer] = useState("");
-  const [prayerInstructionImage, setPrayerInstructionImage] = useState("");
-
-  const [prayerInstructionDuration, setPrayerInstructionDuration] =
-    useState(10);
-
   const [instructionsRemainingTime, setInstructionsRemainingTime] = useState(0);
-  // Add these state variables with your other useState declarations:
+
+  // Ishraq countdown states
   const [showIshraqCountdown, setShowIshraqCountdown] = useState(false);
   const [ishraqRemainingSeconds, setIshraqRemainingSeconds] = useState(0);
+
+  // Advertisement states
+  const [showAdvertisement, setShowAdvertisement] = useState(false);
+  const [currentAdvertisement, setCurrentAdvertisement] =
+    useState<AnnouncementImage | null>(null);
+  const [advertisementRemainingTime, setAdvertisementRemainingTime] =
+    useState(0);
+  const [lastAdvertisementTimes, setLastAdvertisementTimes] = useState<
+    Map<string, number>
+  >(new Map());
+
+  // ADD MISSING REFS HERE
+  const advertisementTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const advertisementStartTimeRef = useRef<number | null>(null);
+  const advertisementCheckRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -91,33 +112,22 @@ export function MasjidTemplateAuthentic({
 
       return () => clearInterval(interval);
     }
-    if (customization.prayerInstructionImage) {
-      setPrayerInstructionImage(customization.prayerInstructionImage);
-    }
-    if (customization.prayerInstructionDuration) {
-      setPrayerInstructionDuration(customization.prayerInstructionDuration);
-    }
-  }, [
-    customization.announcements,
-    currentAnnouncement,
-    customization.prayerInstructionImage,
-    customization.prayerInstructionDuration,
-  ]);
+  }, [customization.announcements, currentAnnouncement]);
 
   useEffect(() => {
     fetchHijriDate();
   }, []);
 
+  // Prayer Instructions Check
   useEffect(() => {
     const checkInstructions = () => {
-      // Only check if image is provided and duration is greater than 0
       if (
         !customization.prayerInstructionImage ||
         customization.prayerInstructionDuration <= 0
       ) {
         setShowInstructions(false);
         setInstructionsPrayer("");
-        setInstructionsRemainingTime(0); // Reset the remaining time
+        setInstructionsRemainingTime(0);
         return;
       }
 
@@ -159,12 +169,9 @@ export function MasjidTemplateAuthentic({
         const iqamahMinutes = adhanMinutes + prayer.offset;
 
         const timeSinceIqamah = currentMinutes - iqamahMinutes;
-
-        // Convert duration from seconds to minutes for comparison
         const durationInMinutes = customization.prayerInstructionDuration / 60;
 
         if (timeSinceIqamah >= 0 && timeSinceIqamah <= durationInMinutes) {
-          // Calculate remaining time in milliseconds
           const remainingTimeInMs =
             (durationInMinutes - timeSinceIqamah) * 60 * 1000;
 
@@ -185,25 +192,20 @@ export function MasjidTemplateAuthentic({
     return () => clearInterval(interval);
   }, [customization]);
 
+  // Ishraq Countdown Check
   useEffect(() => {
     const checkIshraqTime = () => {
       const now = new Date();
       const currentMinutes =
         now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 
-      // Hardcoded sunrise time for testing
       const [sunriseHours, sunriseMinutes] = customization.prayerTimes.sunrise
         .split(":")
         .map(Number);
       const sunriseMinutesTotal = sunriseHours * 60 + sunriseMinutes;
 
-      // Ishraq is 20 minutes after sunrise
-      const ishraqMinutes = sunriseMinutesTotal + 20;
-
-      // Calculate time difference
       const timeSinceSunrise = currentMinutes - sunriseMinutesTotal;
 
-      // Show countdown if between sunrise and 20 minutes after (Ishraq time)
       if (timeSinceSunrise >= 0 && timeSinceSunrise <= 20) {
         const remainingMinutes = 20 - timeSinceSunrise;
         const remainingSeconds = Math.max(0, Math.floor(remainingMinutes * 60));
@@ -221,6 +223,146 @@ export function MasjidTemplateAuthentic({
     const interval = setInterval(checkIshraqTime, 1000);
     return () => clearInterval(interval);
   }, [customization.prayerTimes.sunrise]);
+
+  // Advertisement Check - CRON STYLE SCHEDULE (FIXED VERSION)
+  // Advertisement Check - CRON STYLE SCHEDULE (FIXED COUNTDOWN VERSION)
+  useEffect(() => {
+    const checkAdvertisements = () => {
+      // Don't show ads if prayer instructions or Ishraq countdown are showing
+      if (showInstructions || showIshraqCountdown) {
+        return;
+      }
+
+      if (
+        !customization.announcementImages ||
+        customization.announcementImages.length === 0
+      ) {
+        return;
+      }
+
+      const now = new Date();
+      const currentMinute = now.getMinutes().toString().padStart(2, "0");
+      const currentSecond = now.getSeconds();
+
+      // Check if we're at a scheduled minute mark (first 5 seconds of the minute)
+      if (currentSecond > 5) {
+        return; // Only check at the beginning of each minute
+      }
+
+      // Helper function to get schedule from announcement
+      const getScheduleFromAnnouncement = (ad: AnnouncementImage): string[] => {
+        if (ad.schedule && ad.schedule.length > 0) {
+          return ad.schedule;
+        }
+        // Default schedule if none is set
+        return ["00", "10", "20", "30", "40", "50"];
+      };
+
+      // Find ads scheduled for this minute
+      const scheduledAds = customization.announcementImages.filter((ad) => {
+        const schedule = getScheduleFromAnnouncement(ad);
+        return schedule.includes(currentMinute);
+      });
+
+      if (scheduledAds.length === 0) {
+        return;
+      }
+
+      // Pick one ad to show (simplified: show the first one)
+      const adToShow = scheduledAds[0];
+
+      // Check if we already showed this ad recently (last 10 seconds)
+      const lastShown = lastAdvertisementTimes.get(adToShow.id) || 0;
+      const timeSinceLastShown = Date.now() - lastShown;
+
+      if (timeSinceLastShown < 10000) {
+        // 10 seconds cooldown
+        return;
+      }
+
+      // Only show if not currently showing an ad
+      if (!showAdvertisement) {
+        setCurrentAdvertisement(adToShow);
+        setAdvertisementRemainingTime(adToShow.duration * 1000);
+        setShowAdvertisement(true);
+        advertisementStartTimeRef.current = Date.now();
+
+        // Update the last shown time
+        const newMap = new Map(lastAdvertisementTimes);
+        newMap.set(adToShow.id, Date.now());
+        setLastAdvertisementTimes(newMap);
+
+        // Set timer to hide this ad after its duration
+        if (advertisementTimerRef.current) {
+          clearTimeout(advertisementTimerRef.current);
+        }
+        advertisementTimerRef.current = setTimeout(() => {
+          setShowAdvertisement(false);
+          setCurrentAdvertisement(null);
+          setAdvertisementRemainingTime(0);
+          advertisementStartTimeRef.current = null;
+        }, adToShow.duration * 1000);
+      }
+    };
+
+    // Check every second (but only act at minute boundaries)
+    advertisementCheckRef.current = setInterval(checkAdvertisements, 1000);
+
+    return () => {
+      if (advertisementCheckRef.current) {
+        clearInterval(advertisementCheckRef.current);
+      }
+      if (advertisementTimerRef.current) {
+        clearTimeout(advertisementTimerRef.current);
+      }
+    };
+  }, [
+    customization.announcementImages,
+    showInstructions,
+    showIshraqCountdown,
+    lastAdvertisementTimes,
+    showAdvertisement,
+  ]);
+
+  // Separate effect to handle advertisement countdown ticking
+  useEffect(() => {
+    if (!showAdvertisement || !currentAdvertisement) return;
+
+    const updateCountdown = () => {
+      if (!advertisementStartTimeRef.current) return;
+
+      const elapsed = Date.now() - advertisementStartTimeRef.current;
+      const remaining = Math.max(
+        0,
+        currentAdvertisement.duration * 1000 - elapsed
+      );
+
+      setAdvertisementRemainingTime(remaining);
+
+      // If time is up, close the advertisement
+      if (remaining <= 0) {
+        setShowAdvertisement(false);
+        setCurrentAdvertisement(null);
+        setAdvertisementRemainingTime(0);
+        advertisementStartTimeRef.current = null;
+
+        if (advertisementTimerRef.current) {
+          clearTimeout(advertisementTimerRef.current);
+          advertisementTimerRef.current = null;
+        }
+      }
+    };
+
+    // Update countdown every 100ms for smooth animation
+    const countdownInterval = setInterval(updateCountdown, 100);
+
+    return () => {
+      clearInterval(countdownInterval);
+    };
+  }, [showAdvertisement, currentAdvertisement]);
+
+  // Rest of the component remains the same...
+  // [Keep all the other functions: fetchHijriDate, to12Hour, getNextPrayer, etc.]
 
   const fetchHijriDate = async () => {
     try {
@@ -240,7 +382,6 @@ export function MasjidTemplateAuthentic({
     }
   };
 
-  // Convert 24-hour HH:MM to 12-hour format (no AM/PM)
   const to12Hour = (time: string) => {
     let [h, m] = time.split(":").map(Number);
     let hour12 = h % 12;
@@ -254,7 +395,6 @@ export function MasjidTemplateAuthentic({
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Prayer list
     const prayers = [
       {
         name: "fajr",
@@ -283,7 +423,6 @@ export function MasjidTemplateAuthentic({
       },
     ];
 
-    // Find next prayer
     for (const prayer of prayers) {
       const [hours, minutes] = prayer.time.split(":").map(Number);
       const prayerTime = hours * 60 + minutes;
@@ -296,13 +435,12 @@ export function MasjidTemplateAuthentic({
         return {
           name: prayer.name,
           time: targetDate,
-          adhan: to12Hour(prayer.time), // <-- 12-hour output
+          adhan: to12Hour(prayer.time),
           offset: prayer.offset,
         };
       }
     }
 
-    // No more prayers today → next day Fajr
     const [hours, minutes] = customization.prayerTimes.fajr
       .split(":")
       .map(Number);
@@ -319,7 +457,7 @@ export function MasjidTemplateAuthentic({
     return {
       name: "fajr",
       time: targetDate,
-      adhan: to12Hour(customization.prayerTimes.fajr), // <-- 12-hour output
+      adhan: to12Hour(customization.prayerTimes.fajr),
       offset: customization.iqamahOffsets.fajr,
     };
   };
@@ -331,7 +469,6 @@ export function MasjidTemplateAuthentic({
     const iqamahHours24 = Math.floor(totalMinutes / 60) % 24;
     const iqamahMinutes = totalMinutes % 60;
 
-    // Convert 24h → 12h (1–12)
     let iqamahHours12 = iqamahHours24 % 12;
     if (iqamahHours12 === 0) iqamahHours12 = 12;
 
@@ -381,7 +518,6 @@ export function MasjidTemplateAuthentic({
       const minutesUntilAdhan = adhanMinutes - currentMinutes;
       const minutesUntilIqamah = iqamahMinutes - currentMinutes;
 
-      // 10 minutes before Adhan
       if (minutesUntilAdhan > 0 && minutesUntilAdhan <= 10) {
         const seconds = Math.floor(minutesUntilAdhan * 60);
         return {
@@ -393,7 +529,6 @@ export function MasjidTemplateAuthentic({
         };
       }
 
-      // Between Adhan and Iqamah
       if (minutesUntilAdhan <= 0 && minutesUntilIqamah > 0) {
         const seconds = Math.floor(minutesUntilIqamah * 60);
         return {
@@ -443,7 +578,6 @@ export function MasjidTemplateAuthentic({
 
   const nextPrayer = getNextPrayer();
   const nextPrayerName = nextPrayer.name.toLowerCase();
-
   const countdownState = getCountdownState();
 
   const calculateSunriseTime = () => {
@@ -469,7 +603,7 @@ export function MasjidTemplateAuthentic({
     {
       name: "Sunrise",
       nameAr: "الشروق",
-      adhan: to12Hour(calculateSunriseTime()), // sunrise also converted
+      adhan: to12Hour(calculateSunriseTime()),
       offset: 0,
       icon: "🌅",
     },
@@ -509,10 +643,21 @@ export function MasjidTemplateAuthentic({
     textShadow: "2px 2px 8px rgba(0,0,0,0.9)",
   };
 
-  // Add this check BEFORE the prayer instructions check in your render:
-  // Show Ishraq countdown if it's time
+  // Handle advertisement close
+  const handleAdvertisementClose = () => {
+    setShowAdvertisement(false);
+    setCurrentAdvertisement(null);
+    setAdvertisementRemainingTime(0);
+    advertisementStartTimeRef.current = null;
+
+    if (advertisementTimerRef.current) {
+      clearTimeout(advertisementTimerRef.current);
+      advertisementTimerRef.current = null;
+    }
+  };
+
+  // PRIORITY 1: Show Ishraq countdown if it's time
   if (showIshraqCountdown) {
-    // if (true) {
     return (
       <IshraqCountdown
         accentColor={customization.colors.accent}
@@ -526,9 +671,8 @@ export function MasjidTemplateAuthentic({
     );
   }
 
-  // If showing instructions, ONLY show the instructions component
+  // PRIORITY 2: If showing prayer instructions
   if (showInstructions && customization.prayerInstructionImage) {
-    // if (true) {
     return (
       <PrayerInstructions
         imageUrl={customization.prayerInstructionImage}
@@ -543,6 +687,59 @@ export function MasjidTemplateAuthentic({
     );
   }
 
+  // PRIORITY 3: Show Advertisement if it's time
+  if (showAdvertisement && currentAdvertisement) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black">
+        <div className="relative w-full h-full">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${currentAdvertisement.url})`,
+            }}
+          >
+            <div className="absolute inset-0 bg-black/40"></div>
+          </div>
+
+          {/* Countdown Timer with auto-update */}
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-white text-lg font-semibold">
+                  Advertisement ends in:{" "}
+                  {Math.ceil(advertisementRemainingTime / 1000)}s
+                </div>
+                <button
+                  onClick={handleAdvertisementClose}
+                  className="text-white hover:text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-100 ease-linear"
+                  style={{
+                    width: `${
+                      (advertisementRemainingTime /
+                        (currentAdvertisement.duration * 1000)) *
+                      100
+                    }%`,
+                    backgroundColor: customization.colors.accent,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // NORMAL DISPLAY
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden">
       <div
@@ -624,30 +821,6 @@ export function MasjidTemplateAuthentic({
             backgroundSize: "30px 30px",
           }}
         ></div>
-        {/* Prayer Instructions Overlay - Full Screen, Nothing Hidden */}
-        {showInstructions &&
-          customization.prayerInstructionImage &&
-          customization.prayerInstructionDuration > 0 && (
-            <div
-              className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/95"
-              style={{
-                animation: "fadeInScale 0.6s ease-out",
-              }}
-            >
-              <img
-                src={
-                  customization.prayerInstructionImage || prayerInstructionImage
-                }
-                alt="Prayer Instructions"
-                className="max-h-[95vh] max-w-[95vw] object-contain rounded-3xl border-8"
-                style={{
-                  borderColor: customization.colors.accent,
-                  animation:
-                    "fadeInScale 0.8s ease-out 0.2s backwards, glowPulse 3s ease-in-out infinite 0.8s",
-                }}
-              />
-            </div>
-          )}
 
         <div className="relative z-10 flex flex-col items-center px-0 pt-0 pb-0 bg-gradient-to-b from-black/40 to-transparent">
           <div className="flex items-center gap-3">
@@ -676,9 +849,9 @@ export function MasjidTemplateAuthentic({
             </span>
           </div>
         </div>
+
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center -pt-12 px-8 py-2 pt-0">
           <FlipClockWrapper />
-          {/* <FlipClockWrapper currentTime={currentTime} /> */}
 
           <div className="w-full max-w-8xl relative mt-12">
             {!countdownState && (
