@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
+  Calendar,
+  Check,
   RotateCcw,
+  AlertCircle,
   Upload,
   Trash2,
-  Check,
-  Calendar,
-  AlertCircle,
 } from "lucide-react";
 
-// Types
+// Types for prayer times (extracted from main file)
 interface PrayerTimes {
   fajr: string;
   sunrise: string;
@@ -57,57 +57,78 @@ export default function PrayerTimesManager({
   const [schedules, setSchedules] = useState<PrayerSchedule[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   const [isResettingPrayerTimes, setIsResettingPrayerTimes] = useState(false);
-  const [defaultPrayerTimes, setDefaultPrayerTimes] =
-    useState<PrayerTimes | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Store the ORIGINAL prayer times from the selected schedule
+  const [originalScheduleTimes, setOriginalScheduleTimes] =
+    useState<PrayerTimes | null>(null);
+  // Track which schedule's times we're using as reference
+  const [referenceScheduleLabel, setReferenceScheduleLabel] =
+    useState<string>(label);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Load reference times when label changes
+  useEffect(() => {
+    const loadScheduleIfNeeded = async () => {
+      if (!label) return;
+
+      setIsResettingPrayerTimes(true);
+      try {
+        const times = await fetchPrayerTimesForToday(label);
+        if (times) {
+          // ALWAYS update reference when label changes
+          setOriginalScheduleTimes(times);
+          setReferenceScheduleLabel(label);
+        }
+      } catch (error) {
+        console.error("Error loading schedule:", error);
+        setFetchError(
+          error instanceof Error ? error.message : "Failed to load schedule"
+        );
+      } finally {
+        setIsResettingPrayerTimes(false);
+      }
+    };
+
+    loadScheduleIfNeeded();
+  }, [label]);
 
   // Fetch available prayer schedules
   useEffect(() => {
     fetchSchedules();
   }, []);
 
-  // Initialize selected schedule from label prop
-  useEffect(() => {
-    if (label && schedules.length > 0) {
-      const scheduleExists = schedules.some((s) => s.label === label);
-      if (scheduleExists) {
-        loadScheduleData(label);
-      }
-    }
-  }, [label, schedules]);
-
   const fetchSchedules = async () => {
     setIsLoadingSchedules(true);
     setFetchError(null);
     try {
-      console.log("Fetching schedules...");
       const response = await fetch("/api/prayer-schedules");
-      console.log("Schedules response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("Schedules data:", data);
-
         if (data.schedules && Array.isArray(data.schedules)) {
           setSchedules(data.schedules);
-          console.log(`Found ${data.schedules.length} schedules`);
         } else {
-          console.warn("No schedules array in response");
           setSchedules([]);
         }
       } else {
         const errorData = await response.json();
-        console.error("Error response:", errorData);
         setFetchError(
           `Failed to fetch schedules: ${errorData.error || "Unknown error"}`
         );
       }
     } catch (error) {
-      console.error("Error fetching schedules:", error);
       setFetchError(
         error instanceof Error ? error.message : "Failed to fetch schedules"
       );
@@ -123,22 +144,14 @@ export default function PrayerTimesManager({
       const month = today.getMonth() + 1;
       const day = today.getDate();
 
-      console.log(
-        `Fetching prayer times for ${scheduleLabel} on ${month}/${day}`
-      );
-
       const response = await fetch(
         `/api/prayer-times?label=${encodeURIComponent(
           scheduleLabel
         )}&month=${month}&day=${day}`
       );
 
-      console.log("Prayer times response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("Prayer times data:", data);
-
         if (data.prayerTimes) {
           return {
             fajr: data.prayerTimes.fajr,
@@ -151,14 +164,12 @@ export default function PrayerTimesManager({
         }
       } else {
         const errorData = await response.json();
-        console.error("Prayer times error:", errorData);
         setFetchError(
           errorData.details || errorData.error || "Failed to fetch prayer times"
         );
       }
       return null;
     } catch (error) {
-      console.error("Error fetching prayer times:", error);
       setFetchError(
         error instanceof Error ? error.message : "Failed to fetch prayer times"
       );
@@ -166,53 +177,29 @@ export default function PrayerTimesManager({
     }
   };
 
-  // Load schedule data without changing prayer times
-  const loadScheduleData = async (scheduleLabel: string) => {
-    try {
-      const times = await fetchPrayerTimesForToday(scheduleLabel);
-      if (times) {
-        setDefaultPrayerTimes(times);
-      }
-    } catch (error) {
-      console.error("Error loading schedule data:", error);
-    }
-  };
-
   // Handle schedule selection
   const handleScheduleSelect = async (scheduleLabel: string) => {
-    onLabelChange(scheduleLabel);
-    setIsResettingPrayerTimes(true);
-    setFetchError(null);
+    // Prevent selecting the same schedule again
+    if (scheduleLabel === referenceScheduleLabel) return;
 
-    try {
-      const times = await fetchPrayerTimesForToday(scheduleLabel);
-      if (times) {
-        setDefaultPrayerTimes(times);
-        onPrayerTimesChange(times);
-      } else {
-        console.warn("No prayer times returned for schedule");
-      }
-    } catch (error) {
-      console.error("Error loading schedule:", error);
-      setFetchError(
-        error instanceof Error ? error.message : "Failed to load schedule"
-      );
-    } finally {
-      setIsResettingPrayerTimes(false);
-    }
+    // Update local state first for immediate UI feedback
+    setReferenceScheduleLabel(scheduleLabel);
+
+    // Update parent - this will fetch and update prayer times
+    onLabelChange(scheduleLabel);
   };
 
   // Reset prayer times to schedule defaults
   const resetPrayerTimesToSchedule = async () => {
-    if (!label) return;
+    if (!referenceScheduleLabel) return;
 
     setIsResettingPrayerTimes(true);
     setFetchError(null);
 
     try {
-      const times = await fetchPrayerTimesForToday(label);
+      const times = await fetchPrayerTimesForToday(referenceScheduleLabel);
       if (times) {
-        setDefaultPrayerTimes(times);
+        setOriginalScheduleTimes(times);
         onPrayerTimesChange(times);
       }
     } catch (error) {
@@ -225,13 +212,13 @@ export default function PrayerTimesManager({
     }
   };
 
-  // Check if current prayer times differ from defaults
+  // Check if current prayer times differ from the selected schedule's times
   const arePrayerTimesModified = () => {
-    if (!defaultPrayerTimes) return false;
+    if (!originalScheduleTimes) return false;
 
     return Object.keys(prayerTimes).some((prayer) => {
       const prayerKey = prayer as keyof PrayerTimes;
-      return prayerTimes[prayerKey] !== defaultPrayerTimes[prayerKey];
+      return prayerTimes[prayerKey] !== originalScheduleTimes[prayerKey];
     });
   };
 
@@ -272,12 +259,21 @@ export default function PrayerTimesManager({
       await fetchSchedules();
 
       // Auto-select the newly uploaded schedule
-      if (data.label) {
-        await handleScheduleSelect(data.label);
+      if (data.label && isMountedRef.current) {
+        // Use a small delay to ensure state is updated
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            handleScheduleSelect(data.label);
+          }
+        }, 100);
       }
 
       // Clear success message after 5 seconds
-      setTimeout(() => setUploadSuccess(null), 5000);
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setUploadSuccess(null);
+        }
+      }, 5000);
     } catch (error) {
       console.error("Upload error:", error);
       setUploadError(error instanceof Error ? error.message : "Upload failed");
@@ -309,9 +305,18 @@ export default function PrayerTimesManager({
 
       if (response.ok) {
         await fetchSchedules();
-        if (label === scheduleLabel) {
-          onLabelChange("");
-          setDefaultPrayerTimes(null);
+        if (referenceScheduleLabel === scheduleLabel) {
+          // Find another schedule to select
+          const otherSchedules = schedules.filter(
+            (s) => s.label !== scheduleLabel
+          );
+          if (otherSchedules.length > 0) {
+            handleScheduleSelect(otherSchedules[0].label);
+          } else {
+            onLabelChange("");
+            setReferenceScheduleLabel("");
+            setOriginalScheduleTimes(null);
+          }
         }
       }
     } catch (error) {
@@ -401,7 +406,7 @@ export default function PrayerTimesManager({
         ) : (
           <div className="space-y-2">
             {schedules.map((schedule) => {
-              const isSelected = label === schedule.label;
+              const isSelected = referenceScheduleLabel === schedule.label;
 
               return (
                 <div
@@ -466,21 +471,21 @@ export default function PrayerTimesManager({
           <h3 className="text-sm font-medium text-gray-200">
             Daily Prayer Times
           </h3>
-          {label && (
+          {referenceScheduleLabel && originalScheduleTimes && (
             <button
               onClick={resetPrayerTimesToSchedule}
-              disabled={isResettingPrayerTimes || !defaultPrayerTimes}
+              disabled={isResettingPrayerTimes}
               className={`text-xs px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-                arePrayerTimesModified() && defaultPrayerTimes
+                arePrayerTimesModified()
                   ? "bg-pink-500 hover:bg-pink-600 text-white"
                   : "bg-gray-700 text-gray-400 cursor-not-allowed"
               } ${
                 isResettingPrayerTimes ? "opacity-70 cursor-not-allowed" : ""
               }`}
               title={
-                defaultPrayerTimes
-                  ? "Reset to schedule defaults"
-                  : "No default times available"
+                originalScheduleTimes
+                  ? `Reset to ${referenceScheduleLabel} schedule defaults`
+                  : "No schedule selected"
               }
             >
               <RotateCcw
@@ -493,16 +498,17 @@ export default function PrayerTimesManager({
           )}
         </div>
 
-        {arePrayerTimesModified() && defaultPrayerTimes && (
+        {arePrayerTimesModified() && originalScheduleTimes && (
           <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs text-yellow-400">
-            ⚠️ Prayer times have been modified from schedule defaults
+            ⚠️ Prayer times have been modified from {referenceScheduleLabel}{" "}
+            schedule defaults
           </div>
         )}
 
         {Object.entries(prayerTimes).map(([prayer, time]) => {
           const prayerKey = prayer as keyof PrayerTimes;
           const isModified =
-            defaultPrayerTimes && time !== defaultPrayerTimes[prayerKey];
+            originalScheduleTimes && time !== originalScheduleTimes[prayerKey];
 
           return (
             <div key={prayer} className="space-y-2">
@@ -553,11 +559,11 @@ export default function PrayerTimesManager({
                   </p>
                 </div>
               </div>
-              {isModified && defaultPrayerTimes && (
+              {isModified && originalScheduleTimes && (
                 <div className="text-xs text-gray-500 flex items-center gap-1">
-                  <span>Schedule default:</span>
+                  <span>{referenceScheduleLabel} schedule default:</span>
                   <span className="text-green-400">
-                    {defaultPrayerTimes[prayerKey]}
+                    {originalScheduleTimes[prayerKey]}
                   </span>
                 </div>
               )}
