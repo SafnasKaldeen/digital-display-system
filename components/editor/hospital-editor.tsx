@@ -707,6 +707,7 @@ export function HospitalEditor({
   const primaryColor = config.primaryColor || "#06b6d4";
   const secondaryColor = config.secondaryColor || "#14b8a6";
   const accentColor = config.accentColor || "#f59e0b";
+  const slideSpeed = config.slideSpeed || 20;
   const tickerMessage =
     config.tickerMessage ||
     "⚕️ Quality Healthcare • Compassionate Service • Advanced Technology";
@@ -728,6 +729,7 @@ export function HospitalEditor({
   const slideshowSpeed = config.slideshowSpeed || 10000;
   const layoutConfig = config.layout || layout || "Advanced";
   const galleryItems = config.galleryItems || [];
+  const backgroundImages = config.backgroundImages || [];
 
   // Handle basic field updates
   const handleFieldChange = (field: string, value: any) => {
@@ -840,145 +842,138 @@ export function HospitalEditor({
   };
 
   return (
-    <div className="space-b-8">
+    <div className="space-y-8">
       {/* Layout Configuration */}
-      <div className="">
-        <CollapsibleSection title="🎛️ Layout Configuration" defaultOpen={true}>
-          <div className="space-y-3">
-            {/* Layout Selection */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                Display Layout
-              </label>
+      <CollapsibleSection title="🎛️ Layout Configuration" defaultOpen={true}>
+        <div className="space-y-3">
+          {/* Layout Selection */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Display Layout
+            </label>
 
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "Authentic", icon: "🩺", label: "Authentic" },
-                  { value: "Advanced", icon: "🏥", label: "Advanced" },
-                ].map((layoutOption) => (
-                  <button
-                    key={layoutOption.value}
-                    onClick={() =>
-                      handleFieldChange("layout", layoutOption.value)
-                    }
-                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                      layoutConfig === layoutOption.value
-                        ? "border-green-500 bg-green-500/20 text-green-400"
-                        : "border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    <div className="text-xl mb-1">{layoutOption.icon}</div>
-                    <div className="text-xs">{layoutOption.label}</div>
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: "Authentic", icon: "🩺", label: "Authentic" },
+                { value: "Advanced", icon: "🏥", label: "Advanced" },
+              ].map((layoutOption) => (
+                <button
+                  key={layoutOption.value}
+                  onClick={() =>
+                    handleFieldChange("layout", layoutOption.value)
+                  }
+                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                    layoutConfig === layoutOption.value
+                      ? "border-green-500 bg-green-500/20 text-green-400"
+                      : "border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700/50"
+                  }`}
+                >
+                  <div className="text-xl mb-1">{layoutOption.icon}</div>
+                  <div className="text-xs">{layoutOption.label}</div>
+                </button>
+              ))}
             </div>
-
-            {/* Only show these settings if layout is NOT Authentic */}
-            {layoutConfig !== "Authentic" && (
-              <>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Left Panel Component
-                  </label>
-                  <Select
-                    value={leftComponent}
-                    onValueChange={(val) =>
-                      handleFieldChange("leftComponent", val)
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="doctors">
-                        👨‍⚕️ Featured Doctors
-                      </SelectItem>
-                      <SelectItem value="appointments">
-                        📅 Appointments
-                      </SelectItem>
-                      <SelectItem value="schedules">
-                        🗓️ Doctor Schedules
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Right Panel Component
-                  </label>
-                  <Select
-                    value={rightComponent}
-                    onValueChange={(val) =>
-                      handleFieldChange("rightComponent", val)
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="doctors">
-                        👨‍⚕️ Featured Doctors
-                      </SelectItem>
-                      <SelectItem value="appointments">
-                        📅 Appointments
-                      </SelectItem>
-                      <SelectItem value="schedules">
-                        🗓️ Doctor Schedules
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2 p-3 bg-slate-700/50 rounded-lg">
-                  <input
-                    type="checkbox"
-                    checked={enableSlideshow}
-                    onChange={(e) =>
-                      handleFieldChange("enableSlideshow", e.target.checked)
-                    }
-                    className="w-4 h-4"
-                  />
-                  <label className="text-sm text-slate-300">
-                    Enable Slideshow (Auto-rotate components)
-                  </label>
-                </div>
-
-                {enableSlideshow && (
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">
-                      Slideshow Speed (milliseconds)
-                    </label>
-                    <Input
-                      type="number"
-                      value={slideshowSpeed}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "slideshowSpeed",
-                          parseInt(e.target.value)
-                        )
-                      }
-                      min="5000"
-                      max="60000"
-                      step="1000"
-                      className="bg-slate-700 border-slate-600 text-slate-50"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Current: {slideshowSpeed / 1000} seconds per component
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
           </div>
-        </CollapsibleSection>
-      </div>
+
+          {/* Only show these settings if layout is NOT Authentic */}
+          {layoutConfig !== "Authentic" && (
+            <>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Left Panel Component
+                </label>
+                <Select
+                  value={leftComponent}
+                  onValueChange={(val) =>
+                    handleFieldChange("leftComponent", val)
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="doctors">👨‍⚕️ Featured Doctors</SelectItem>
+                    <SelectItem value="appointments">
+                      📅 Appointments
+                    </SelectItem>
+                    <SelectItem value="schedules">
+                      🗓️ Doctor Schedules
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Right Panel Component
+                </label>
+                <Select
+                  value={rightComponent}
+                  onValueChange={(val) =>
+                    handleFieldChange("rightComponent", val)
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="doctors">👨‍⚕️ Featured Doctors</SelectItem>
+                    <SelectItem value="appointments">
+                      📅 Appointments
+                    </SelectItem>
+                    <SelectItem value="schedules">
+                      🗓️ Doctor Schedules
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-slate-700/50 rounded-lg">
+                <input
+                  type="checkbox"
+                  checked={enableSlideshow}
+                  onChange={(e) =>
+                    handleFieldChange("enableSlideshow", e.target.checked)
+                  }
+                  className="w-4 h-4"
+                />
+                <label className="text-sm text-slate-300">
+                  Enable Slideshow (Auto-rotate components)
+                </label>
+              </div>
+
+              {enableSlideshow && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Slideshow Speed (milliseconds)
+                  </label>
+                  <Input
+                    type="number"
+                    value={slideshowSpeed}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        "slideshowSpeed",
+                        parseInt(e.target.value)
+                      )
+                    }
+                    min="5000"
+                    max="60000"
+                    step="1000"
+                    className="bg-slate-700 border-slate-600 text-slate-50"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Current: {slideshowSpeed / 1000} seconds per component
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Hospital Branding */}
       <CollapsibleSection title="🏥 Hospital Branding">
         <div className="space-y-3">
-          <div>Hospital Name and Tagline</div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
               Hospital Name
@@ -1021,9 +1016,394 @@ export function HospitalEditor({
         </div>
       </CollapsibleSection>
 
+      {/* Visual & Theme Settings */}
+      <CollapsibleSection title="🎨 Visual & Theme Settings">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Primary Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={(e) =>
+                  handleFieldChange("primaryColor", e.target.value)
+                }
+                className="w-10 h-10 cursor-pointer rounded border border-slate-600"
+              />
+              <Input
+                value={primaryColor}
+                onChange={(e) =>
+                  handleFieldChange("primaryColor", e.target.value)
+                }
+                placeholder="#06b6d4"
+                className="bg-slate-700 border-slate-600 text-slate-50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Secondary Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={secondaryColor}
+                onChange={(e) =>
+                  handleFieldChange("secondaryColor", e.target.value)
+                }
+                className="w-10 h-10 cursor-pointer rounded border border-slate-600"
+              />
+              <Input
+                value={secondaryColor}
+                onChange={(e) =>
+                  handleFieldChange("secondaryColor", e.target.value)
+                }
+                placeholder="#14b8a6"
+                className="bg-slate-700 border-slate-600 text-slate-50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Accent Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) =>
+                  handleFieldChange("accentColor", e.target.value)
+                }
+                className="w-10 h-10 cursor-pointer rounded border border-slate-600"
+              />
+              <Input
+                value={accentColor}
+                onChange={(e) =>
+                  handleFieldChange("accentColor", e.target.value)
+                }
+                placeholder="#f59e0b"
+                className="bg-slate-700 border-slate-600 text-slate-50"
+              />
+            </div>
+          </div>
+
+          <div className="p-2 bg-slate-700/30 rounded-lg">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: primaryColor }}
+              />
+              <span className="text-xs text-slate-300">Primary</span>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: secondaryColor }}
+              />
+              <span className="text-xs text-slate-300">Secondary</span>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: accentColor }}
+              />
+              <span className="text-xs text-slate-300">Accent</span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Primary: Main background | Secondary: Highlights | Accent: UI
+              elements
+            </p>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Background Images */}
+      <CollapsibleSection title="🏞️ Background Images">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Main Background Image
+            </label>
+            <ImageUploader
+              images={backgroundImage ? [backgroundImage] : []}
+              onChange={(imgs) =>
+                handleFieldChange("backgroundImage", imgs[0] || "")
+              }
+              maxImages={1}
+              userId={currentUserId}
+              displayId={displayId}
+              imageType="background"
+              environment={environment}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs text-slate-400 font-medium">
+                Slideshow Images ({backgroundImages.length})
+              </label>
+              <button
+                onClick={() =>
+                  handleFieldChange("enableSlideshow", !enableSlideshow)
+                }
+                className={`text-xs px-2 py-1 rounded ${
+                  enableSlideshow
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-slate-700 text-slate-400"
+                }`}
+              >
+                {enableSlideshow ? "✓ Slideshow ON" : "Slideshow OFF"}
+              </button>
+            </div>
+
+            {enableSlideshow && (
+              <div className="space-y-3">
+                <ImageUploader
+                  images={backgroundImages}
+                  onChange={(imgs) =>
+                    handleFieldChange("backgroundImages", imgs)
+                  }
+                  maxImages={10}
+                  userId={currentUserId}
+                  displayId={displayId}
+                  imageType="slideshow"
+                  environment={environment}
+                />
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Slideshow Speed (seconds)
+                  </label>
+                  <Input
+                    type="range"
+                    min="5"
+                    max="30"
+                    step="1"
+                    value={slideshowSpeed / 1000}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        "slideshowSpeed",
+                        parseInt(e.target.value) * 1000
+                      )
+                    }
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>5s</span>
+                    <span>{slideshowSpeed / 1000}s</span>
+                    <span>30s</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {enableSlideshow && backgroundImages.length > 0 && (
+            <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="text-xs text-blue-400">
+                Slideshow rotation: {slideshowSpeed / 1000} seconds per image
+                {backgroundImages.length > 0 &&
+                  ` | Full cycle: ${(
+                    (backgroundImages.length * slideshowSpeed) /
+                    1000
+                  ).toFixed(0)}s`}
+              </p>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Animation & Speed Settings */}
+      <CollapsibleSection title="⚡ Animation & Speed Settings">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Doctor Carousel Speed
+            </label>
+            <div className="space-y-2">
+              <Input
+                type="range"
+                min="5"
+                max="100"
+                step="1"
+                value={slideSpeed}
+                onChange={(e) =>
+                  handleFieldChange("slideSpeed", parseInt(e.target.value))
+                }
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Slow (5)</span>
+                <span>Current: {slideSpeed}</span>
+                <span>Fast (100)</span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Controls how fast doctors scroll in the carousel (higher = faster)
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Gallery Rotation Speed
+            </label>
+            <div className="p-2 bg-slate-700/30 rounded">
+              <p className="text-xs text-slate-300">
+                {galleryItems.length > 3
+                  ? "6 seconds per image (auto-rotates when 4+ images)"
+                  : galleryItems.length === 3
+                  ? "Static display (Large + 2 small layout)"
+                  : galleryItems.length === 2
+                  ? "Static display (Stacked vertically)"
+                  : galleryItems.length === 1
+                  ? "Static display (Full screen)"
+                  : "No gallery images configured"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Gallery Images */}
+      <CollapsibleSection title="🖼️ Hospital Gallery Images">
+        <div className="space-y-3">
+          <p className="text-xs text-slate-400">
+            Add images with captions to showcase your hospital facilities,
+            patient care, and medical team.
+          </p>
+
+          {/* Gallery Media Library */}
+          <GalleryMediaLibrary
+            selectedItems={galleryItems}
+            onItemsChange={(items) => handleFieldChange("galleryItems", items)}
+            userId={currentUserId}
+            displayId={displayId}
+            environment={environment}
+          />
+
+          {/* Edit existing gallery items */}
+          {galleryItems.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <label className="text-xs text-slate-400 font-medium block">
+                Edit Gallery Items ({galleryItems.length})
+              </label>
+              {galleryItems.map((item: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="bg-slate-700/30 p-3 rounded-lg space-y-2"
+                >
+                  <div className="flex gap-2">
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.caption || `Gallery ${idx + 1}`}
+                        className="w-16 h-16 object-cover rounded border border-slate-600"
+                      />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={item.caption}
+                        onChange={(e) => {
+                          const updated = [...galleryItems];
+                          updated[idx] = {
+                            ...updated[idx],
+                            caption: e.target.value,
+                          };
+                          handleFieldChange("galleryItems", updated);
+                        }}
+                        placeholder="Image caption..."
+                        className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Input
+                          value={item.image}
+                          onChange={(e) => {
+                            const updated = [...galleryItems];
+                            updated[idx] = {
+                              ...updated[idx],
+                              image: e.target.value,
+                            };
+                            handleFieldChange("galleryItems", updated);
+                          }}
+                          placeholder="Image URL..."
+                          className="flex-1 bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                        />
+                        <button
+                          onClick={() => {
+                            const updated = galleryItems.filter(
+                              (_: any, i: number) => i !== idx
+                            );
+                            handleFieldChange("galleryItems", updated);
+                          }}
+                          className="px-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-sm hover:bg-red-500/30"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-xs text-blue-400">
+              • 1 image: Full screen display
+              <br />
+              • 2 images: Stacked vertically
+              <br />
+              • 3 images: Large + 2 small layout
+              <br />
+              • 4+ images: Auto-rotating slideshow (6 seconds each)
+              <br />• Drag & drop images to reorder (coming soon)
+            </p>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Emergency & Department Info */}
+      <CollapsibleSection title="🚨 Emergency & Department Info">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Department Information
+            </label>
+            <Input
+              value={departmentInfo}
+              onChange={(e) =>
+                handleFieldChange("departmentInfo", e.target.value)
+              }
+              placeholder="Emergency Department • Open 24/7"
+              className="bg-slate-700 border-slate-600 text-slate-50"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Emergency Contact
+            </label>
+            <Input
+              value={emergencyContact}
+              onChange={(e) =>
+                handleFieldChange("emergencyContact", e.target.value)
+              }
+              placeholder="911 or 123-456-7890"
+              className="bg-slate-700 border-slate-600 text-slate-50"
+            />
+          </div>
+        </div>
+      </CollapsibleSection>
+
       {/* Ticker Messages */}
       <CollapsibleSection title="📰 Ticker Messages">
         <div className="space-y-3">
+          <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-2">
+            <p className="text-xs text-amber-400">
+              Note: Ticker messages are only shown in the Advanced layout. The
+              Authentic layout shows doctors on the left and gallery on the
+              right.
+            </p>
+          </div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
               Left Ticker Message
@@ -1049,83 +1429,6 @@ export function HospitalEditor({
               placeholder="Your Health, Our Priority"
               className="bg-slate-700 border-slate-600 text-slate-50"
             />
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* Gallery Images */}
-      <CollapsibleSection title="🖼️ Hospital Gallery Images">
-        <div className="space-y-3">
-          <p className="text-xs text-slate-400">
-            Add images with captions to showcase your hospital facilities,
-            patient care, and medical team.
-          </p>
-
-          {/* Preview and edit existing gallery items */}
-          {galleryItems.length > 0 && (
-            <div className="mb-4">
-              <label className="text-xs text-slate-400 font-medium block mb-2">
-                Current Gallery ({galleryItems.length} items)
-              </label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-slate-700/30 rounded-lg">
-                {galleryItems.map((item: any, idx: number) => (
-                  <div key={idx} className="relative group">
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.caption || `Gallery ${idx + 1}`}
-                        className="w-full h-24 object-cover rounded border border-slate-600"
-                      />
-                    )}
-                    {item.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1">
-                        <p className="text-xs text-white truncate">
-                          {item.caption}
-                        </p>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => {
-                        const updated = galleryItems.filter(
-                          (_: any, i: number) => i !== idx
-                        );
-                        handleFieldChange("galleryItems", updated);
-                      }}
-                      className="absolute top-1 right-1 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    >
-                      <X className="w-3 h-3 text-white" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Add new gallery item button */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                const updated = [...galleryItems, { image: "", caption: "" }];
-                handleFieldChange("galleryItems", updated);
-              }}
-              className="w-full border-slate-600 text-slate-300 bg-transparent hover:bg-slate-700"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Gallery Image
-            </Button>
-          </div>
-
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-xs text-blue-400">
-              • 1 image: Full screen display
-              <br />
-              • 2 images: Stacked vertically
-              <br />
-              • 3 images: Large + 2 small layout
-              <br />• 4+ images: Auto-rotating slideshow (6 seconds each)
-            </p>
           </div>
         </div>
       </CollapsibleSection>
@@ -1231,6 +1534,185 @@ export function HospitalEditor({
               Current: {doctorRotationSpeed / 1000} seconds per doctor
             </p>
           </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Appointments Section */}
+      <CollapsibleSection title="📅 Appointments">
+        <div className="space-y-3">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddAppointment}
+              className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add Appointment
+            </Button>
+          </div>
+          {appointments.map((appointment: any, idx: number) => (
+            <div key={idx} className="bg-slate-700/50 p-4 rounded-lg space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">
+                  Appointment #{idx + 1}
+                </span>
+                <Select
+                  value={appointment.priority}
+                  onValueChange={(val) =>
+                    handleUpdateAppointment(idx, "priority", val)
+                  }
+                >
+                  <SelectTrigger className="w-28 h-6 text-xs bg-slate-700 border-slate-600 text-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="follow-up">Follow-up</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={appointment.patientName}
+                  onChange={(e) =>
+                    handleUpdateAppointment(idx, "patientName", e.target.value)
+                  }
+                  placeholder="Patient Name"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+                <Input
+                  value={appointment.doctorName}
+                  onChange={(e) =>
+                    handleUpdateAppointment(idx, "doctorName", e.target.value)
+                  }
+                  placeholder="Doctor Name"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+              </div>
+              <Input
+                value={appointment.specialty}
+                onChange={(e) =>
+                  handleUpdateAppointment(idx, "specialty", e.target.value)
+                }
+                placeholder="Specialty"
+                className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={appointment.room}
+                  onChange={(e) =>
+                    handleUpdateAppointment(idx, "room", e.target.value)
+                  }
+                  placeholder="Room Number"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+                <Input
+                  type="datetime-local"
+                  value={isoToLocal(appointment.appointmentDate)}
+                  onChange={(e) =>
+                    handleUpdateAppointment(
+                      idx,
+                      "appointmentDate",
+                      localToISO(e.target.value)
+                    )
+                  }
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleRemoveAppointment(idx)}
+                className="w-full text-red-400 hover:bg-red-500/10 text-sm"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Remove Appointment
+              </Button>
+            </div>
+          ))}
+          {appointments.length === 0 && (
+            <div className="text-center py-6 text-slate-500 text-sm">
+              No appointments added yet. Click "Add Appointment" to start.
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Doctor Schedules */}
+      <CollapsibleSection title="🗓️ Doctor Schedules">
+        <div className="space-y-3">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddSchedule}
+              className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add Schedule
+            </Button>
+          </div>
+          {doctorSchedules.map((schedule: any, idx: number) => (
+            <div key={idx} className="bg-slate-700/50 p-4 rounded-lg space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">
+                  Schedule #{idx + 1}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={schedule.name}
+                  onChange={(e) =>
+                    handleUpdateSchedule(idx, "name", e.target.value)
+                  }
+                  placeholder="Doctor Name"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+                <Input
+                  value={schedule.specialty}
+                  onChange={(e) =>
+                    handleUpdateSchedule(idx, "specialty", e.target.value)
+                  }
+                  placeholder="Specialty"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={schedule.room}
+                  onChange={(e) =>
+                    handleUpdateSchedule(idx, "room", e.target.value)
+                  }
+                  placeholder="Room Number"
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+                <Input
+                  type="time"
+                  value={formatTimeForInput(schedule.appointmentDate)}
+                  onChange={(e) =>
+                    handleUpdateSchedule(idx, "time", e.target.value)
+                  }
+                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleRemoveSchedule(idx)}
+                className="w-full text-red-400 hover:bg-red-500/10 text-sm"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Remove Schedule
+              </Button>
+            </div>
+          ))}
+          {doctorSchedules.length === 0 && (
+            <div className="text-center py-6 text-slate-500 text-sm">
+              No doctor schedules added yet. Click "Add Schedule" to start.
+            </div>
+          )}
         </div>
       </CollapsibleSection>
     </div>
