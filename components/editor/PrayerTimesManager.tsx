@@ -38,12 +38,23 @@ interface PrayerSchedule {
   created_at: string;
 }
 
+interface PrayerNames {
+  fajr: string;
+  sunrise: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+}
+
 interface PrayerTimesManagerProps {
   displayId: string;
   prayerTimes: PrayerTimes;
+  prayerNames?: PrayerNames; // Add this
   iqamahOffsets: IqamahOffsets;
   label: string;
   onPrayerTimesChange: (times: PrayerTimes) => void;
+  onPrayerNamesChange?: (names: PrayerNames) => void; // Add this
   onIqamahOffsetsChange: (offsets: IqamahOffsets) => void;
   onLabelChange: (label: string) => void;
 }
@@ -237,8 +248,10 @@ const ConsistentModal: React.FC<ModalProps> = ({
 export default function PrayerTimesManager({
   displayId,
   prayerTimes,
+  prayerNames, // Add this
   iqamahOffsets,
   onPrayerTimesChange,
+  onPrayerNamesChange, // Add this
   onIqamahOffsetsChange,
   onLabelChange,
   label,
@@ -907,6 +920,151 @@ export default function PrayerTimesManager({
                 </div>
               )}
             </div>
+
+            {/* Prayer Names Editor - Add this section */}
+            {prayerNames && onPrayerNamesChange && (
+              <div className="space-y-4 pt-4 border-t border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-200">
+                    Prayer Display Names
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultNames = {
+                        fajr: "Fajr",
+                        sunrise: "Sunrise",
+                        dhuhr: "Dhuhr",
+                        asr: "Asr",
+                        maghrib: "Maghrib",
+                        isha: "Isha",
+                      };
+                      onPrayerNamesChange(defaultNames);
+                    }}
+                    className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-400">
+                  Customize how each prayer name appears on the display screen
+                </p>
+
+                <div className="space-y-3">
+                  {Object.entries(prayerNames).map(([key, value]) => {
+                    const defaultNames = {
+                      fajr: "Fajr",
+                      sunrise: "Sunrise",
+                      dhuhr: "Dhuhr",
+                      asr: "Asr",
+                      maghrib: "Maghrib",
+                      isha: "Isha",
+                    };
+                    const defaultName =
+                      defaultNames[key as keyof typeof defaultNames];
+                    const isCustom = value !== defaultName;
+
+                    return (
+                      <div key={key} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm text-gray-300 capitalize">
+                            {key}
+                            <span className="text-xs text-gray-500 ml-2">
+                              Default: {defaultName}
+                            </span>
+                          </label>
+                          {isCustom && (
+                            <span className="text-xs text-green-400">
+                              Custom
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => {
+                            const newNames = { ...prayerNames };
+                            newNames[key as keyof PrayerNames] = e.target.value;
+                            onPrayerNamesChange(newNames);
+                          }}
+                          placeholder={`Enter custom name (e.g., ${
+                            key === "fajr" ? "Subah" : defaultName
+                          })`}
+                          className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
+
+                        {/* Example suggestions for Fajr */}
+                        {key === "fajr" && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {["Subah", "Fajr", "Morning Prayer", "صبح"].map(
+                              (suggestion) => (
+                                <button
+                                  key={suggestion}
+                                  type="button"
+                                  onClick={() => {
+                                    const newNames = { ...prayerNames };
+                                    newNames.fajr = suggestion;
+                                    onPrayerNamesChange(newNames);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                >
+                                  {suggestion}
+                                </button>
+                              )
+                            )}
+                          </div>
+                        )}
+
+                        {/* Example suggestions for Isha */}
+                        {key === "isha" && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {["Isha", "Night Prayer", "عشاء", "Esha"].map(
+                              (suggestion) => (
+                                <button
+                                  key={suggestion}
+                                  type="button"
+                                  onClick={() => {
+                                    const newNames = { ...prayerNames };
+                                    newNames.isha = suggestion;
+                                    onPrayerNamesChange(newNames);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                >
+                                  {suggestion}
+                                </button>
+                              )
+                            )}
+                          </div>
+                        )}
+
+                        {/* Example suggestions for Dhuhr */}
+                        {key === "dhuhr" && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {["Dhuhr", "Noon Prayer", "ظهر", "Zuhr"].map(
+                              (suggestion) => (
+                                <button
+                                  key={suggestion}
+                                  type="button"
+                                  onClick={() => {
+                                    const newNames = { ...prayerNames };
+                                    newNames.dhuhr = suggestion;
+                                    onPrayerNamesChange(newNames);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                >
+                                  {suggestion}
+                                </button>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Prayer Times Editor */}
             <div className="space-y-4 pt-4 border-t border-gray-700">

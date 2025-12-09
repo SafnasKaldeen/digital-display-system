@@ -18,6 +18,15 @@ interface PrayerTimes {
   isha: string;
 }
 
+interface PrayerNames {
+  fajr: string;
+  sunrise: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+}
+
 interface IqamahOffsets {
   fajr: number;
   sunrise: number;
@@ -47,6 +56,7 @@ interface Announcement {
 interface MasjidConfig {
   template: string;
   prayerTimes: PrayerTimes;
+  prayerNames: PrayerNames;
   iqamahOffsets: IqamahOffsets;
   prayerScheduleLabel?: string;
   colors: Colors;
@@ -76,8 +86,8 @@ interface AnnouncementImage {
   id: string;
   url: string;
   duration: number;
-  frequency: number; // Keep frequency for backward compatibility
-  schedule?: string[]; // Add schedule as optional property for migration
+  frequency: number;
+  schedule?: string[];
   name?: string;
 }
 
@@ -110,9 +120,19 @@ export default function MasjidEditorPanel({
     isha: "19:30",
   };
 
+  const defaultPrayerNames: PrayerNames = {
+    fajr: "Fajr",
+    sunrise: "Sunrise",
+    dhuhr: "Dhuhr",
+    asr: "Asr",
+    maghrib: "Maghrib",
+    isha: "Isha",
+  };
+
   const defaultConfig: MasjidConfig = {
     template: "masjid-classic",
     prayerTimes: defaultPrayerTimes,
+    prayerNames: defaultPrayerNames,
     iqamahOffsets: {
       fajr: 15,
       sunrise: 10,
@@ -288,6 +308,10 @@ export default function MasjidEditorPanel({
               },
               masjidName: savedConfig.masjidName || displayName,
               prayerTimes: finalPrayerTimes,
+              prayerNames: {
+                ...defaultPrayerNames,
+                ...(savedConfig.prayerNames || {}),
+              },
               prayerScheduleLabel: finalScheduleLabel,
               iqamahOffsets: {
                 ...defaultConfig.iqamahOffsets,
@@ -318,6 +342,7 @@ export default function MasjidEditorPanel({
               ...defaultConfig,
               masjidName: displayName,
               prayerTimes: prayerTimes,
+              prayerNames: defaultPrayerNames,
               prayerScheduleLabel: scheduleLabel,
             };
 
@@ -336,6 +361,7 @@ export default function MasjidEditorPanel({
             ...defaultConfig,
             masjidName: displayName,
             prayerTimes: prayerTimes,
+            prayerNames: defaultPrayerNames,
             prayerScheduleLabel: scheduleLabel,
           };
 
@@ -515,9 +541,11 @@ export default function MasjidEditorPanel({
         <PrayerTimesManager
           displayId={displayId}
           prayerTimes={customization.prayerTimes}
+          prayerNames={customization.prayerNames} // Add this
           iqamahOffsets={customization.iqamahOffsets}
           label={customization.prayerScheduleLabel || ""}
           onPrayerTimesChange={(times) => updateConfig({ prayerTimes: times })}
+          onPrayerNamesChange={(names) => updateConfig({ prayerNames: names })} // Add this
           onIqamahOffsetsChange={(offsets) =>
             updateConfig({ iqamahOffsets: offsets })
           }
@@ -546,64 +574,6 @@ export default function MasjidEditorPanel({
           ImageUploader={ImageUploader}
         />
       </CollapsibleSection>
-
-      {/* <CollapsibleSection title="Announcements">
-        <div className="space-y-3">
-          {customization.announcements.map((announcement, idx) => (
-            <div
-              key={idx}
-              className="space-y-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
-            >
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-400">
-                  Announcement {idx + 1}
-                </label>
-                <button
-                  onClick={() => removeAnnouncement(idx)}
-                  className="text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              <textarea
-                value={announcement.text}
-                onChange={(e) =>
-                  updateAnnouncement(idx, "text", e.target.value)
-                }
-                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
-                rows={2}
-                placeholder="Enter announcement..."
-              />
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-400">
-                  Duration (seconds):
-                </label>
-                <input
-                  type="number"
-                  min="3"
-                  max="60"
-                  value={announcement.duration}
-                  onChange={(e) =>
-                    updateAnnouncement(
-                      idx,
-                      "duration",
-                      parseInt(e.target.value) || 5
-                    )
-                  }
-                  className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-            </div>
-          ))}
-          <button
-            onClick={addAnnouncement}
-            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-700 rounded-lg hover:border-gray-600 text-gray-400 hover:text-gray-300 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm">Add Announcement</span>
-          </button>
-        </div>
-      </CollapsibleSection> */}
 
       <CollapsibleSection title="Colors & Styling">
         <div className="space-y-4">

@@ -1,9 +1,20 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import FlipClockWrapper from "./components/masjid/FlipClockWrapper";
 import { PrayerInstructions } from "./components/masjid/PrayerInstructions";
 import { IshraqCountdown } from "./components/masjid/IshraqCountdown";
 
 interface PrayerTimes {
+  fajr: string;
+  sunrise: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+}
+
+interface PrayerNames {
   fajr: string;
   sunrise: string;
   dhuhr: string;
@@ -47,6 +58,7 @@ interface MasjidCustomization {
   layout: string;
   masjidName: string;
   prayerTimes: PrayerTimes;
+  prayerNames: PrayerNames; // Add this
   iqamahOffsets: IqamahOffsets;
   colors: Colors;
   backgroundType: string;
@@ -137,27 +149,32 @@ export function MasjidTemplateAuthentic({
 
       const prayers = [
         {
-          name: "fajr",
+          name: customization.prayerNames.fajr || "fajr",
+          key: "fajr",
           time: customization.prayerTimes.fajr,
           offset: customization.iqamahOffsets.fajr,
         },
         {
-          name: "dhuhr",
+          name: customization.prayerNames.dhuhr || "dhuhr",
+          key: "dhuhr",
           time: customization.prayerTimes.dhuhr,
           offset: customization.iqamahOffsets.dhuhr,
         },
         {
-          name: "asr",
+          name: customization.prayerNames.asr || "asr",
+          key: "asr",
           time: customization.prayerTimes.asr,
           offset: customization.iqamahOffsets.asr,
         },
         {
-          name: "maghrib",
+          name: customization.prayerNames.maghrib || "maghrib",
+          key: "maghrib",
           time: customization.prayerTimes.maghrib,
           offset: customization.iqamahOffsets.maghrib,
         },
         {
-          name: "isha",
+          name: customization.prayerNames.isha || "isha",
+          key: "isha",
           time: customization.prayerTimes.isha,
           offset: customization.iqamahOffsets.isha,
         },
@@ -225,7 +242,6 @@ export function MasjidTemplateAuthentic({
   }, [customization.prayerTimes.sunrise]);
 
   // Advertisement Check - CRON STYLE SCHEDULE (FIXED VERSION)
-  // Advertisement Check - CRON STYLE SCHEDULE (FIXED COUNTDOWN VERSION)
   useEffect(() => {
     const checkAdvertisements = () => {
       // Don't show ads if prayer instructions or Ishraq countdown are showing
@@ -361,9 +377,6 @@ export function MasjidTemplateAuthentic({
     };
   }, [showAdvertisement, currentAdvertisement]);
 
-  // Rest of the component remains the same...
-  // [Keep all the other functions: fetchHijriDate, to12Hour, getNextPrayer, etc.]
-
   const fetchHijriDate = async () => {
     try {
       const today = new Date();
@@ -397,27 +410,32 @@ export function MasjidTemplateAuthentic({
 
     const prayers = [
       {
-        name: "fajr",
+        name: customization.prayerNames.fajr || "Fajr",
+        key: "fajr",
         time: customization.prayerTimes.fajr,
         offset: customization.iqamahOffsets.fajr,
       },
       {
-        name: "dhuhr",
+        name: customization.prayerNames.dhuhr || "Dhuhr",
+        key: "dhuhr",
         time: customization.prayerTimes.dhuhr,
         offset: customization.iqamahOffsets.dhuhr,
       },
       {
-        name: "asr",
+        name: customization.prayerNames.asr || "Asr",
+        key: "asr",
         time: customization.prayerTimes.asr,
         offset: customization.iqamahOffsets.asr,
       },
       {
-        name: "maghrib",
+        name: customization.prayerNames.maghrib || "Maghrib",
+        key: "maghrib",
         time: customization.prayerTimes.maghrib,
         offset: customization.iqamahOffsets.maghrib,
       },
       {
-        name: "isha",
+        name: customization.prayerNames.isha || "Isha",
+        key: "isha",
         time: customization.prayerTimes.isha,
         offset: customization.iqamahOffsets.isha,
       },
@@ -434,6 +452,7 @@ export function MasjidTemplateAuthentic({
 
         return {
           name: prayer.name,
+          key: prayer.key,
           time: targetDate,
           adhan: to12Hour(prayer.time),
           offset: prayer.offset,
@@ -455,7 +474,8 @@ export function MasjidTemplateAuthentic({
     );
 
     return {
-      name: "fajr",
+      name: customization.prayerNames.fajr || "Fajr",
+      key: "fajr",
       time: targetDate,
       adhan: to12Hour(customization.prayerTimes.fajr),
       offset: customization.iqamahOffsets.fajr,
@@ -484,27 +504,32 @@ export function MasjidTemplateAuthentic({
 
     const prayers = [
       {
-        name: "fajr",
+        name: customization.prayerNames.fajr || "Fajr",
+        key: "fajr",
         time: customization.prayerTimes.fajr,
         offset: customization.iqamahOffsets.fajr,
       },
       {
-        name: "dhuhr",
+        name: customization.prayerNames.dhuhr || "Dhuhr",
+        key: "dhuhr",
         time: customization.prayerTimes.dhuhr,
         offset: customization.iqamahOffsets.dhuhr,
       },
       {
-        name: "asr",
+        name: customization.prayerNames.asr || "Asr",
+        key: "asr",
         time: customization.prayerTimes.asr,
         offset: customization.iqamahOffsets.asr,
       },
       {
-        name: "maghrib",
+        name: customization.prayerNames.maghrib || "Maghrib",
+        key: "maghrib",
         time: customization.prayerTimes.maghrib,
         offset: customization.iqamahOffsets.maghrib,
       },
       {
-        name: "isha",
+        name: customization.prayerNames.isha || "Isha",
+        key: "isha",
         time: customization.prayerTimes.isha,
         offset: customization.iqamahOffsets.isha,
       },
@@ -524,6 +549,7 @@ export function MasjidTemplateAuthentic({
           type: "adhan",
           seconds,
           prayerName: prayer.name,
+          prayerKey: prayer.key,
           adhanTime: prayer.time,
           iqamahTime: calculateIqamahTime(prayer.time, prayer.offset),
         };
@@ -535,6 +561,7 @@ export function MasjidTemplateAuthentic({
           type: "iqamah",
           seconds,
           prayerName: prayer.name,
+          prayerKey: prayer.key,
           adhanTime: prayer.time,
           iqamahTime: calculateIqamahTime(prayer.time, prayer.offset),
         };
@@ -573,11 +600,11 @@ export function MasjidTemplateAuthentic({
       }
     };
 
-    return `${weekday} - ${day} ${month} ${year}`;
+    return `${weekday} - ${day}${getSuffix(day)} ${month} ${year}`;
   };
 
   const nextPrayer = getNextPrayer();
-  const nextPrayerName = nextPrayer.name.toLowerCase();
+  const nextPrayerKey = nextPrayer.key;
   const countdownState = getCountdownState();
 
   const calculateSunriseTime = () => {
@@ -594,42 +621,42 @@ export function MasjidTemplateAuthentic({
 
   const prayers = [
     {
-      name: "Fajr",
+      name: customization.prayerNames.fajr || "Fajr",
       nameAr: "الفجر",
       adhan: to12Hour(customization.prayerTimes.fajr),
       offset: customization.iqamahOffsets.fajr,
       icon: "🌙",
     },
     {
-      name: "Sunrise",
+      name: customization.prayerNames.sunrise || "Sunrise",
       nameAr: "الشروق",
       adhan: to12Hour(calculateSunriseTime()),
       offset: 0,
       icon: "🌅",
     },
     {
-      name: "Dhuhr",
+      name: customization.prayerNames.dhuhr || "Dhuhr",
       nameAr: "الظهر",
       adhan: to12Hour(customization.prayerTimes.dhuhr),
       offset: customization.iqamahOffsets.dhuhr,
       icon: "☀️",
     },
     {
-      name: "Asr",
+      name: customization.prayerNames.asr || "Asr",
       nameAr: "العصر",
       adhan: to12Hour(customization.prayerTimes.asr),
       offset: customization.iqamahOffsets.asr,
       icon: "🌤️",
     },
     {
-      name: "Maghrib",
+      name: customization.prayerNames.maghrib || "Maghrib",
       nameAr: "المغرب",
       adhan: to12Hour(customization.prayerTimes.maghrib),
       offset: customization.iqamahOffsets.maghrib,
       icon: "🌆",
     },
     {
-      name: "Isha",
+      name: customization.prayerNames.isha || "Isha",
       nameAr: "العشاء",
       adhan: to12Hour(customization.prayerTimes.isha),
       offset: customization.iqamahOffsets.isha,
@@ -1015,8 +1042,17 @@ export function MasjidTemplateAuthentic({
         <div className="relative z-10 px-0 pb-0">
           <div className="grid grid-cols-6 gap-3 max-w-[95%] mx-auto">
             {prayers.map((prayer, index) => {
-              // Check if this is the next prayer (excluding Sunrise as it doesn't have Iqamah)
-              const isNextPrayer = prayer.name.toLowerCase() === nextPrayerName;
+              // Create a mapping of prayer keys to names for comparison
+              const prayerKeyMap = {
+                fajr: customization.prayerNames.fajr || "Fajr",
+                sunrise: customization.prayerNames.sunrise || "Sunrise",
+                dhuhr: customization.prayerNames.dhuhr || "Dhuhr",
+                asr: customization.prayerNames.asr || "Asr",
+                maghrib: customization.prayerNames.maghrib || "Maghrib",
+                isha: customization.prayerNames.isha || "Isha",
+              };
+
+              const isNextPrayer = prayerKeyMap[nextPrayerKey] === prayer.name;
 
               return (
                 <div
