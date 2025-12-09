@@ -67,15 +67,33 @@ interface MasjidCustomization {
   announcements: Announcement[];
   announcementImages: AnnouncementImage[];
   showHijriDate: boolean;
+  showArabic: boolean;
   font: string;
   prayerInstructionImage: string;
   prayerInstructionDuration: number;
+  language?: string; // 'en' or 'ta'
 }
 
 interface MasjidTemplateProps {
   customization: MasjidCustomization;
   backgroundStyle: React.CSSProperties;
 }
+
+// Translations for labels only
+const translations = {
+  en: {
+    adhan: "ADHAN",
+    iqamah: "IQAMAH",
+    adhanIn: "ADHAN IN",
+    iqamahIn: "IQAMAH IN",
+  },
+  ta: {
+    adhan: "அதான்",
+    iqamah: "இகாமத்",
+    adhanIn: "அதான் வரும் நேரம்",
+    iqamahIn: "இகாமத் வரும் நேரம்",
+  },
+};
 
 export function MasjidTemplateAuthentic({
   customization,
@@ -84,6 +102,12 @@ export function MasjidTemplateAuthentic({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentAnnouncement, setCurrentAnnouncement] = useState(0);
   const [hijriDate, setHijriDate] = useState("");
+  const [showArabic, setShowArabic] = useState(customization.showArabic);
+
+  // Get language from config, default to 'en'
+  const language = customization.language || "ta";
+  const t =
+    translations[language as keyof typeof translations] || translations.en;
 
   // Advertisement slideshow states
   const [activeAdvertisements, setActiveAdvertisements] = useState<
@@ -788,6 +812,7 @@ export function MasjidTemplateAuthentic({
         accentColor={customization.colors.accent}
         secondaryColor={customization.colors.secondary}
         remainingSeconds={ishraqRemainingSeconds}
+        language={language}
         onClose={() => {
           setShowIshraqCountdown(false);
           setIshraqRemainingSeconds(0);
@@ -823,7 +848,6 @@ export function MasjidTemplateAuthentic({
     return (
       <div className="fixed inset-0 z-50 bg-black">
         <div className="relative w-full h-full">
-          {/* Background Image */}
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
@@ -833,15 +857,12 @@ export function MasjidTemplateAuthentic({
             <div className="absolute inset-0 bg-black/40"></div>
           </div>
 
-          {/* Slideshow Controls */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-            {/* Current Ad Info */}
             <div className="text-white text-lg font-semibold bg-black/50 px-4 py-2 rounded-lg">
               {currentAd.name || "Advertisement"} ({currentAdIndex + 1}/
               {activeAdvertisements.length})
             </div>
 
-            {/* Skip Button */}
             <button
               onClick={handleNextAdvertisement}
               className="text-white hover:text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
@@ -850,7 +871,6 @@ export function MasjidTemplateAuthentic({
             </button>
           </div>
 
-          {/* Countdown Timer */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-2">
@@ -859,7 +879,6 @@ export function MasjidTemplateAuthentic({
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all duration-100 ease-linear"
@@ -1030,7 +1049,7 @@ export function MasjidTemplateAuthentic({
                     className="text-8xl font-black tracking-tight mb-0"
                     style={{ ...textStyle, color: customization.colors.accent }}
                   >
-                    IQAMAH
+                    {t.iqamah}
                   </h3>
                   <div
                     className="text-[15rem] font-black leading-none"
@@ -1059,7 +1078,7 @@ export function MasjidTemplateAuthentic({
                 <div className="absolute left-8 opacity-20 blur-sm scale-75 transition-all duration-500">
                   <div className="text-center">
                     <div className="text-2xl font-bold mb-2" style={textStyle}>
-                      ADHAN
+                      {t.adhan}
                     </div>
                     <div
                       className="text-4xl font-black"
@@ -1076,7 +1095,7 @@ export function MasjidTemplateAuthentic({
                 <div className="absolute right-8 opacity-20 blur-sm scale-75 transition-all duration-500">
                   <div className="text-center">
                     <div className="text-2xl font-bold mb-2" style={textStyle}>
-                      IQAMAH
+                      {t.iqamah}
                     </div>
                     <div
                       className="text-4xl font-black"
@@ -1097,19 +1116,19 @@ export function MasjidTemplateAuthentic({
                       ...textStyle,
                       color:
                         countdownState.seconds > 300
-                          ? "#10B981" // Green for >5 min
+                          ? "#10B981"
                           : countdownState.seconds > 60
-                          ? "#F59E0B" // Yellow for 1-5 min
+                          ? "#F59E0B"
                           : countdownState.seconds > 30
-                          ? "#F97316" // Orange for 30-60 sec
+                          ? "#F97316"
                           : countdownState.seconds > 10
-                          ? "#EF4444" // Red for 10-30 sec
-                          : "#DC2626", // Bright red for <10 sec
+                          ? "#EF4444"
+                          : "#DC2626",
                       animation: "subtlePulse 2s ease-in-out infinite",
                     }}
                   >
                     {countdownState.prayerName.toUpperCase()}{" "}
-                    {countdownState.type === "adhan" ? "ADHAN IN" : "IQAMAH IN"}
+                    {countdownState.type === "adhan" ? t.adhanIn : t.iqamahIn}
                   </h3>
                   <div
                     className="text-[15rem] font-black leading-none"
@@ -1118,14 +1137,14 @@ export function MasjidTemplateAuthentic({
                       fontWeight: 1000,
                       color:
                         countdownState.seconds > 300
-                          ? "#10B981" // Green for >5 min
+                          ? "#10B981"
                           : countdownState.seconds > 60
-                          ? "#F59E0B" // Yellow for 1-5 min
+                          ? "#F59E0B"
                           : countdownState.seconds > 30
-                          ? "#F97316" // Orange for 30-60 sec
+                          ? "#F97316"
                           : countdownState.seconds > 10
-                          ? "#EF4444" // Red for 10-30 sec
-                          : "#DC2626", // Bright red for <10 sec
+                          ? "#EF4444"
+                          : "#DC2626",
                       textShadow:
                         countdownState.seconds > 300
                           ? `0 0 20px #10B98180, 0 0 40px #10B98160, 0 0 60px #10B98140, 6px 6px 20px rgba(0,0,0,0.9)`
@@ -1154,7 +1173,6 @@ export function MasjidTemplateAuthentic({
         <div className="relative z-10 px-0 pb-0">
           <div className="grid grid-cols-6 gap-3 max-w-[95%] mx-auto">
             {prayers.map((prayer, index) => {
-              // Create a mapping of prayer keys to names for comparison
               const prayerKeyMap = {
                 fajr: customization.prayerNames.fajr || "Fajr",
                 sunrise: customization.prayerNames.sunrise || "Sunrise",
@@ -1182,7 +1200,7 @@ export function MasjidTemplateAuthentic({
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0"></div>
 
-                  <div className="relative px-4 pt-1 pb-0 text-center">
+                  <div className="relative px-0 pt-1 pb-0 text-center">
                     <div
                       className="text-4xl font-bold mb-2 tracking-wide"
                       style={{
@@ -1207,7 +1225,6 @@ export function MasjidTemplateAuthentic({
                       {prayer.adhan}
                     </div>
 
-                    {/* Add a "NEXT" badge for the next prayer */}
                     {isNextPrayer && (
                       <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full rotate-12 shadow-lg">
                         NEXT

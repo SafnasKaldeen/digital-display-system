@@ -80,6 +80,7 @@ interface MasjidConfig {
   prayerInstructionImage: string;
   prayerInstructionDuration: number;
   announcementImages: AnnouncementImage[];
+  language?: string; // 'en' or 'ta'
 }
 
 interface AnnouncementImage {
@@ -170,6 +171,7 @@ export default function MasjidEditorPanel({
     prayerInstructionImage: "",
     prayerInstructionDuration: 10,
     announcementImages: [],
+    language: "en",
   };
 
   const [customization, setCustomization] =
@@ -869,6 +871,23 @@ export default function MasjidEditorPanel({
               <span>20 min</span>
             </div>
           </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Language */}
+      <CollapsibleSection title="Language">
+        <div className="space-y-2">
+          <label className="text-sm text-gray-300 block mb-2">
+            Display Language
+          </label>
+          <select
+            value={customization.language || "en"}
+            onChange={(e) => updateConfig({ language: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          >
+            <option value="en">English</option>
+            <option value="ta">Tamil</option>
+          </select>
         </div>
       </CollapsibleSection>
 

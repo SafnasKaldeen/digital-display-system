@@ -5,6 +5,7 @@ interface IshraqCountdownProps {
   accentColor: string;
   secondaryColor: string;
   remainingSeconds: number;
+  language?: string;
   onClose?: () => void;
 }
 
@@ -12,6 +13,7 @@ export const IshraqCountdown: React.FC<IshraqCountdownProps> = ({
   accentColor,
   secondaryColor,
   remainingSeconds,
+  language = "en",
   onClose,
 }) => {
   const [timeLeft, setTimeLeft] = useState(remainingSeconds);
@@ -51,6 +53,24 @@ export const IshraqCountdown: React.FC<IshraqCountdownProps> = ({
 
   const { minutes, seconds } = formatTime(timeLeft);
   const progressPercentage = (timeLeft / remainingSeconds) * 100;
+
+  const translations = {
+    en: {
+      ishraqPrayer: "ISHRAQ PRAYER",
+      timeRemaining: "Time Remaining Until Ishraq",
+      note: "Ishraq prayer begins 20 minutes after sunrise ☀️",
+    },
+    ta: {
+      ishraqPrayer: "இஷ்ராக் பிரார்த்தனை",
+      timeRemaining: "இஷ்ராக் வரை மீதமுள்ள நேரம்",
+      note: "இஷ்ராக் பிரார்த்தனை சூரிய உதயத்திற்கு 20 நிமிடங்கள் பிறகு தொடங்கும் ☀️",
+    },
+  };
+
+  const Language = language || "ta";
+
+  const t =
+    translations[Language as keyof typeof translations] || translations.en;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4">
@@ -181,14 +201,16 @@ export const IshraqCountdown: React.FC<IshraqCountdownProps> = ({
             <div className="flex items-center justify-center gap-6 mb-6">
               {/* <span className="text-7xl">🌅</span> */}
               <h1
-                className="text-8xl font-black tracking-wider"
+                className={`${
+                  Language === "ta" ? "text-7xl" : "text-8xl"
+                } font-black tracking-wider`}
                 style={{
                   color: accentColor,
                   textShadow: `0 0 30px ${accentColor}80, 0 0 60px ${accentColor}60, 6px 6px 12px rgba(0,0,0,0.8)`,
                   fontFamily: "'Oxanium', sans-serif",
                 }}
               >
-                ISHRAQ PRAYER
+                {t.ishraqPrayer}
               </h1>
               {/* <span className="text-7xl">🌅</span> */}
             </div>
@@ -199,7 +221,7 @@ export const IshraqCountdown: React.FC<IshraqCountdownProps> = ({
                 textShadow: `0 0 20px ${secondaryColor}60, 3px 3px 6px rgba(0,0,0,0.8)`,
               }}
             >
-              Time Remaining Until Ishraq
+              {t.timeRemaining}
             </p>
           </div>
 
@@ -340,7 +362,7 @@ export const IshraqCountdown: React.FC<IshraqCountdownProps> = ({
                 textShadow: `0 0 15px #94a3b860, 2px 2px 6px rgba(0,0,0,0.8)`,
               }}
             >
-              Ishraq prayer begins 20 minutes after sunrise ☀️
+              {t.note}
             </p>
           </div>
 
