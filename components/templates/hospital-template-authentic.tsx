@@ -403,7 +403,7 @@ function HospitalTemplateAuthentic({
                 {formatTime(currentTime)}
               </div>
               <div
-                className="text-xl font-semibold drop-shadow-lg mt-1 tracking-wide"
+                className="text-4xl font-semibold drop-shadow-lg mt-1 tracking-wide"
                 style={{ color: settings.accentColor, opacity: 0.9 }}
               >
                 {formatDate(currentTime)}

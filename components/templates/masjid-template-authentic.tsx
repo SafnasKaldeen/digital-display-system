@@ -5,77 +5,7 @@ import FlipClockWrapper from "./components/masjid/FlipClockWrapper";
 import { PrayerInstructions } from "./components/masjid/PrayerInstructions";
 import { IshraqCountdown } from "./components/masjid/IshraqCountdown";
 
-interface PrayerTimes {
-  fajr: string;
-  sunrise: string;
-  dhuhr: string;
-  asr: string;
-  maghrib: string;
-  isha: string;
-}
-
-interface PrayerNames {
-  fajr: string;
-  sunrise: string;
-  dhuhr: string;
-  asr: string;
-  maghrib: string;
-  isha: string;
-}
-
-interface IqamahOffsets {
-  fajr: number;
-  sunrise: number;
-  dhuhr: number;
-  asr: number;
-  maghrib: number;
-  isha: number;
-}
-
-interface Colors {
-  primary: string;
-  secondary: string;
-  text: string;
-  accent: string;
-}
-
-interface Announcement {
-  text: string;
-  duration: number;
-}
-
-interface AnnouncementImage {
-  id: string;
-  url: string;
-  duration: number;
-  frequency?: number; // Keep for backward compatibility
-  schedule?: string[]; // Optional for backward compatibility
-  name?: string;
-}
-
-interface MasjidCustomization {
-  template: string;
-  layout: string;
-  masjidName: string;
-  prayerTimes: PrayerTimes;
-  prayerNames: PrayerNames; // Add this
-  iqamahOffsets: IqamahOffsets;
-  colors: Colors;
-  backgroundType: string;
-  backgroundImage: string[];
-  slideshowDuration: number;
-  announcements: Announcement[];
-  announcementImages: AnnouncementImage[];
-  showHijriDate: boolean;
-  font: string;
-  prayerInstructionImage: string;
-  prayerInstructionDuration: number;
-}
-
-interface MasjidTemplateProps {
-  customization: MasjidCustomization;
-  backgroundStyle: React.CSSProperties;
-}
+// ... (keep all interfaces the same) ...
 
 export function MasjidTemplateAuthentic({
   customization,
@@ -84,6 +14,22 @@ export function MasjidTemplateAuthentic({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentAnnouncement, setCurrentAnnouncement] = useState(0);
   const [hijriDate, setHijriDate] = useState("");
+
+  // Advertisement slideshow states
+  const [activeAdvertisements, setActiveAdvertisements] = useState<
+    AnnouncementImage[]
+  >([]);
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [adRemainingTime, setAdRemainingTime] = useState(0);
+  const adTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const adCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const adCountdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Use refs to track state that needs to be accessed in callbacks
+  const currentAdIndexRef = useRef(0);
+  const activeAdsRef = useRef<AnnouncementImage[]>([]);
+
+  // Prayer instruction state (always overwrites ads)
   const [showInstructions, setShowInstructions] = useState(false);
   const [instructionsPrayer, setInstructionsPrayer] = useState("");
   const [instructionsRemainingTime, setInstructionsRemainingTime] = useState(0);
@@ -92,20 +38,14 @@ export function MasjidTemplateAuthentic({
   const [showIshraqCountdown, setShowIshraqCountdown] = useState(false);
   const [ishraqRemainingSeconds, setIshraqRemainingSeconds] = useState(0);
 
-  // Advertisement states
-  const [showAdvertisement, setShowAdvertisement] = useState(false);
-  const [currentAdvertisement, setCurrentAdvertisement] =
-    useState<AnnouncementImage | null>(null);
-  const [advertisementRemainingTime, setAdvertisementRemainingTime] =
-    useState(0);
-  const [lastAdvertisementTimes, setLastAdvertisementTimes] = useState<
-    Map<string, number>
-  >(new Map());
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentAdIndexRef.current = currentAdIndex;
+  }, [currentAdIndex]);
 
-  // ADD MISSING REFS HERE
-  const advertisementTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const advertisementStartTimeRef = useRef<number | null>(null);
-  const advertisementCheckRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    activeAdsRef.current = activeAdvertisements;
+  }, [activeAdvertisements]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -130,7 +70,7 @@ export function MasjidTemplateAuthentic({
     fetchHijriDate();
   }, []);
 
-  // Prayer Instructions Check
+  // Prayer Instructions Check (HIGHEST PRIORITY)
   useEffect(() => {
     const checkInstructions = () => {
       if (
@@ -209,7 +149,7 @@ export function MasjidTemplateAuthentic({
     return () => clearInterval(interval);
   }, [customization]);
 
-  // Ishraq Countdown Check
+  // Ishraq Countdown Check (HIGH PRIORITY)
   useEffect(() => {
     const checkIshraqTime = () => {
       const now = new Date();
@@ -241,11 +181,15 @@ export function MasjidTemplateAuthentic({
     return () => clearInterval(interval);
   }, [customization.prayerTimes.sunrise]);
 
-  // Advertisement Check - CRON STYLE SCHEDULE (FIXED VERSION)
+  // Advertisement Slideshow Check (LOWEST PRIORITY)
   useEffect(() => {
     const checkAdvertisements = () => {
       // Don't show ads if prayer instructions or Ishraq countdown are showing
       if (showInstructions || showIshraqCountdown) {
+        // Clear any active ad slideshow
+        clearAllAdTimers();
+        setActiveAdvertisements([]);
+        setCurrentAdIndex(0);
         return;
       }
 
@@ -262,7 +206,7 @@ export function MasjidTemplateAuthentic({
 
       // Check if we're at a scheduled minute mark (first 5 seconds of the minute)
       if (currentSecond > 5) {
-        return; // Only check at the beginning of each minute
+        return;
       }
 
       // Helper function to get schedule from announcement
@@ -270,112 +214,111 @@ export function MasjidTemplateAuthentic({
         if (ad.schedule && ad.schedule.length > 0) {
           return ad.schedule;
         }
-        // Default schedule if none is set
         return ["00", "10", "20", "30", "40", "50"];
       };
 
-      // Find ads scheduled for this minute
+      // Find ALL ads scheduled for this minute
       const scheduledAds = customization.announcementImages.filter((ad) => {
         const schedule = getScheduleFromAnnouncement(ad);
         return schedule.includes(currentMinute);
       });
 
       if (scheduledAds.length === 0) {
+        // No ads scheduled for this minute
+        clearAllAdTimers();
+        setActiveAdvertisements([]);
+        setCurrentAdIndex(0);
         return;
       }
 
-      // Pick one ad to show (simplified: show the first one)
-      const adToShow = scheduledAds[0];
+      // If we have scheduled ads and no active slideshow, start it
+      if (activeAdvertisements.length === 0) {
+        setActiveAdvertisements(scheduledAds);
+        setCurrentAdIndex(0);
 
-      // Check if we already showed this ad recently (last 10 seconds)
-      const lastShown = lastAdvertisementTimes.get(adToShow.id) || 0;
-      const timeSinceLastShown = Date.now() - lastShown;
-
-      if (timeSinceLastShown < 10000) {
-        // 10 seconds cooldown
-        return;
-      }
-
-      // Only show if not currently showing an ad
-      if (!showAdvertisement) {
-        setCurrentAdvertisement(adToShow);
-        setAdvertisementRemainingTime(adToShow.duration * 1000);
-        setShowAdvertisement(true);
-        advertisementStartTimeRef.current = Date.now();
-
-        // Update the last shown time
-        const newMap = new Map(lastAdvertisementTimes);
-        newMap.set(adToShow.id, Date.now());
-        setLastAdvertisementTimes(newMap);
-
-        // Set timer to hide this ad after its duration
-        if (advertisementTimerRef.current) {
-          clearTimeout(advertisementTimerRef.current);
-        }
-        advertisementTimerRef.current = setTimeout(() => {
-          setShowAdvertisement(false);
-          setCurrentAdvertisement(null);
-          setAdvertisementRemainingTime(0);
-          advertisementStartTimeRef.current = null;
-        }, adToShow.duration * 1000);
+        // Start the slideshow
+        startAdvertisementSlideshow(scheduledAds);
       }
     };
 
-    // Check every second (but only act at minute boundaries)
-    advertisementCheckRef.current = setInterval(checkAdvertisements, 1000);
+    adCheckRef.current = setInterval(checkAdvertisements, 1000);
 
     return () => {
-      if (advertisementCheckRef.current) {
-        clearInterval(advertisementCheckRef.current);
-      }
-      if (advertisementTimerRef.current) {
-        clearTimeout(advertisementTimerRef.current);
+      clearAllAdTimers();
+      if (adCheckRef.current) {
+        clearInterval(adCheckRef.current);
       }
     };
-  }, [
-    customization.announcementImages,
-    showInstructions,
-    showIshraqCountdown,
-    lastAdvertisementTimes,
-    showAdvertisement,
-  ]);
+  }, [customization.announcementImages, showInstructions, showIshraqCountdown]);
 
-  // Separate effect to handle advertisement countdown ticking
-  useEffect(() => {
-    if (!showAdvertisement || !currentAdvertisement) return;
+  const clearAllAdTimers = () => {
+    if (adTimerRef.current) {
+      clearTimeout(adTimerRef.current);
+      adTimerRef.current = null;
+    }
+    if (adCountdownRef.current) {
+      clearInterval(adCountdownRef.current);
+      adCountdownRef.current = null;
+    }
+  };
 
-    const updateCountdown = () => {
-      if (!advertisementStartTimeRef.current) return;
+  const startAdvertisementSlideshow = (ads: AnnouncementImage[]) => {
+    if (ads.length === 0) return;
 
-      const elapsed = Date.now() - advertisementStartTimeRef.current;
-      const remaining = Math.max(
-        0,
-        currentAdvertisement.duration * 1000 - elapsed
-      );
+    // Clear any existing timers
+    clearAllAdTimers();
 
-      setAdvertisementRemainingTime(remaining);
+    // Set first ad
+    const firstAdDuration = ads[0].duration * 1000;
+    setAdRemainingTime(firstAdDuration);
 
-      // If time is up, close the advertisement
-      if (remaining <= 0) {
-        setShowAdvertisement(false);
-        setCurrentAdvertisement(null);
-        setAdvertisementRemainingTime(0);
-        advertisementStartTimeRef.current = null;
+    // Start countdown timer for current ad
+    adTimerRef.current = setTimeout(() => {
+      goToNextAdvertisement();
+    }, firstAdDuration);
 
-        if (advertisementTimerRef.current) {
-          clearTimeout(advertisementTimerRef.current);
-          advertisementTimerRef.current = null;
+    // Start interval to update countdown display
+    adCountdownRef.current = setInterval(() => {
+      setAdRemainingTime((prev) => {
+        const newTime = prev - 1000;
+        if (newTime <= 0) {
+          // Time's up, move to next ad
+          goToNextAdvertisement();
+          return 0;
         }
-      }
-    };
+        return newTime;
+      });
+    }, 1000);
+  };
 
-    // Update countdown every 100ms for smooth animation
-    const countdownInterval = setInterval(updateCountdown, 100);
+  const goToNextAdvertisement = () => {
+    const currentAds = activeAdsRef.current;
+    if (currentAds.length === 0) return;
 
-    return () => {
-      clearInterval(countdownInterval);
-    };
-  }, [showAdvertisement, currentAdvertisement]);
+    const currentIdx = currentAdIndexRef.current;
+    const nextIndex = (currentIdx + 1) % currentAds.length;
+
+    // Update state
+    setCurrentAdIndex(nextIndex);
+    currentAdIndexRef.current = nextIndex;
+
+    const nextAdDuration = currentAds[nextIndex].duration * 1000;
+    setAdRemainingTime(nextAdDuration);
+
+    // Clear previous timer and set new one
+    if (adTimerRef.current) {
+      clearTimeout(adTimerRef.current);
+    }
+
+    adTimerRef.current = setTimeout(() => {
+      goToNextAdvertisement();
+    }, nextAdDuration);
+  };
+
+  // Function to manually go to next ad (for the Next button)
+  const handleNextAdvertisement = () => {
+    goToNextAdvertisement();
+  };
 
   const fetchHijriDate = async () => {
     try {
@@ -394,6 +337,8 @@ export function MasjidTemplateAuthentic({
       console.error("Error fetching Hijri date:", error);
     }
   };
+
+  // ... (keep all other helper functions the same: to12Hour, getNextPrayer, calculateIqamahTime, getCountdownState, etc.) ...
 
   const to12Hour = (time: string) => {
     let [h, m] = time.split(":").map(Number);
@@ -603,10 +548,6 @@ export function MasjidTemplateAuthentic({
     return `${weekday} - ${day}${getSuffix(day)} ${month} ${year}`;
   };
 
-  const nextPrayer = getNextPrayer();
-  const nextPrayerKey = nextPrayer.key;
-  const countdownState = getCountdownState();
-
   const calculateSunriseTime = () => {
     const [hours, minutes] = customization.prayerTimes.fajr
       .split(":")
@@ -618,6 +559,10 @@ export function MasjidTemplateAuthentic({
       .toString()
       .padStart(2, "0")}`;
   };
+
+  const nextPrayer = getNextPrayer();
+  const nextPrayerKey = nextPrayer.key;
+  const countdownState = getCountdownState();
 
   const prayers = [
     {
@@ -670,19 +615,6 @@ export function MasjidTemplateAuthentic({
     textShadow: "2px 2px 8px rgba(0,0,0,0.9)",
   };
 
-  // Handle advertisement close
-  const handleAdvertisementClose = () => {
-    setShowAdvertisement(false);
-    setCurrentAdvertisement(null);
-    setAdvertisementRemainingTime(0);
-    advertisementStartTimeRef.current = null;
-
-    if (advertisementTimerRef.current) {
-      clearTimeout(advertisementTimerRef.current);
-      advertisementTimerRef.current = null;
-    }
-  };
-
   // PRIORITY 1: Show Ishraq countdown if it's time
   if (showIshraqCountdown) {
     return (
@@ -698,7 +630,7 @@ export function MasjidTemplateAuthentic({
     );
   }
 
-  // PRIORITY 2: If showing prayer instructions
+  // PRIORITY 2: Show Prayer Instructions (overwrites ads)
   if (showInstructions && customization.prayerInstructionImage) {
     return (
       <PrayerInstructions
@@ -714,8 +646,14 @@ export function MasjidTemplateAuthentic({
     );
   }
 
-  // PRIORITY 3: Show Advertisement if it's time
-  if (showAdvertisement && currentAdvertisement) {
+  // PRIORITY 3: Show Advertisement Slideshow
+  if (
+    activeAdvertisements.length > 0 &&
+    !showInstructions &&
+    !showIshraqCountdown
+  ) {
+    const currentAd = activeAdvertisements[currentAdIndex];
+
     return (
       <div className="fixed inset-0 z-50 bg-black">
         <div className="relative w-full h-full">
@@ -723,26 +661,36 @@ export function MasjidTemplateAuthentic({
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url(${currentAdvertisement.url})`,
+              backgroundImage: `url(${currentAd.url})`,
             }}
           >
             <div className="absolute inset-0 bg-black/40"></div>
           </div>
 
-          {/* Countdown Timer with auto-update */}
+          {/* Slideshow Controls */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+            {/* Current Ad Info */}
+            <div className="text-white text-lg font-semibold bg-black/50 px-4 py-2 rounded-lg">
+              {currentAd.name || "Advertisement"} ({currentAdIndex + 1}/
+              {activeAdvertisements.length})
+            </div>
+
+            {/* Skip Button */}
+            <button
+              onClick={handleNextAdvertisement}
+              className="text-white hover:text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
+            >
+              Next Ad
+            </button>
+          </div>
+
+          {/* Countdown Timer */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-white text-lg font-semibold">
-                  Advertisement ends in:{" "}
-                  {Math.ceil(advertisementRemainingTime / 1000)}s
+                  Changes in: {Math.ceil(adRemainingTime / 1000)}s
                 </div>
-                <button
-                  onClick={handleAdvertisementClose}
-                  className="text-white hover:text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
-                >
-                  Skip
-                </button>
               </div>
 
               {/* Progress Bar */}
@@ -751,9 +699,7 @@ export function MasjidTemplateAuthentic({
                   className="h-full transition-all duration-100 ease-linear"
                   style={{
                     width: `${
-                      (advertisementRemainingTime /
-                        (currentAdvertisement.duration * 1000)) *
-                      100
+                      (adRemainingTime / (currentAd.duration * 1000)) * 100
                     }%`,
                     backgroundColor: customization.colors.accent,
                   }}
