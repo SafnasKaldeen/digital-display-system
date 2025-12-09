@@ -69,14 +69,14 @@ export const PrayerInstructions: React.FC<PrayerInstructionsProps> = ({
             }
           }
 
-          @keyframes shimmer {
-            0% {
-              background-position: -200% center;
-            }
-            100% {
-              background-position: 200% center;
-            }
-          }
+          // @keyframes shimmer {
+          //   0% {
+          //     background-position: -200% center;
+          //   }
+          //   100% {
+          //     background-position: 200% center;
+          //   }
+          // }
 
           @keyframes timerPulse {
             0%, 100% {
@@ -105,7 +105,7 @@ export const PrayerInstructions: React.FC<PrayerInstructionsProps> = ({
         }}
       >
         {/* Shimmer overlay effect */}
-        <div
+        {/* <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
             background: `linear-gradient(
@@ -117,7 +117,7 @@ export const PrayerInstructions: React.FC<PrayerInstructionsProps> = ({
             backgroundSize: "200% 100%",
             animation: "shimmer 3s infinite",
           }}
-        />
+        /> */}
 
         {/* Main image - fullscreen background */}
         <div

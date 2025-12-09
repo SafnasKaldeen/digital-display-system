@@ -1227,7 +1227,7 @@ export function MasjidTemplateAuthentic({
             })}
           </div>
         </div>
-        <div className="absolute top-0 left-0 w-32 h-32 opacity-20">
+        {/* <div className="absolute top-0 left-0 w-32 h-32 opacity-20">
           <svg viewBox="0 0 100 100" fill="currentColor" className="text-white">
             <path d="M0,0 L100,0 L100,100 Q50,50 0,100 Z" />
           </svg>
@@ -1236,7 +1236,7 @@ export function MasjidTemplateAuthentic({
           <svg viewBox="0 0 100 100" fill="currentColor" className="text-white">
             <path d="M100,0 L0,0 L0,100 Q50,50 100,100 Z" />
           </svg>
-        </div>
+        </div> */}
         {customization.announcements &&
           customization.announcements.length > 0 && (
             <div
