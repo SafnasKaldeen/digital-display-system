@@ -1,9 +1,10 @@
+// Editor component for managing ad schedules
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, Calendar, Clock } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,6 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { GalleryMediaLibrary } from "./GalleryMediaLibrary";
+import { ImageUploader } from "./ImageUploader";
+import CollapsibleSection from "./CollapsibleSection";
 
 interface HospitalEditorProps {
   config: any;
@@ -21,591 +25,6 @@ interface HospitalEditorProps {
   userId?: string;
   environment?: "preview" | "production";
   layout?: "Advanced" | "Authentic";
-}
-
-interface CollapsibleSectionProps {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}
-
-// Gallery Media Library Component
-function GalleryMediaLibrary({
-  selectedItems,
-  onItemsChange,
-  userId,
-  displayId,
-  environment = "preview",
-}: {
-  selectedItems: any[];
-  onItemsChange: (items: any[]) => void;
-  userId?: string;
-  displayId: string;
-  environment?: "preview" | "production";
-}) {
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [mediaLibrary, setMediaLibrary] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [newCaption, setNewCaption] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      if (!userId || !displayId) return;
-
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/media`);
-        if (!response.ok) {
-          console.error("Failed to fetch images:", await response.text());
-          return;
-        }
-
-        const allMedia = await response.json();
-        const filteredImages = allMedia
-          .filter(
-            (item: any) => item.userId === userId && item.type === "slideshow"
-          )
-          .map((item: any) => item.fileUrl);
-
-        setMediaLibrary(filteredImages);
-      } catch (err) {
-        console.error("Error fetching images:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchImages();
-  }, [userId, displayId]);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (!userId) {
-      setUploadError("User ID is required for upload");
-      return;
-    }
-
-    if (!displayId) {
-      setUploadError("Display ID is required for upload");
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const validFiles = Array.from(files).filter((file) => {
-        if (!file.type.startsWith("image/")) {
-          setUploadError(`${file.name} is not an image file`);
-          return false;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-          setUploadError(`${file.name} is too large (max 10MB)`);
-          return false;
-        }
-        return true;
-      });
-
-      if (validFiles.length === 0) {
-        setIsUploading(false);
-        return;
-      }
-
-      const formData = new FormData();
-      validFiles.forEach((file) => formData.append("images", file));
-      formData.append("userId", userId);
-      formData.append("displayId", displayId);
-      formData.append("type", "slideshow");
-
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
-      }
-
-      const data = await response.json();
-
-      // Add uploaded images to selected items with caption
-      const newItems = data.urls.map((url: string) => ({
-        image: url,
-        caption: newCaption || "",
-      }));
-      onItemsChange([...selectedItems, ...newItems]);
-      setNewCaption("");
-
-      // Refresh media library
-      const imagesResponse = await fetch(`/api/media`);
-      if (imagesResponse.ok) {
-        const allMedia = await imagesResponse.json();
-        const newImages = allMedia
-          .filter(
-            (item: any) => item.userId === userId && item.type === "slideshow"
-          )
-          .map((item: any) => item.fileUrl);
-        setMediaLibrary(newImages);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      setUploadError(error instanceof Error ? error.message : "Upload failed");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleImageClick = (img: string) => {
-    const isSelected = selectedItems.some((item) => item.image === img);
-
-    if (isSelected) {
-      // Deselect
-      onItemsChange(selectedItems.filter((item) => item.image !== img));
-    } else {
-      // Select with empty caption
-      onItemsChange([...selectedItems, { image: img, caption: "" }]);
-    }
-  };
-
-  const isImageSelected = (img: string) => {
-    return selectedItems.some((item) => item.image === img);
-  };
-
-  return (
-    <div className="space-y-3">
-      {/* Media Library Grid */}
-      {(isLoading || mediaLibrary.length > 0) && (
-        <div>
-          <label className="text-xs font-medium flex items-center gap-2 mb-2">
-            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-            <span className="text-blue-400">
-              Gallery Media Library ({mediaLibrary.length})
-            </span>
-          </label>
-
-          {isLoading ? (
-            <div className="text-center py-6 bg-slate-700/30 rounded-lg">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-400 border-t-transparent"></div>
-              <p className="text-xs text-slate-400 mt-2">
-                Loading media library...
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-700/30 rounded-lg max-h-64 overflow-y-auto custom-scrollbar">
-              {mediaLibrary.map((img, idx) => (
-                <div
-                  key={idx}
-                  className="relative group cursor-pointer"
-                  onClick={() => handleImageClick(img)}
-                >
-                  <img
-                    src={img}
-                    alt={`Media ${idx + 1}`}
-                    className={`w-full h-20 object-cover rounded border-2 transition-colors ${
-                      isImageSelected(img)
-                        ? "border-green-500"
-                        : "border-slate-600 hover:border-blue-400"
-                    }`}
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                    <span className="text-white text-xs font-medium">
-                      {isImageSelected(img) ? "✓ Selected" : "Click to select"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Upload New Image */}
-      <div className="border-t border-slate-700 pt-3">
-        <label className="text-xs text-slate-400 font-medium block mb-2">
-          Upload New Gallery Image
-        </label>
-
-        <div className="space-y-2">
-          <Input
-            value={newCaption}
-            onChange={(e) => setNewCaption(e.target.value)}
-            placeholder="Enter caption for new image..."
-            className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-          />
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || !userId || !displayId}
-            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-600 rounded-lg hover:border-slate-500 hover:bg-slate-700/30 text-slate-400 hover:text-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {isUploading ? "Uploading..." : "Upload & Add to Gallery"}
-            </span>
-          </button>
-        </div>
-
-        {uploadError && (
-          <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <p className="text-xs text-red-400">{uploadError}</p>
-          </div>
-        )}
-      </div>
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #1e293b;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #475569;
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #64748b;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// Collapsible Section Component
-function CollapsibleSection({
-  title,
-  children,
-  defaultOpen = true,
-}: CollapsibleSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <div className="border-b border-gray-800 last:border-0">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
-      >
-        <span className="font-semibold text-gray-100">{title}</span>
-        {isOpen ? (
-          <ChevronUp className="w-4 h-4 text-gray-400" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
-        )}
-      </button>
-      {isOpen && (
-        <div className="px-4 py-4 space-y-4 bg-gray-800/30">{children}</div>
-      )}
-    </div>
-  );
-}
-
-// Image Uploader Component
-function ImageUploader({
-  images,
-  onChange,
-  maxImages = 10,
-  userId,
-  displayId = "1",
-  imageType = "background",
-  environment = "preview",
-}: {
-  images: string[];
-  onChange: (imgs: string[]) => void;
-  maxImages?: number;
-  userId?: string;
-  displayId?: string;
-  imageType: "logo" | "background" | "slideshow";
-  environment?: "preview" | "production";
-}) {
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [mediaUploadedImages, setMediaUploadedImages] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      if (!userId || !displayId || !imageType) return;
-
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/media`);
-        if (!response.ok) {
-          console.error("Failed to fetch images:", await response.text());
-          return;
-        }
-
-        const allMedia = await response.json();
-        const filteredImages = allMedia
-          .filter(
-            (item: any) => item.userId === userId && item.type === imageType
-          )
-          .map((item: any) => item.fileUrl);
-
-        setMediaUploadedImages(filteredImages);
-      } catch (err) {
-        console.error("Error fetching images:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchImages();
-  }, [userId, displayId, imageType]);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (!userId) {
-      setUploadError("User ID is required for upload");
-      return;
-    }
-
-    if (!displayId) {
-      setUploadError("Display ID is required for upload");
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const validFiles = Array.from(files).filter((file) => {
-        if (!file.type.startsWith("image/")) {
-          setUploadError(`${file.name} is not an image file`);
-          return false;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-          setUploadError(`${file.name} is too large (max 10MB)`);
-          return false;
-        }
-        return true;
-      });
-
-      if (validFiles.length === 0) {
-        setIsUploading(false);
-        return;
-      }
-
-      const formData = new FormData();
-      validFiles.forEach((file) => formData.append("images", file));
-      formData.append("userId", userId);
-      formData.append("displayId", displayId);
-      formData.append("type", imageType);
-
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
-      }
-
-      const data = await response.json();
-
-      if (maxImages === 1) {
-        onChange(data.urls.slice(0, 1));
-      } else {
-        const combined = [...images, ...data.urls].slice(0, maxImages);
-        onChange(combined);
-      }
-
-      // Refresh media library
-      const imagesResponse = await fetch(`/api/media`);
-      if (imagesResponse.ok) {
-        const allMedia = await imagesResponse.json();
-        const newImages = allMedia
-          .filter(
-            (item: any) =>
-              item.userId === userId &&
-              item.displayId === displayId &&
-              item.type === imageType
-          )
-          .map((item: any) => item.fileUrl);
-        setMediaUploadedImages(newImages);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      setUploadError(error instanceof Error ? error.message : "Upload failed");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    onChange(images.filter((_, i) => i !== index));
-  };
-
-  const handleImageClick = (img: string) => {
-    if (!images.includes(img)) {
-      if (maxImages === 1) {
-        onChange([img]);
-      } else if (images.length < maxImages) {
-        onChange([...images, img]);
-      }
-    }
-  };
-
-  const canUploadMore = images.length < maxImages;
-
-  return (
-    <div className="space-y-3">
-      {canUploadMore && (
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple={maxImages > 1}
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || !userId || !displayId}
-            className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-600 rounded-lg hover:border-slate-500 hover:bg-slate-700/30 text-slate-400 hover:text-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Upload className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              {isUploading
-                ? "Uploading..."
-                : `Upload ${
-                    imageType === "logo"
-                      ? "Logo"
-                      : imageType === "background"
-                      ? "Background"
-                      : "Images"
-                  }`}
-            </span>
-          </button>
-          {maxImages > 1 && (
-            <p className="text-xs text-slate-500 mt-2 text-center">
-              {images.length} / {maxImages} images selected
-            </p>
-          )}
-        </div>
-      )}
-
-      {uploadError && (
-        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-sm text-red-400">{uploadError}</p>
-        </div>
-      )}
-
-      {images.length > 0 && (
-        <div>
-          <label className="text-xs text-slate-400 font-medium block mb-2">
-            Currently Selected ({images.length})
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {images.map((img, idx) => (
-              <div key={idx} className="relative group">
-                <img
-                  src={img}
-                  alt={`Selected ${idx + 1}`}
-                  className="w-full h-24 object-cover rounded border border-slate-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(idx)}
-                  className="absolute top-1 right-1 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {(isLoading || mediaUploadedImages.length > 0) && (
-        <div className="mt-4 pt-4 border-t border-slate-700">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium flex items-center gap-2">
-              <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-              <span className="text-green-400">
-                Media Library ({mediaUploadedImages.length})
-              </span>
-            </label>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-6">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-green-400 border-t-transparent"></div>
-              <p className="text-xs text-slate-400 mt-2">
-                Loading media library...
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
-              {mediaUploadedImages.map((img, idx) => (
-                <div
-                  key={idx}
-                  className="relative group cursor-pointer"
-                  onClick={() => handleImageClick(img)}
-                >
-                  <img
-                    src={img}
-                    alt={`Media ${idx + 1}`}
-                    className={`w-full h-20 object-cover rounded border-2 transition-colors ${
-                      images.includes(img)
-                        ? "border-green-500"
-                        : "border-slate-600 hover:border-green-400"
-                    }`}
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                    <span className="text-white text-xs font-medium">
-                      {images.includes(img) ? "✓ Selected" : "Click to use"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #1e293b;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #475569;
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #64748b;
-        }
-      `}</style>
-    </div>
-  );
 }
 
 export function HospitalEditor({
@@ -622,7 +41,7 @@ export function HospitalEditor({
     userId
   );
 
-  // Helper to convert datetime-local value to ISO string (preserving local time)
+  // Helper functions for date/time conversion
   const localToISO = (localDatetimeString: string) => {
     const [date, time] = localDatetimeString.split("T");
     const [year, month, day] = date.split("-");
@@ -639,7 +58,6 @@ export function HospitalEditor({
     return localDate.toISOString();
   };
 
-  // Helper to convert ISO string to datetime-local value
   const isoToLocal = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -650,29 +68,6 @@ export function HospitalEditor({
     const minutes = String(date.getMinutes()).padStart(2, "0");
 
     return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  // Helper to format time for input (HH:MM format)
-  const formatTimeForInput = (date?: Date | string) => {
-    if (!date) return "09:00";
-    const d = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(d.getTime())) return "09:00";
-    const h = d.getHours().toString().padStart(2, "0");
-    const m = d.getMinutes().toString().padStart(2, "0");
-    return `${h}:${m}`;
-  };
-
-  // Helper to format time for display (12-hour with AM/PM)
-  const formatTimeForDisplay = (date?: Date | string) => {
-    if (!date) return "9:00 AM";
-    const d = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(d.getTime())) return "9:00 AM";
-    const hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
-    return `${displayHours}:${displayMinutes} ${ampm}`;
   };
 
   // Fetch user ID if not provided
@@ -730,10 +125,98 @@ export function HospitalEditor({
   const layoutConfig = config.layout || layout || "Advanced";
   const galleryItems = config.galleryItems || [];
   const backgroundImages = config.backgroundImages || [];
+  const enableFullscreen = config.enableFullscreen || false;
+  const fullscreenDuration = config.fullscreenDuration || 10000;
+  const adSchedules = config.adSchedules || [];
 
   // Handle basic field updates
   const handleFieldChange = (field: string, value: any) => {
     onConfigChange({ ...config, [field]: value });
+  };
+
+  // Ad Schedule Management
+  const handleAddAdSchedule = () => {
+    const defaultStartDate = new Date();
+    const defaultEndDate = new Date();
+    defaultEndDate.setDate(defaultEndDate.getDate() + 7);
+
+    onConfigChange({
+      ...config,
+      adSchedules: [
+        ...adSchedules,
+        {
+          id: `ad-${Date.now()}`,
+          enabled: true,
+          title: "",
+          image: "",
+          caption: "",
+          fullScreen: true,
+          frequency: 300, // 5 minutes
+          duration: 30, // 30 seconds
+          dateRange: {
+            start: defaultStartDate.toISOString(),
+            end: defaultEndDate.toISOString(),
+          },
+          timeRange: {
+            start: "09:00",
+            end: "17:00",
+          },
+          daysOfWeek: [1, 2, 3, 4, 5], // Weekdays
+        },
+      ],
+    });
+  };
+
+  const handleUpdateAdSchedule = (idx: number, field: string, value: any) => {
+    const updated = [...adSchedules];
+
+    if (field.startsWith("dateRange.")) {
+      const subField = field.split(".")[1];
+      updated[idx] = {
+        ...updated[idx],
+        dateRange: {
+          ...updated[idx].dateRange,
+          [subField]: value,
+        },
+      };
+    } else if (field.startsWith("timeRange.")) {
+      const subField = field.split(".")[1];
+      updated[idx] = {
+        ...updated[idx],
+        timeRange: {
+          ...updated[idx].timeRange,
+          [subField]: value,
+        },
+      };
+    } else {
+      updated[idx] = { ...updated[idx], [field]: value };
+    }
+
+    onConfigChange({ ...config, adSchedules: updated });
+  };
+
+  const handleUpdateAdDays = (idx: number, day: number, checked: boolean) => {
+    const updated = [...adSchedules];
+    const currentDays = updated[idx].daysOfWeek || [];
+
+    if (checked) {
+      updated[idx] = {
+        ...updated[idx],
+        daysOfWeek: [...currentDays, day],
+      };
+    } else {
+      updated[idx] = {
+        ...updated[idx],
+        daysOfWeek: currentDays.filter((d) => d !== day),
+      };
+    }
+
+    onConfigChange({ ...config, adSchedules: updated });
+  };
+
+  const handleRemoveAdSchedule = (idx: number) => {
+    const updated = adSchedules.filter((_: any, i: number) => i !== idx);
+    onConfigChange({ ...config, adSchedules: updated });
   };
 
   // Doctor Schedule Management
@@ -780,7 +263,7 @@ export function HospitalEditor({
     onConfigChange({ ...config, doctorSchedules: updated });
   };
 
-  // Featured Doctors Management (for carousel)
+  // Featured Doctors Management
   const handleAddDoctor = () => {
     onConfigChange({
       ...config,
@@ -841,17 +324,335 @@ export function HospitalEditor({
     onConfigChange({ ...config, appointments: updated });
   };
 
+  // Gallery Items Management
+  const handleGalleryItemsChange = (items: any[]) => {
+    onConfigChange({ ...config, galleryItems: items });
+  };
+
+  // Days of week labels
+  const daysOfWeek = [
+    { id: 0, label: "Sun", full: "Sunday" },
+    { id: 1, label: "Mon", full: "Monday" },
+    { id: 2, label: "Tue", full: "Tuesday" },
+    { id: 3, label: "Wed", full: "Wednesday" },
+    { id: 4, label: "Thu", full: "Thursday" },
+    { id: 5, label: "Fri", full: "Friday" },
+    { id: 6, label: "Sat", full: "Saturday" },
+  ];
+
   return (
     <div className="space-y-8">
+      {/* Ad Schedules Section */}
+      <CollapsibleSection title="📅 Ad Schedules" defaultOpen={true}>
+        <div className="space-y-4">
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-400">
+              <strong>Schedule-Based Ads:</strong> Ads will only display when
+              the schedule is enabled and within the specified date/time range.
+              The ad will show according to the frequency and duration settings.
+            </p>
+          </div>
+
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddAdSchedule}
+              className="border-blue-500 text-blue-400 h-7 bg-transparent hover:bg-blue-500/10"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add Ad Schedule
+            </Button>
+          </div>
+
+          {adSchedules.map((schedule: any, idx: number) => (
+            <div
+              key={schedule.id}
+              className="bg-slate-700/50 p-4 rounded-lg space-y-4 border border-slate-600"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={schedule.enabled}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(idx, "enabled", e.target.checked)
+                      }
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500"
+                    />
+                    <span className="text-sm font-medium text-slate-300">
+                      Schedule #{idx + 1} {schedule.enabled ? "✓" : "✗"}
+                    </span>
+                  </div>
+                  <div
+                    className={`px-2 py-1 rounded text-xs ${
+                      schedule.fullScreen
+                        ? "bg-purple-500/20 text-purple-400"
+                        : "bg-slate-600/50 text-slate-400"
+                    }`}
+                  >
+                    {schedule.fullScreen ? "Full Screen" : "Normal"}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRemoveAdSchedule(idx)}
+                  className="text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <Input
+                  value={schedule.title}
+                  onChange={(e) =>
+                    handleUpdateAdSchedule(idx, "title", e.target.value)
+                  }
+                  placeholder="Ad Title"
+                  className="bg-slate-700 border-slate-600 text-slate-50"
+                />
+
+                <Input
+                  value={schedule.caption}
+                  onChange={(e) =>
+                    handleUpdateAdSchedule(idx, "caption", e.target.value)
+                  }
+                  placeholder="Ad Caption/Description"
+                  className="bg-slate-700 border-slate-600 text-slate-50"
+                />
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Ad Image
+                  </label>
+                  <ImageUploader
+                    images={schedule.image ? [schedule.image] : []}
+                    onChange={(imgs) =>
+                      handleUpdateAdSchedule(idx, "image", imgs[0] || "")
+                    }
+                    maxImages={1}
+                    userId={currentUserId}
+                    displayId={displayId}
+                    imageType="ad"
+                    environment={environment}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Frequency (seconds)
+                    </label>
+                    <Input
+                      type="number"
+                      value={schedule.frequency}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "frequency",
+                          parseInt(e.target.value) || 300
+                        )
+                      }
+                      min="60"
+                      max="3600"
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      How often to show this ad
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Duration (seconds)
+                    </label>
+                    <Input
+                      type="number"
+                      value={schedule.duration}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "duration",
+                          parseInt(e.target.value) || 30
+                        )
+                      }
+                      min="5"
+                      max="300"
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      How long to display the ad
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Start Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={
+                        schedule.dateRange.start
+                          ? schedule.dateRange.start.split("T")[0]
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "dateRange.start",
+                          new Date(e.target.value).toISOString()
+                        )
+                      }
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      End Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={
+                        schedule.dateRange.end
+                          ? schedule.dateRange.end.split("T")[0]
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "dateRange.end",
+                          new Date(e.target.value).toISOString()
+                        )
+                      }
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Start Time
+                    </label>
+                    <Input
+                      type="time"
+                      value={schedule.timeRange.start || "09:00"}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "timeRange.start",
+                          e.target.value
+                        )
+                      }
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      End Time
+                    </label>
+                    <Input
+                      type="time"
+                      value={schedule.timeRange.end || "17:00"}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "timeRange.end",
+                          e.target.value
+                        )
+                      }
+                      className="bg-slate-700 border-slate-600 text-slate-50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-2 block">
+                    Days of Week
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {daysOfWeek.map((day) => (
+                      <label
+                        key={day.id}
+                        className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          schedule.daysOfWeek?.includes(day.id)
+                            ? "bg-blue-500 text-white"
+                            : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            schedule.daysOfWeek?.includes(day.id) || false
+                          }
+                          onChange={(e) =>
+                            handleUpdateAdDays(idx, day.id, e.target.checked)
+                          }
+                          className="hidden"
+                        />
+                        {day.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-600/50">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`fullscreen-${idx}`}
+                      checked={schedule.fullScreen}
+                      onChange={(e) =>
+                        handleUpdateAdSchedule(
+                          idx,
+                          "fullScreen",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500"
+                    />
+                    <label
+                      htmlFor={`fullscreen-${idx}`}
+                      className="text-xs text-slate-300 cursor-pointer"
+                    >
+                      Display as fullscreen overlay
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {adSchedules.length === 0 && (
+            <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-700 rounded-lg">
+              <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+              <p className="text-sm mb-2">No ad schedules configured</p>
+              <p className="text-xs text-slate-500">
+                Ads will only display when enabled and within schedule ranges
+              </p>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
       {/* Layout Configuration */}
-      <CollapsibleSection title="🎛️ Layout Configuration" defaultOpen={true}>
+      <CollapsibleSection title="🎛️ Layout Configuration">
         <div className="space-y-3">
-          {/* Layout Selection */}
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
               Display Layout
             </label>
-
             <div className="grid grid-cols-2 gap-2">
               {[
                 { value: "Authentic", icon: "🩺", label: "Authentic" },
@@ -875,7 +676,6 @@ export function HospitalEditor({
             </div>
           </div>
 
-          {/* Only show these settings if layout is NOT Authentic */}
           {layoutConfig !== "Authentic" && (
             <>
               <div>
@@ -1213,121 +1013,85 @@ export function HospitalEditor({
         </div>
       </CollapsibleSection>
 
-      {/* Animation & Speed Settings */}
-      <CollapsibleSection title="⚡ Animation & Speed Settings">
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">
-              Doctor Carousel Speed
-            </label>
-            <div className="space-y-2">
-              <Input
-                type="range"
-                min="5"
-                max="100"
-                step="1"
-                value={slideSpeed}
-                onChange={(e) =>
-                  handleFieldChange("slideSpeed", parseInt(e.target.value))
-                }
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-slate-400">
-                <span>Slow (5)</span>
-                <span>Current: {slideSpeed}</span>
-                <span>Fast (100)</span>
+      {/* Gallery Images */}
+      {layoutConfig !== "Advanced" && (
+        <CollapsibleSection title="🖼️ Hospital Gallery Images">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <label className="text-xs text-slate-400 font-medium">
+                  Gallery Images ({galleryItems.length})
+                </label>
+                <p className="text-xs text-slate-500">
+                  Images are stored securely and cannot be edited directly
+                </p>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Controls how fast doctors scroll in the carousel (higher = faster)
-            </p>
-          </div>
 
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">
-              Gallery Rotation Speed
-            </label>
-            <div className="p-2 bg-slate-700/30 rounded">
-              <p className="text-xs text-slate-300">
-                {galleryItems.length > 3
-                  ? "6 seconds per image (auto-rotates when 4+ images)"
-                  : galleryItems.length === 3
-                  ? "Static display (Large + 2 small layout)"
-                  : galleryItems.length === 2
-                  ? "Static display (Stacked vertically)"
-                  : galleryItems.length === 1
-                  ? "Static display (Full screen)"
-                  : "No gallery images configured"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
+            {/* Gallery Media Library */}
+            <GalleryMediaLibrary
+              selectedItems={galleryItems}
+              onItemsChange={handleGalleryItemsChange}
+              userId={currentUserId}
+              displayId={displayId}
+              environment={environment}
+              enableFullscreen={enableFullscreen}
+            />
 
-      {/* Gallery Images */}
-      <CollapsibleSection title="🖼️ Hospital Gallery Images">
-        <div className="space-y-3">
-          <p className="text-xs text-slate-400">
-            Add images with captions to showcase your hospital facilities,
-            patient care, and medical team.
-          </p>
-
-          {/* Gallery Media Library */}
-          <GalleryMediaLibrary
-            selectedItems={galleryItems}
-            onItemsChange={(items) => handleFieldChange("galleryItems", items)}
-            userId={currentUserId}
-            displayId={displayId}
-            environment={environment}
-          />
-
-          {/* Edit existing gallery items */}
-          {galleryItems.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <label className="text-xs text-slate-400 font-medium block">
-                Edit Gallery Items ({galleryItems.length})
-              </label>
-              {galleryItems.map((item: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="bg-slate-700/30 p-3 rounded-lg space-y-2"
-                >
-                  <div className="flex gap-2">
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.caption || `Gallery ${idx + 1}`}
-                        className="w-16 h-16 object-cover rounded border border-slate-600"
-                      />
-                    )}
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        value={item.caption}
-                        onChange={(e) => {
-                          const updated = [...galleryItems];
-                          updated[idx] = {
-                            ...updated[idx],
-                            caption: e.target.value,
-                          };
-                          handleFieldChange("galleryItems", updated);
-                        }}
-                        placeholder="Image caption..."
-                        className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                      />
-                      <div className="flex gap-2">
-                        <Input
-                          value={item.image}
-                          onChange={(e) => {
-                            const updated = [...galleryItems];
-                            updated[idx] = {
-                              ...updated[idx],
-                              image: e.target.value,
-                            };
-                            handleFieldChange("galleryItems", updated);
-                          }}
-                          placeholder="Image URL..."
-                          className="flex-1 bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                        />
+            {/* Display existing gallery items */}
+            {galleryItems.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <label className="text-xs text-slate-400 font-medium block">
+                  Gallery Items ({galleryItems.length})
+                </label>
+                <div className="space-y-2">
+                  {galleryItems.map((item: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-700/30 p-3 rounded-lg space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="relative">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={`Gallery ${idx + 1}`}
+                                className="w-16 h-16 object-cover rounded border border-slate-600"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-slate-600/50 rounded border border-slate-600 flex items-center justify-center">
+                                <span className="text-xs text-slate-400">
+                                  Image #{idx + 1}
+                                </span>
+                              </div>
+                            )}
+                            {item.fullScreen && (
+                              <div className="absolute -top-1 -right-1">
+                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                  <span className="text-xs text-white font-bold">
+                                    F
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <Input
+                              value={item.caption || ""}
+                              onChange={(e) => {
+                                const updated = [...galleryItems];
+                                updated[idx] = {
+                                  ...updated[idx],
+                                  caption: e.target.value,
+                                };
+                                handleFieldChange("galleryItems", updated);
+                              }}
+                              placeholder="Image caption..."
+                              className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                            />
+                          </div>
+                        </div>
                         <button
                           onClick={() => {
                             const updated = galleryItems.filter(
@@ -1335,64 +1099,54 @@ export function HospitalEditor({
                             );
                             handleFieldChange("galleryItems", updated);
                           }}
-                          className="px-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-sm hover:bg-red-500/30"
+                          className="ml-2 px-3 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-sm hover:bg-red-500/30 flex-shrink-0"
                         >
-                          Remove
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
+
+                      {/* Fullscreen Toggle */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-600/50">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`fullscreen-${idx}`}
+                            checked={item.fullScreen || false}
+                            onChange={(e) => {
+                              const updated = [...galleryItems];
+                              updated[idx] = {
+                                ...updated[idx],
+                                fullScreen: e.target.checked,
+                              };
+                              handleFieldChange("galleryItems", updated);
+                            }}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500"
+                          />
+                          <label
+                            htmlFor={`fullscreen-${idx}`}
+                            className="text-xs text-slate-300 cursor-pointer"
+                          >
+                            Display as fullscreen overlay ad
+                          </label>
+                        </div>
+                        <div
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            item.fullScreen
+                              ? "bg-purple-500/20 text-purple-400"
+                              : "bg-slate-600/50 text-slate-400"
+                          }`}
+                        >
+                          {item.fullScreen ? "Fullscreen" : "Normal"}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-xs text-blue-400">
-              • 1 image: Full screen display
-              <br />
-              • 2 images: Stacked vertically
-              <br />
-              • 3 images: Large + 2 small layout
-              <br />
-              • 4+ images: Auto-rotating slideshow (6 seconds each)
-              <br />• Drag & drop images to reorder (coming soon)
-            </p>
+              </div>
+            )}
           </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* Emergency & Department Info */}
-      <CollapsibleSection title="🚨 Emergency & Department Info">
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">
-              Department Information
-            </label>
-            <Input
-              value={departmentInfo}
-              onChange={(e) =>
-                handleFieldChange("departmentInfo", e.target.value)
-              }
-              placeholder="Emergency Department • Open 24/7"
-              className="bg-slate-700 border-slate-600 text-slate-50"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">
-              Emergency Contact
-            </label>
-            <Input
-              value={emergencyContact}
-              onChange={(e) =>
-                handleFieldChange("emergencyContact", e.target.value)
-              }
-              placeholder="911 or 123-456-7890"
-              className="bg-slate-700 border-slate-600 text-slate-50"
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
+        </CollapsibleSection>
+      )}
 
       {/* Ticker Messages */}
       <CollapsibleSection title="📰 Ticker Messages">
@@ -1488,14 +1242,6 @@ export function HospitalEditor({
                   className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
                 />
               </div>
-              <Input
-                value={doctor.image}
-                onChange={(e) =>
-                  handleUpdateDoctor(idx, "image", e.target.value)
-                }
-                placeholder="Image URL"
-                className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-              />
               <Button
                 size="sm"
                 variant="ghost"
@@ -1512,209 +1258,281 @@ export function HospitalEditor({
               No featured doctors added yet. Click "Add Doctor" to start.
             </div>
           )}
-          <div className="mt-3">
-            <label className="text-xs text-slate-400 mb-1 block">
-              Carousel Rotation Speed (milliseconds)
-            </label>
-            <Input
-              type="number"
-              value={doctorRotationSpeed}
-              onChange={(e) =>
-                handleFieldChange(
-                  "doctorRotationSpeed",
-                  parseInt(e.target.value)
-                )
-              }
-              min="2000"
-              max="20000"
-              step="1000"
-              className="bg-slate-700 border-slate-600 text-slate-50"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Current: {doctorRotationSpeed / 1000} seconds per doctor
-            </p>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* Appointments Section */}
-      <CollapsibleSection title="📅 Appointments">
-        <div className="space-y-3">
-          <div className="flex justify-end mb-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddAppointment}
-              className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Appointment
-            </Button>
-          </div>
-          {appointments.map((appointment: any, idx: number) => (
-            <div key={idx} className="bg-slate-700/50 p-4 rounded-lg space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-400">
-                  Appointment #{idx + 1}
-                </span>
-                <Select
-                  value={appointment.priority}
-                  onValueChange={(val) =>
-                    handleUpdateAppointment(idx, "priority", val)
-                  }
-                >
-                  <SelectTrigger className="w-28 h-6 text-xs bg-slate-700 border-slate-600 text-slate-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="follow-up">Follow-up</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={appointment.patientName}
-                  onChange={(e) =>
-                    handleUpdateAppointment(idx, "patientName", e.target.value)
-                  }
-                  placeholder="Patient Name"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-                <Input
-                  value={appointment.doctorName}
-                  onChange={(e) =>
-                    handleUpdateAppointment(idx, "doctorName", e.target.value)
-                  }
-                  placeholder="Doctor Name"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-              </div>
+          {layoutConfig !== "Authentic" && doctors.length > 0 && (
+            <div className="mt-3">
+              <label className="text-xs text-slate-400 mb-1 block">
+                Carousel Rotation Speed (milliseconds)
+              </label>
               <Input
-                value={appointment.specialty}
+                type="number"
+                value={doctorRotationSpeed}
                 onChange={(e) =>
-                  handleUpdateAppointment(idx, "specialty", e.target.value)
+                  handleFieldChange(
+                    "doctorRotationSpeed",
+                    parseInt(e.target.value)
+                  )
                 }
-                placeholder="Specialty"
-                className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                min="2000"
+                max="20000"
+                step="1000"
+                className="bg-slate-700 border-slate-600 text-slate-50"
               />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={appointment.room}
-                  onChange={(e) =>
-                    handleUpdateAppointment(idx, "room", e.target.value)
-                  }
-                  placeholder="Room Number"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-                <Input
-                  type="datetime-local"
-                  value={isoToLocal(appointment.appointmentDate)}
-                  onChange={(e) =>
-                    handleUpdateAppointment(
-                      idx,
-                      "appointmentDate",
-                      localToISO(e.target.value)
-                    )
-                  }
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRemoveAppointment(idx)}
-                className="w-full text-red-400 hover:bg-red-500/10 text-sm"
-              >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Remove Appointment
-              </Button>
-            </div>
-          ))}
-          {appointments.length === 0 && (
-            <div className="text-center py-6 text-slate-500 text-sm">
-              No appointments added yet. Click "Add Appointment" to start.
+              <p className="text-xs text-slate-500 mt-1">
+                Current: {doctorRotationSpeed / 1000} seconds per doctor
+              </p>
             </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* Doctor Schedules */}
-      <CollapsibleSection title="🗓️ Doctor Schedules">
-        <div className="space-y-3">
-          <div className="flex justify-end mb-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddSchedule}
-              className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Schedule
-            </Button>
-          </div>
-          {doctorSchedules.map((schedule: any, idx: number) => (
-            <div key={idx} className="bg-slate-700/50 p-4 rounded-lg space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-400">
-                  Schedule #{idx + 1}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+      {/* Animation & Speed Settings */}
+      {layoutConfig === "Authentic" && (
+        <CollapsibleSection title="⚡ Animation & Speed Settings">
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">
+                Doctor Carousel Speed
+              </label>
+              <div className="space-y-2">
                 <Input
-                  value={schedule.name}
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="1"
+                  value={slideSpeed}
                   onChange={(e) =>
-                    handleUpdateSchedule(idx, "name", e.target.value)
+                    handleFieldChange("slideSpeed", parseInt(e.target.value))
                   }
-                  placeholder="Doctor Name"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  className="w-full"
                 />
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>Slow (5)</span>
+                  <span>Current: {slideSpeed}</span>
+                  <span>Fast (100)</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Controls how fast doctors scroll in the carousel (higher =
+                faster)
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">
+                Gallery Rotation Speed
+              </label>
+              <div className="p-2 bg-slate-700/30 rounded">
+                <p className="text-xs text-slate-300">
+                  {enableFullscreen
+                    ? `Fullscreen mode: ${fullscreenDuration / 1000}s per image`
+                    : galleryItems.length > 3
+                    ? "6 seconds per image (auto-rotates when 4+ images)"
+                    : galleryItems.length === 3
+                    ? "Static display (Large + 2 small layout)"
+                    : galleryItems.length === 2
+                    ? "Static display (Stacked vertically)"
+                    : galleryItems.length === 1
+                    ? "Static display (Full screen)"
+                    : "No gallery images configured"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Appointments Section */}
+      {layoutConfig !== "Authentic" && (
+        <CollapsibleSection title="📅 Appointments">
+          <div className="space-y-3">
+            <div className="flex justify-end mb-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddAppointment}
+                className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add Appointment
+              </Button>
+            </div>
+            {appointments.map((appointment: any, idx: number) => (
+              <div
+                key={idx}
+                className="bg-slate-700/50 p-4 rounded-lg space-y-2"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">
+                    Appointment #{idx + 1}
+                  </span>
+                  <Select
+                    value={appointment.priority}
+                    onValueChange={(val) =>
+                      handleUpdateAppointment(idx, "priority", val)
+                    }
+                  >
+                    <SelectTrigger className="w-28 h-6 text-xs bg-slate-700 border-slate-600 text-slate-50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="follow-up">Follow-up</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={appointment.patientName}
+                    onChange={(e) =>
+                      handleUpdateAppointment(
+                        idx,
+                        "patientName",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Patient Name"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                  <Input
+                    value={appointment.doctorName}
+                    onChange={(e) =>
+                      handleUpdateAppointment(idx, "doctorName", e.target.value)
+                    }
+                    placeholder="Doctor Name"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                </div>
                 <Input
-                  value={schedule.specialty}
+                  value={appointment.specialty}
                   onChange={(e) =>
-                    handleUpdateSchedule(idx, "specialty", e.target.value)
+                    handleUpdateAppointment(idx, "specialty", e.target.value)
                   }
                   placeholder="Specialty"
                   className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
                 />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={appointment.room}
+                    onChange={(e) =>
+                      handleUpdateAppointment(idx, "room", e.target.value)
+                    }
+                    placeholder="Room Number"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                  <Input
+                    type="datetime-local"
+                    value={isoToLocal(appointment.appointmentDate)}
+                    onChange={(e) =>
+                      handleUpdateAppointment(
+                        idx,
+                        "appointmentDate",
+                        localToISO(e.target.value)
+                      )
+                    }
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRemoveAppointment(idx)}
+                  className="w-full text-red-400 hover:bg-red-500/10 text-sm"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Remove Appointment
+                </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={schedule.room}
-                  onChange={(e) =>
-                    handleUpdateSchedule(idx, "room", e.target.value)
-                  }
-                  placeholder="Room Number"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-                <Input
-                  type="time"
-                  value={formatTimeForInput(schedule.appointmentDate)}
-                  onChange={(e) =>
-                    handleUpdateSchedule(idx, "time", e.target.value)
-                  }
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
+            ))}
+            {appointments.length === 0 && (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                No appointments added yet. Click "Add Appointment" to start.
               </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Doctor Schedules */}
+      {layoutConfig !== "Authentic" && (
+        <CollapsibleSection title="🗓️ Doctor Schedules">
+          <div className="space-y-3">
+            <div className="flex justify-end mb-2">
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() => handleRemoveSchedule(idx)}
-                className="w-full text-red-400 hover:bg-red-500/10 text-sm"
+                variant="outline"
+                onClick={handleAddSchedule}
+                className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
               >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Remove Schedule
+                <Plus className="w-3 h-3 mr-1" />
+                Add Schedule
               </Button>
             </div>
-          ))}
-          {doctorSchedules.length === 0 && (
-            <div className="text-center py-6 text-slate-500 text-sm">
-              No doctor schedules added yet. Click "Add Schedule" to start.
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
+            {doctorSchedules.map((schedule: any, idx: number) => (
+              <div
+                key={idx}
+                className="bg-slate-700/50 p-4 rounded-lg space-y-2"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">
+                    Schedule #{idx + 1}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={schedule.name}
+                    onChange={(e) =>
+                      handleUpdateSchedule(idx, "name", e.target.value)
+                    }
+                    placeholder="Doctor Name"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                  <Input
+                    value={schedule.specialty}
+                    onChange={(e) =>
+                      handleUpdateSchedule(idx, "specialty", e.target.value)
+                    }
+                    placeholder="Specialty"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={schedule.room}
+                    onChange={(e) =>
+                      handleUpdateSchedule(idx, "room", e.target.value)
+                    }
+                    placeholder="Room Number"
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                  <Input
+                    type="time"
+                    value={schedule.time || "09:00"}
+                    onChange={(e) =>
+                      handleUpdateSchedule(idx, "time", e.target.value)
+                    }
+                    className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRemoveSchedule(idx)}
+                  className="w-full text-red-400 hover:bg-red-500/10 text-sm"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Remove Schedule
+                </Button>
+              </div>
+            ))}
+            {doctorSchedules.length === 0 && (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                No doctor schedules added yet. Click "Add Schedule" to start.
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }
