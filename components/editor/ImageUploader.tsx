@@ -7,8 +7,9 @@ interface ImageUploaderProps {
   maxImages?: number;
   userId?: string;
   displayId?: string;
-  imageType: "logo" | "background" | "slideshow";
+  imageType: "logo" | "background" | "slideshow" | "doctors";
   environment?: "preview" | "production";
+  customFolder?: string;
 }
 
 export function ImageUploader({

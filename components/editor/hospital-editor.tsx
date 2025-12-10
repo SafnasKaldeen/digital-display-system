@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { ImageUploader } from "./ImageUploader";
 import CollapsibleSection from "./CollapsibleSection";
+import { DoctorCarouselEditor } from "./DoctorCarouselEditor";
 
 interface HospitalEditorProps {
   config: any;
@@ -1235,150 +1236,14 @@ export function HospitalEditor({
       </CollapsibleSection>
 
       {/* Featured Doctors (Carousel) */}
-      <CollapsibleSection title="👨‍⚕️ Featured Doctors (Carousel)">
-        <div className="space-y-3">
-          <div className="flex justify-end mb-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddDoctor}
-              className="border-slate-600 text-slate-300 h-7 bg-transparent hover:bg-slate-700"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Doctor
-            </Button>
-          </div>
-          {doctors.map((doctor: any, idx: number) => (
-            <div key={idx} className="bg-slate-700/50 p-4 rounded-lg space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-400">
-                  Doctor #{idx + 1}
-                </span>
-              </div>
-              <Input
-                value={doctor.name}
-                onChange={(e) =>
-                  handleUpdateDoctor(idx, "name", e.target.value)
-                }
-                placeholder="Dr. Name"
-                className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-              />
-              <Input
-                value={doctor.specialty}
-                onChange={(e) =>
-                  handleUpdateDoctor(idx, "specialty", e.target.value)
-                }
-                placeholder="Specialty (e.g., Cardiology)"
-                className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={doctor.experience}
-                  onChange={(e) =>
-                    handleUpdateDoctor(idx, "experience", e.target.value)
-                  }
-                  placeholder="Experience (e.g., 15+ Years)"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-                <Input
-                  value={doctor.available}
-                  onChange={(e) =>
-                    handleUpdateDoctor(idx, "available", e.target.value)
-                  }
-                  placeholder="Availability"
-                  className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
-                />
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRemoveDoctor(idx)}
-                className="w-full text-red-400 hover:bg-red-500/10 text-sm"
-              >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Remove Doctor
-              </Button>
-            </div>
-          ))}
-          {doctors.length === 0 && (
-            <div className="text-center py-6 text-slate-500 text-sm">
-              No featured doctors added yet. Click "Add Doctor" to start.
-            </div>
-          )}
-          {layoutConfig !== "Authentic" && doctors.length > 0 && (
-            <div className="mt-3">
-              <label className="text-xs text-slate-400 mb-1 block">
-                Carousel Rotation Speed (milliseconds)
-              </label>
-              <Input
-                type="number"
-                value={doctorRotationSpeed}
-                onChange={(e) =>
-                  handleFieldChange(
-                    "doctorRotationSpeed",
-                    parseInt(e.target.value)
-                  )
-                }
-                min="2000"
-                max="20000"
-                step="1000"
-                className="bg-slate-700 border-slate-600 text-slate-50"
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                Current: {doctorRotationSpeed / 1000} seconds per doctor
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Animation & Speed Settings */}
-      {layoutConfig === "Authentic" && (
-        <CollapsibleSection title="⚡ Animation & Speed Settings">
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                Doctor Carousel Speed
-              </label>
-              <div className="space-y-2">
-                <Input
-                  type="range"
-                  min="5"
-                  max="100"
-                  step="1"
-                  value={slideSpeed}
-                  onChange={(e) =>
-                    handleFieldChange("slideSpeed", parseInt(e.target.value))
-                  }
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Slow (5)</span>
-                  <span>Current: {slideSpeed}</span>
-                  <span>Fast (100)</span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Controls how fast doctors scroll in the carousel (higher =
-                faster)
-              </p>
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                Gallery Rotation Speed
-              </label>
-              <div className="p-2 bg-slate-700/30 rounded">
-                <p className="text-xs text-slate-300">
-                  {galleryImages.length > 0
-                    ? `Auto-rotates every 6 seconds (${galleryImages.length} images)`
-                    : "No gallery images configured"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </CollapsibleSection>
-      )}
+      <DoctorCarouselEditor
+        config={config}
+        onConfigChange={onConfigChange}
+        displayId={displayId}
+        userId={currentUserId}
+        environment={environment}
+        layoutConfig={layoutConfig}
+      />
 
       {/* Appointments Section */}
       {layoutConfig !== "Authentic" && (

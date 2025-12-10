@@ -4,13 +4,18 @@ import React, { useState, useEffect, useRef } from "react";
 import { Heart } from "lucide-react";
 import { GalleryCarousel } from "./components/hospital/GalleryCarousel";
 import { FullScreenAd } from "./components/hospital/FullScreenAd";
+import { DoctorCarousel } from "./components/hospital/DoctorCarousel.tsx";
 
 interface Doctor {
+  id?: string;
   name: string;
   specialty: string;
-  experience: string;
+  qualifications?: string;
+  consultationDays?: string;
+  consultationTime?: string;
+  experience?: string;
   image: string;
-  available: string;
+  available?: string;
 }
 
 interface AdSchedule {
@@ -146,6 +151,9 @@ function HospitalTemplateAuthentic({
       {
         name: "Dr. Sarah Johnson",
         specialty: "Cardiology",
+        qualifications: "MD, PhD",
+        consultationDays: "Mon, Wed, Fri",
+        consultationTime: "9:00 AM - 5:00 PM",
         experience: "15+ Years",
         image:
           "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop",
@@ -163,20 +171,12 @@ function HospitalTemplateAuthentic({
   };
 
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
-  const [currentDoctorIndex, setCurrentDoctorIndex] = useState(0);
   const [activeAd, setActiveAd] = useState<AdSchedule | null>(null);
   const [showAd, setShowAd] = useState(false);
-  const animationRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
   const adCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const adDurationRef = useRef<NodeJS.Timeout | null>(null);
-  const doctorRotationRef = useRef<NodeJS.Timeout | null>(null);
   const lastTriggeredAdRef = useRef<Map<string, number>>(new Map());
-
-  const defaultDoctorImage =
-    "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop";
 
   const bgImages =
     settings.enableSlideshow &&
@@ -289,28 +289,6 @@ function HospitalTemplateAuthentic({
   }, []);
 
   useEffect(() => {
-    const animate = (timestamp: number) => {
-      if (!lastTimeRef.current) lastTimeRef.current = timestamp;
-      const delta = timestamp - lastTimeRef.current;
-      lastTimeRef.current = timestamp;
-
-      setScrollPosition((prev) => {
-        const speed = settings.slideSpeed / 80;
-        const newPosition = prev + (speed * delta) / 16.67;
-        return newPosition;
-      });
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationRef.current);
-    };
-  }, [settings.slideSpeed]);
-
-  useEffect(() => {
     if (!settings.enableSlideshow || bgImages.length <= 1) return;
 
     const interval = setInterval(() => {
@@ -319,20 +297,6 @@ function HospitalTemplateAuthentic({
 
     return () => clearInterval(interval);
   }, [settings.enableSlideshow, bgImages.length, settings.slideshowSpeed]);
-
-  useEffect(() => {
-    if (settings.layout === "Advanced" && settings.doctors.length > 1) {
-      if (doctorRotationRef.current) clearInterval(doctorRotationRef.current);
-
-      doctorRotationRef.current = setInterval(() => {
-        setCurrentDoctorIndex((prev) => (prev + 1) % settings.doctors.length);
-      }, settings.doctorRotationSpeed);
-
-      return () => {
-        if (doctorRotationRef.current) clearInterval(doctorRotationRef.current);
-      };
-    }
-  }, [settings.layout, settings.doctors.length, settings.doctorRotationSpeed]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -350,22 +314,6 @@ function HospitalTemplateAuthentic({
       day: "numeric",
       year: "numeric",
     });
-  };
-
-  const duplicatedDoctors = [
-    ...settings.doctors,
-    ...settings.doctors,
-    ...settings.doctors,
-    ...settings.doctors,
-  ];
-  const itemHeight = 220;
-  const totalHeight = settings.doctors.length * itemHeight;
-
-  const getCurrentDoctor = () => {
-    if (settings.layout === "Advanced" && settings.doctors.length > 0) {
-      return settings.doctors[currentDoctorIndex];
-    }
-    return settings.doctors[0];
   };
 
   const getNextAdTriggerTime = () => {
@@ -479,273 +427,16 @@ function HospitalTemplateAuthentic({
           {/* When ad is NOT showing: Show normal content */}
           {!showAd ? (
             <div className="flex gap-8 px-8 pb-8 pt-8 h-full overflow-hidden">
-              {/* Left Side - Doctors Display */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {settings.layout === "Authentic" ? (
-                  <div
-                    className="relative flex-1 overflow-hidden rounded-3xl shadow-2xl border-2"
-                    style={{
-                      backgroundColor: "rgba(0, 0, 0, 0.75)",
-                      backdropFilter: "blur(20px)",
-                      borderColor: `${settings.accentColor}40`,
-                      maskImage:
-                        "linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)",
-                      WebkitMaskImage:
-                        "linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)",
-                    }}
-                  >
-                    <div
-                      className="absolute inset-0 opacity-10"
-                      style={{
-                        background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
-                      }}
-                    />
-
-                    <div
-                      className="absolute z-10 w-full px-6"
-                      style={{
-                        transform: `translateY(-${
-                          scrollPosition % (totalHeight * 3)
-                        }px)`,
-                        willChange: "transform",
-                      }}
-                    >
-                      {duplicatedDoctors.map((doctor, index) => (
-                        <div
-                          key={index}
-                          className="mb-5"
-                          style={{ height: `${itemHeight}px` }}
-                        >
-                          <div
-                            className="h-full rounded-2xl p-5 shadow-xl border-2 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group"
-                            style={{
-                              background: `linear-gradient(135deg, ${settings.primaryColor}20, ${settings.secondaryColor}20)`,
-                              borderColor: `${settings.accentColor}60`,
-                            }}
-                          >
-                            <div className="flex items-center h-full gap-6">
-                              <div className="relative flex-shrink-0">
-                                <div className="relative w-40 h-40 rounded-2xl overflow-hidden shadow-2xl group-hover:shadow-3xl transition-all duration-500">
-                                  <div
-                                    className="absolute inset-0 opacity-60 blur-sm"
-                                    style={{
-                                      background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
-                                    }}
-                                  />
-
-                                  <img
-                                    src={doctor.image || defaultDoctorImage}
-                                    alt={doctor.name}
-                                    className="relative w-full h-full object-cover rounded-2xl border-4 border-white/40 group-hover:border-white/60 transition-all duration-500 group-hover:scale-105"
-                                    onError={(e) => {
-                                      e.currentTarget.src = defaultDoctorImage;
-                                    }}
-                                  />
-
-                                  <div
-                                    className="absolute inset-0 rounded-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"
-                                    style={{
-                                      background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
-                                    }}
-                                  />
-
-                                  {doctor.experience && (
-                                    <div
-                                      className="absolute bottom-3 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm font-bold shadow-2xl whitespace-nowrap z-20"
-                                      style={{
-                                        background: `linear-gradient(135deg, ${settings.accentColor}, ${settings.secondaryColor})`,
-                                        color: "white",
-                                        border: `2px solid white`,
-                                        minWidth: "120px",
-                                        textAlign: "center",
-                                      }}
-                                    >
-                                      {doctor.experience}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex-1 space-y-4">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className="w-2 h-10 rounded-full"
-                                      style={{
-                                        backgroundColor: settings.accentColor,
-                                        boxShadow: `0 0 15px ${settings.accentColor}`,
-                                      }}
-                                    />
-                                    <p
-                                      className="text-4xl font-black tracking-tight leading-tight"
-                                      style={{
-                                        color: "white",
-                                        textShadow: `0 3px 20px ${settings.accentColor}80`,
-                                      }}
-                                    >
-                                      {doctor.name}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {doctor.specialty && (
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-3">
-                                      <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg"
-                                        style={{
-                                          backgroundColor:
-                                            settings.primaryColor,
-                                        }}
-                                      >
-                                        <span className="text-white text-lg">
-                                          🩺
-                                        </span>
-                                      </div>
-                                      <p
-                                        className="text-2xl font-bold italic"
-                                        style={{
-                                          color: `${settings.accentColor}EE`,
-                                          textShadow:
-                                            "0 2px 8px rgba(0,0,0,0.5)",
-                                        }}
-                                      >
-                                        {doctor.specialty}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center gap-2 pt-2">
-                                  <div
-                                    className="flex-1 h-0.5 rounded-full opacity-40"
-                                    style={{
-                                      backgroundColor: settings.accentColor,
-                                    }}
-                                  />
-                                  <div
-                                    className="w-3 h-3 rounded-full animate-pulse"
-                                    style={{
-                                      backgroundColor: settings.accentColor,
-                                      boxShadow: `0 0 10px ${settings.accentColor}`,
-                                    }}
-                                  />
-                                  <div
-                                    className="flex-1 h-0.5 rounded-full opacity-40"
-                                    style={{
-                                      backgroundColor: settings.accentColor,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div
-                      className="absolute top-0 left-0 right-0 h-20 pointer-events-none z-20"
-                      style={{
-                        background: `linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-                      }}
-                    />
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none z-20"
-                      style={{
-                        background: `linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-                      }}
-                    />
-                    <div
-                      className="absolute top-0 left-0 bottom-0 w-16 pointer-events-none z-20"
-                      style={{
-                        background: `linear-gradient(to right, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-                      }}
-                    />
-                    <div
-                      className="absolute top-0 right-0 bottom-0 w-16 pointer-events-none z-20"
-                      style={{
-                        background: `linear-gradient(to left, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="relative flex-1 overflow-hidden rounded-3xl shadow-2xl border-2"
-                    style={{
-                      backgroundColor: "rgba(0, 0, 0, 0.75)",
-                      backdropFilter: "blur(20px)",
-                      borderColor: `${settings.accentColor}40`,
-                    }}
-                  >
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
-                      {settings.doctors.length > 0 ? (
-                        <div className="w-full max-w-4xl">
-                          <div className="flex flex-col md:flex-row items-center gap-8">
-                            <div className="relative">
-                              <div className="relative w-64 h-64 rounded-3xl overflow-hidden shadow-2xl">
-                                <img
-                                  src={
-                                    getCurrentDoctor().image ||
-                                    defaultDoctorImage
-                                  }
-                                  alt={getCurrentDoctor().name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.src = defaultDoctorImage;
-                                  }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                              </div>
-                              {settings.doctors.length > 1 && (
-                                <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                                  {settings.doctors.map((_, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="w-3 h-3 rounded-full transition-all"
-                                      style={{
-                                        backgroundColor:
-                                          idx === currentDoctorIndex
-                                            ? settings.accentColor
-                                            : "rgba(255,255,255,0.3)",
-                                        width:
-                                          idx === currentDoctorIndex
-                                            ? "20px"
-                                            : "12px",
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex-1 text-center md:text-left">
-                              <h3 className="text-5xl font-bold text-white mb-3">
-                                {getCurrentDoctor().name}
-                              </h3>
-                              <p className="text-2xl text-gray-300 mb-4">
-                                {getCurrentDoctor().specialty}
-                              </p>
-                              <div className="space-y-2">
-                                <p className="text-xl text-gray-400">
-                                  Experience: {getCurrentDoctor().experience}
-                                </p>
-                                <p className="text-xl text-gray-400">
-                                  Available: {getCurrentDoctor().available}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center text-gray-400">
-                          <p className="text-2xl">No doctors configured</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Left Side - Doctors Display using extracted component */}
+              <DoctorCarousel
+                doctors={settings.doctors}
+                layout={settings.layout}
+                slideSpeed={settings.slideSpeed}
+                doctorRotationSpeed={settings.doctorRotationSpeed}
+                primaryColor={settings.primaryColor}
+                secondaryColor={settings.secondaryColor}
+                accentColor={settings.accentColor}
+              />
 
               {/* Right Side - Gallery Carousel */}
               <div className="flex-1 flex flex-col overflow-hidden">
