@@ -9,6 +9,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +27,7 @@ const commonNavItems = [
 const adminOnlyNavItems = [
   { icon: Users, label: "Clients", href: `${BaseURL}/admin/clients` },
   { icon: Monitor, label: "Displays", href: `${BaseURL}/admin/displays` },
+  { icon: Smartphone, label: "Devices", href: `${BaseURL}/admin/devices` },
 ];
 
 const bottomItems = [
