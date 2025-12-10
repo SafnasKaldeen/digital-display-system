@@ -13,6 +13,14 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Check,
+  Clock,
+  X,
+  MoreVertical,
+  Calendar,
+  Shield,
+  Key,
+  Copy,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,7 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -182,6 +199,56 @@ export default function ClientsPage() {
     setDeleteDialogOpen(true);
   };
 
+  const getBusinessTypeColor = (type: string) => {
+    const colors = {
+      masjid: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      hospital: "bg-red-500/20 text-red-400 border-red-500/30",
+      corporate: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+      restaurant: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      retail: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      other: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+    };
+    return colors[type as keyof typeof colors] || colors.other;
+  };
+
+  const getBusinessTypeIcon = (type: string) => {
+    const icons: Record<string, JSX.Element> = {
+      masjid: <span className="text-lg">🕌</span>,
+      hospital: <span className="text-lg">🏥</span>,
+      corporate: <Building2 className="w-4 h-4" />,
+      restaurant: <span className="text-lg">🍽️</span>,
+      retail: <span className="text-lg">🏪</span>,
+      other: <span className="text-lg">📋</span>,
+    };
+    return icons[type] || icons.other;
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      approved: "bg-green-500/20 text-green-400 border-green-500/30",
+      pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      rejected: "bg-red-500/20 text-red-400 border-red-500/30",
+    };
+
+    const icons = {
+      approved: <Check className="w-3 h-3" />,
+      pending: <Clock className="w-3 h-3" />,
+      rejected: <X className="w-3 h-3" />,
+    };
+
+    return (
+      <Badge
+        variant="outline"
+        className={`flex items-center gap-1 px-3 py-1 rounded-full ${
+          styles[status as keyof typeof styles] || styles.pending
+        }`}
+      >
+        {icons[status as keyof typeof icons]}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -193,31 +260,6 @@ export default function ClientsPage() {
       client.business_type === filterBusinessType;
     return matchesSearch && matchesStatus && matchesBusinessType;
   });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "text-green-400 bg-green-500/10";
-      case "pending":
-        return "text-yellow-400 bg-yellow-500/10";
-      case "rejected":
-        return "text-red-400 bg-red-500/10";
-      default:
-        return "text-gray-400 bg-gray-500/10";
-    }
-  };
-
-  const getBusinessTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      masjid: "🕌",
-      hospital: "🏥",
-      corporate: "🏢",
-      restaurant: "🍽️",
-      retail: "🏪",
-      other: "📋",
-    };
-    return icons[type] || icons.other;
-  };
 
   if (isLoading) {
     return (
@@ -251,18 +293,77 @@ export default function ClientsPage() {
             onClick={loadClients}
             variant="outline"
             size="icon"
-            className="border-gray-700 hover:bg-gray-800 text-gray-400"
+            className="border-gray-700 hover:bg-gray-800 text-gray-400 hover:text-white"
             title="Refresh clients"
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
           <Button
             onClick={() => setIsDialogOpen(true)}
-            className="bg-pink-300 text-gray-900 hover:bg-pink-400 w-full sm:w-auto"
+            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700 w-full sm:w-auto shadow-lg"
           >
             <Plus size={18} className="mr-2" />
             Add New Client
           </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl p-6 hover:border-blue-500/50 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-400">Total Clients</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {clients.length}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-500/20 rounded-full">
+              <Building2 className="w-6 h-6 text-blue-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl p-6 hover:border-green-500/50 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-400">Approved</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {clients.filter((c) => c.status === "approved").length}
+              </p>
+            </div>
+            <div className="p-3 bg-green-500/20 rounded-full">
+              <Check className="w-6 h-6 text-green-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl p-6 hover:border-amber-500/50 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-400">Pending</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {clients.filter((c) => c.status === "pending").length}
+              </p>
+            </div>
+            <div className="p-3 bg-amber-500/20 rounded-full">
+              <Clock className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl p-6 hover:border-red-500/50 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-400">Rejected</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {clients.filter((c) => c.status === "rejected").length}
+              </p>
+            </div>
+            <div className="p-3 bg-red-500/20 rounded-full">
+              <X className="w-6 h-6 text-red-400" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -278,25 +379,34 @@ export default function ClientsPage() {
             placeholder="Search by email or business name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-500"
+            className="pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-pink-500/30"
           />
         </div>
         <div className="flex gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white">
+            <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white focus:ring-2 focus:ring-pink-500/30">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-800">
-              <SelectItem value="all" className="text-white">
+              <SelectItem value="all" className="text-white focus:bg-gray-800">
                 All Status
               </SelectItem>
-              <SelectItem value="approved" className="text-white">
+              <SelectItem
+                value="approved"
+                className="text-green-400 focus:bg-gray-800"
+              >
                 Approved
               </SelectItem>
-              <SelectItem value="pending" className="text-white">
+              <SelectItem
+                value="pending"
+                className="text-amber-400 focus:bg-gray-800"
+              >
                 Pending
               </SelectItem>
-              <SelectItem value="rejected" className="text-white">
+              <SelectItem
+                value="rejected"
+                className="text-red-400 focus:bg-gray-800"
+              >
                 Rejected
               </SelectItem>
             </SelectContent>
@@ -305,26 +415,41 @@ export default function ClientsPage() {
             value={filterBusinessType}
             onValueChange={setFilterBusinessType}
           >
-            <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white">
+            <SelectTrigger className="w-[140px] bg-gray-900 border-gray-800 text-white focus:ring-2 focus:ring-pink-500/30">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-800">
-              <SelectItem value="all" className="text-white">
+              <SelectItem value="all" className="text-white focus:bg-gray-800">
                 All Types
               </SelectItem>
-              <SelectItem value="masjid" className="text-white">
+              <SelectItem
+                value="masjid"
+                className="text-blue-400 focus:bg-gray-800"
+              >
                 Masjid
               </SelectItem>
-              <SelectItem value="hospital" className="text-white">
+              <SelectItem
+                value="hospital"
+                className="text-red-400 focus:bg-gray-800"
+              >
                 Hospital
               </SelectItem>
-              <SelectItem value="corporate" className="text-white">
+              <SelectItem
+                value="corporate"
+                className="text-purple-400 focus:bg-gray-800"
+              >
                 Corporate
               </SelectItem>
-              <SelectItem value="restaurant" className="text-white">
+              <SelectItem
+                value="restaurant"
+                className="text-amber-400 focus:bg-gray-800"
+              >
                 Restaurant
               </SelectItem>
-              <SelectItem value="retail" className="text-white">
+              <SelectItem
+                value="retail"
+                className="text-emerald-400 focus:bg-gray-800"
+              >
                 Retail
               </SelectItem>
             </SelectContent>
@@ -333,168 +458,179 @@ export default function ClientsPage() {
       </div>
 
       {/* Results count */}
-      <p className="text-gray-400 text-sm">
-        Showing {filteredClients.length} of {clients.length} clients
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-gray-400 text-sm">
+          Showing{" "}
+          <span className="font-semibold text-white">
+            {filteredClients.length}
+          </span>{" "}
+          of <span className="font-semibold text-white">{clients.length}</span>{" "}
+          clients
+        </p>
+        {searchQuery ||
+        filterStatus !== "all" ||
+        filterBusinessType !== "all" ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchQuery("");
+              setFilterStatus("all");
+              setFilterBusinessType("all");
+            }}
+            className="text-gray-400 hover:text-white text-xs"
+          >
+            Clear filters
+          </Button>
+        ) : null}
+      </div>
 
-      {/* Clients Table/Grid */}
-      {filteredClients.length > 0 ? (
-        <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-800/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Business Type
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {filteredClients.map((client) => (
-                  <tr
-                    key={client.id}
-                    className="hover:bg-gray-800/30 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500/20 to-cyan-500/20 flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-pink-400" />
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">
-                            {client.business_name}
-                          </p>
-                          <p className="text-gray-400 text-sm flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {client.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">
-                          {getBusinessTypeIcon(client.business_type)}
-                        </span>
-                        <span className="text-gray-300 capitalize">
-                          {client.business_type}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          client.status
-                        )}`}
+      {/* Clients Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+        {filteredClients.map((client) => (
+          <Card
+            key={client.id}
+            className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/5 overflow-hidden group"
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-800 rounded-lg">
+                    {getBusinessTypeIcon(client.business_type)}
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-white text-lg truncate">
+                      {client.business_name}
+                    </CardTitle>
+                    <CardDescription className="text-gray-500 text-sm truncate">
+                      <Mail className="w-3 h-3 inline mr-1" />
+                      {client.email}
+                    </CardDescription>
+                  </div>
+                </div>
+                {getStatusBadge(client.status)}
+              </div>
+            </CardHeader>
+
+            <Separator className="bg-gray-800" />
+
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Badge
+                  variant="outline"
+                  className={`${getBusinessTypeColor(
+                    client.business_type
+                  )} capitalize`}
+                >
+                  {client.business_type}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-gray-400 border-gray-700"
+                >
+                  {client.role}
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Calendar className="w-3 h-3 text-gray-500" />
+                  <span className="text-gray-400">Created:</span>
+                  <span className="text-gray-300 ml-auto">
+                    {new Date(client.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Shield className="w-3 h-3 text-gray-500" />
+                  <span className="text-gray-400">Status:</span>
+                  <span className="text-gray-300 ml-auto capitalize">
+                    {client.status}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="pt-3">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-1">
+                  {client.status === "pending" && (
+                    <>
+                      <Button
+                        onClick={() =>
+                          handleStatusChange(client.id, "approved")
+                        }
+                        size="sm"
+                        className="h-8 px-3 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30"
+                        title="Approve"
                       >
-                        {client.status.charAt(0).toUpperCase() +
-                          client.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-400 text-sm">
-                      {new Date(client.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {client.status === "pending" && (
-                          <>
-                            <Button
-                              onClick={() =>
-                                handleStatusChange(client.id, "approved")
-                              }
-                              size="sm"
-                              className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30"
-                            >
-                              <UserCheck className="w-4 h-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              onClick={() =>
-                                handleStatusChange(client.id, "rejected")
-                              }
-                              size="sm"
-                              className="bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30"
-                            >
-                              <UserX className="w-4 h-4 mr-1" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {client.status === "approved" && (
-                          <Button
-                            onClick={() =>
-                              handleStatusChange(client.id, "rejected")
-                            }
-                            size="sm"
-                            variant="outline"
-                            className="border-gray-700 text-gray-400 hover:bg-gray-800"
-                          >
-                            <UserX className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        )}
-                        {client.status === "rejected" && (
-                          <Button
-                            onClick={() =>
-                              handleStatusChange(client.id, "approved")
-                            }
-                            size="sm"
-                            className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30"
-                          >
-                            <UserCheck className="w-4 h-4 mr-1" />
-                            Approve
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => openDeleteDialog(client.id)}
-                          size="sm"
-                          variant="outline"
-                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <UserCheck className="w-3 h-3 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          handleStatusChange(client.id, "rejected")
+                        }
+                        size="sm"
+                        className="h-8 px-3 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30"
+                        title="Reject"
+                      >
+                        <UserX className="w-3 h-3" />
+                      </Button>
+                    </>
+                  )}
+                  {client.status === "approved" && (
+                    <Button
+                      onClick={() => handleStatusChange(client.id, "rejected")}
+                      size="sm"
+                      className="h-8 px-3 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30"
+                      title="Reject"
+                    >
+                      <UserX className="w-3 h-3" />
+                      Reject
+                    </Button>
+                  )}
+                  {client.status === "rejected" && (
+                    <Button
+                      onClick={() => handleStatusChange(client.id, "approved")}
+                      size="sm"
+                      className="h-8 px-3 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30"
+                      title="Approve"
+                    >
+                      <UserCheck className="w-3 h-3 mr-1" />
+                      Approve
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  onClick={() => openDeleteDialog(client.id)}
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-red-300 hover:bg-red-900/20"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {filteredClients.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-800 rounded-xl bg-gradient-to-br from-gray-900/50 to-black/50">
+          <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+            <Building2 size={48} className="text-gray-600" />
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-            <Search size={32} className="text-gray-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-2xl font-semibold text-white mb-3">
             {clients.length === 0 ? "No clients yet" : "No clients found"}
           </h3>
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-400 mb-8 max-w-md">
             {clients.length === 0
-              ? "Create your first client account to get started"
-              : "Try adjusting your search or filters"}
+              ? "Get started by creating your first client account"
+              : "Try adjusting your search or filters to find what you're looking for"}
           </p>
-          {clients.length === 0 ? (
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              className="bg-pink-300 text-gray-900 hover:bg-pink-400"
-            >
-              <Plus size={18} className="mr-2" />
-              Add Client
-            </Button>
-          ) : (
+          {clients.length > 0 ? (
             <Button
               onClick={() => {
                 setSearchQuery("");
@@ -502,9 +638,17 @@ export default function ClientsPage() {
                 setFilterBusinessType("all");
               }}
               variant="outline"
-              className="bg-gray-900 border-gray-800 text-white hover:bg-gray-800"
+              className="bg-gray-900 border-gray-700 text-white hover:bg-gray-800 hover:text-white"
             >
               Clear Filters
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700 font-semibold gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Create First Client
             </Button>
           )}
         </div>
@@ -519,10 +663,10 @@ export default function ClientsPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-gray-900 border-gray-800">
+        <AlertDialogContent className="bg-gradient-to-br from-gray-900 to-black border border-gray-800">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
-              Are you sure you want to delete this client?
+              Delete Client
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
               This action cannot be undone. This will permanently delete the
@@ -530,14 +674,14 @@ export default function ClientsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">
+            <AlertDialogCancel className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 clientToDelete && handleDeleteClient(clientToDelete)
               }
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
             >
               Delete
             </AlertDialogAction>
@@ -664,19 +808,28 @@ function CreateClientDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-gray-900 border-gray-800">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-gradient-to-br from-gray-900 to-black border border-gray-800 shadow-2xl">
+        <CardHeader>
+          <CardTitle className="text-white text-2xl">
             {generatedCredentials ? "Client Created!" : "Create New Client"}
-          </h2>
-
+          </CardTitle>
+          <CardDescription>
+            {generatedCredentials
+              ? "Share these credentials with the client"
+              : "Fill in the client details below"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           {generatedCredentials ? (
             <div className="space-y-4">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                <p className="text-green-400 text-sm font-medium mb-4">
-                  Client account created successfully! Share these credentials:
-                </p>
+              <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Key className="w-5 h-5 text-green-400" />
+                  <p className="text-green-400 text-sm font-medium">
+                    Client account created successfully!
+                  </p>
+                </div>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs text-gray-400">Email</label>
@@ -692,9 +845,9 @@ function CreateClientDialog({
                         }
                         size="sm"
                         variant="outline"
-                        className="border-gray-700"
+                        className="border-gray-700 text-gray-400 hover:text-white"
                       >
-                        Copy
+                        <Copy className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
@@ -704,6 +857,7 @@ function CreateClientDialog({
                       <Input
                         value={generatedCredentials.password}
                         readOnly
+                        type="password"
                         className="bg-gray-800 border-gray-700 text-white font-mono"
                       />
                       <Button
@@ -712,23 +866,18 @@ function CreateClientDialog({
                         }
                         size="sm"
                         variant="outline"
-                        className="border-gray-700"
+                        className="border-gray-700 text-gray-400 hover:text-white"
                       >
-                        Copy
+                        <Copy className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
                 </div>
-                <p className="text-yellow-400 text-xs mt-4">
-                  ⚠️ Save these credentials now! They won't be shown again.
-                </p>
+                <div className="flex items-center gap-2 mt-4 text-amber-400 text-xs">
+                  <span>⚠️</span>
+                  <p>Save these credentials now! They won't be shown again.</p>
+                </div>
               </div>
-              <Button
-                onClick={handleClose}
-                className="w-full bg-pink-300 text-gray-900 hover:bg-pink-400"
-              >
-                Done
-              </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -742,7 +891,7 @@ function CreateClientDialog({
                   placeholder="Client Business Name"
                   value={formData.businessName}
                   onChange={handleChange}
-                  className="mt-2 bg-gray-800 border-gray-700 text-white"
+                  className="mt-2 bg-gray-800 border-gray-700 text-white focus:ring-2 focus:ring-pink-500/30"
                   required
                 />
               </div>
@@ -755,7 +904,7 @@ function CreateClientDialog({
                   name="businessType"
                   value={formData.businessType}
                   onChange={handleChange}
-                  className="w-full mt-2 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white"
+                  className="w-full mt-2 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-pink-500/30"
                   required
                 >
                   <option value="corporate">Corporate</option>
@@ -777,7 +926,7 @@ function CreateClientDialog({
                   placeholder="client@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-2 bg-gray-800 border-gray-700 text-white"
+                  className="mt-2 bg-gray-800 border-gray-700 text-white focus:ring-2 focus:ring-pink-500/30"
                   required
                 />
               </div>
@@ -794,14 +943,14 @@ function CreateClientDialog({
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={handleChange}
-                      className="bg-gray-800 border-gray-700 text-white pr-10"
+                      className="bg-gray-800 border-gray-700 text-white pr-10 focus:ring-2 focus:ring-pink-500/30"
                       required
                       minLength={8}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -814,7 +963,7 @@ function CreateClientDialog({
                     type="button"
                     onClick={generatePassword}
                     variant="outline"
-                    className="border-gray-700 text-gray-400"
+                    className="border-gray-700 text-gray-400 hover:text-white"
                   >
                     Generate
                   </Button>
@@ -826,14 +975,14 @@ function CreateClientDialog({
                   type="button"
                   onClick={handleClose}
                   variant="outline"
-                  className="flex-1 border-gray-700 text-gray-400"
+                  className="flex-1 border-gray-700 text-gray-400 hover:text-white"
                   disabled={isLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-pink-300 text-gray-900 hover:bg-pink-400"
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700"
                   disabled={isLoading}
                 >
                   {isLoading ? "Creating..." : "Create Client"}
@@ -841,7 +990,17 @@ function CreateClientDialog({
               </div>
             </form>
           )}
-        </div>
+        </CardContent>
+        {generatedCredentials && (
+          <CardFooter>
+            <Button
+              onClick={handleClose}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700"
+            >
+              Done
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
