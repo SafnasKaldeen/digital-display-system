@@ -96,6 +96,118 @@ export default function LivePage({ params }: LivePageProps) {
     checkUserRole();
   }, []);
 
+  // Check device authorization (only if not admin)
+  useEffect(() => {
+    if (isCheckingAuth) return;
+
+    // Skip device auth check for admins
+    if (userData?.role === "admin") {
+      return;
+    }
+
+    checkDeviceAuth();
+
+    // Re-check authorization every 30 seconds
+    const authInterval = setInterval(checkDeviceAuth, 30000);
+
+    return () => clearInterval(authInterval);
+  }, [id, isCheckingAuth, userData]);
+
+  const checkDeviceAuth = async () => {
+    try {
+      setDeviceAuth((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      // Get or create device ID
+      let deviceId = localStorage.getItem("device_id");
+
+      if (!deviceId) {
+        // Generate unique device ID
+        deviceId = `device_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        localStorage.setItem("device_id", deviceId);
+      }
+
+      // Check if device is authorized
+      const response = await fetch("/api/admin/device/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId,
+          displayId: id,
+          userAgent: navigator.userAgent,
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setDeviceAuth({
+          isAuthorized: result.authorized,
+          isLoading: false,
+          error: null,
+          deviceId,
+          deviceName: result.deviceName,
+          needsRegistration: result.needsRegistration,
+          status: result.status,
+        });
+      } else {
+        setDeviceAuth((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: result.message || "Authorization failed",
+        }));
+      }
+    } catch (err) {
+      setDeviceAuth((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: err instanceof Error ? err.message : "Failed to verify device",
+      }));
+    }
+  };
+
+  const handleRegisterDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!registrationName.trim()) {
+      alert("Please enter a device name");
+      return;
+    }
+
+    setIsRegistering(true);
+
+    try {
+      const deviceId = localStorage.getItem("device_id");
+
+      const response = await fetch("/api/admin/device/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId,
+          displayId: id,
+          deviceName: registrationName,
+          userAgent: navigator.userAgent,
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await checkDeviceAuth();
+        setRegistrationName("");
+      } else {
+        alert(result.message || "Registration failed");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   // Add this new useEffect for device authorization realtime
   useEffect(() => {
     if (isCheckingAuth) return;
