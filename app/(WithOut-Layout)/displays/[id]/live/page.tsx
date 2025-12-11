@@ -65,36 +65,36 @@ export default function LivePage({ params }: LivePageProps) {
   const [isRegistering, setIsRegistering] = useState(false);
 
   // Check if user is admin first
-  useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        const response = await fetch("/api/auth/me");
-        if (response.ok) {
-          const data = await response.json();
-          setUserData(data.user);
+  // useEffect(() => {
+  //   const checkUserRole = async () => {
+  //     try {
+  //       const response = await fetch("/api/auth/me");
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         setUserData(data.user);
 
-          // If user is admin, automatically authorize
-          if (data.user.role === "admin") {
-            setDeviceAuth({
-              isAuthorized: true,
-              isLoading: false,
-              error: null,
-              deviceId: "admin-device",
-              deviceName: "Admin Access",
-              needsRegistration: false,
-              status: "approved",
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error);
-      } finally {
-        setIsCheckingAuth(false);
-      }
-    };
+  //         // If user is admin, automatically authorize
+  //         if (data.user.role === "admin") {
+  //           setDeviceAuth({
+  //             isAuthorized: true,
+  //             isLoading: false,
+  //             error: null,
+  //             deviceId: "admin-device",
+  //             deviceName: "Admin Access",
+  //             needsRegistration: false,
+  //             status: "approved",
+  //           });
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Error checking user role:", error);
+  //     } finally {
+  //       setIsCheckingAuth(false);
+  //     }
+  //   };
 
-    checkUserRole();
-  }, []);
+  //   checkUserRole();
+  // }, []);
 
   const checkDeviceAuth = async () => {
     try {
@@ -192,76 +192,76 @@ export default function LivePage({ params }: LivePageProps) {
   };
 
   // Add this new useEffect for device authorization realtime
-  useEffect(() => {
-    if (isCheckingAuth) return;
-    if (userData?.role === "admin") return; // Skip for admins
+  // useEffect(() => {
+  //   if (isCheckingAuth) return;
+  //   if (userData?.role === "admin") return; // Skip for admins
 
-    const deviceId = localStorage.getItem("device_id");
-    if (!deviceId) return;
+  //   const deviceId = localStorage.getItem("device_id");
+  //   if (!deviceId) return;
 
-    // Initial device auth check
-    checkDeviceAuth();
+  //   // Initial device auth check
+  //   checkDeviceAuth();
 
-    // Setup realtime subscription for THIS device's status changes
-    console.log(`🔴 Setting up device auth realtime for: ${deviceId}`);
+  //   // Setup realtime subscription for THIS device's status changes
+  //   console.log(`🔴 Setting up device auth realtime for: ${deviceId}`);
 
-    const deviceChannel = supabase
-      .channel(`device-auth-${deviceId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*", // Listen to all events
-          schema: "public",
-          table: "devices",
-          filter: `device_id=eq.${deviceId}`, // Only this device
-        },
-        (payload) => {
-          console.log("🔴 Device status update received:", payload);
+  //   const deviceChannel = supabase
+  //     .channel(`device-auth-${deviceId}`)
+  //     .on(
+  //       "postgres_changes",
+  //       {
+  //         event: "*", // Listen to all events
+  //         schema: "public",
+  //         table: "devices",
+  //         filter: `device_id=eq.${deviceId}`, // Only this device
+  //       },
+  //       (payload) => {
+  //         console.log("🔴 Device status update received:", payload);
 
-          // Check the new status
-          if (payload.eventType === "UPDATE") {
-            const newStatus = payload.new.status;
-            const newName = payload.new.name;
+  //         // Check the new status
+  //         if (payload.eventType === "UPDATE") {
+  //           const newStatus = payload.new.status;
+  //           const newName = payload.new.name;
 
-            console.log(`Device status changed to: ${newStatus}`);
+  //           console.log(`Device status changed to: ${newStatus}`);
 
-            // Update device auth state immediately
-            setDeviceAuth((prev) => ({
-              ...prev,
-              status: newStatus,
-              deviceName: newName,
-              isAuthorized: newStatus === "approved",
-              needsRegistration: false,
-            }));
-          } else if (payload.eventType === "DELETE") {
-            console.log("Device was deleted");
-            // Reset to registration state
-            setDeviceAuth({
-              isAuthorized: false,
-              isLoading: false,
-              error: "Device registration was removed",
-              deviceId,
-              deviceName: null,
-              needsRegistration: true,
-              status: null,
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Device auth realtime connected");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Device auth realtime error");
-        }
-      });
+  //           // Update device auth state immediately
+  //           setDeviceAuth((prev) => ({
+  //             ...prev,
+  //             status: newStatus,
+  //             deviceName: newName,
+  //             isAuthorized: newStatus === "approved",
+  //             needsRegistration: false,
+  //           }));
+  //         } else if (payload.eventType === "DELETE") {
+  //           console.log("Device was deleted");
+  //           // Reset to registration state
+  //           setDeviceAuth({
+  //             isAuthorized: false,
+  //             isLoading: false,
+  //             error: "Device registration was removed",
+  //             deviceId,
+  //             deviceName: null,
+  //             needsRegistration: true,
+  //             status: null,
+  //           });
+  //         }
+  //       }
+  //     )
+  //     .subscribe((status) => {
+  //       if (status === "SUBSCRIBED") {
+  //         console.log("✅ Device auth realtime connected");
+  //       } else if (status === "CHANNEL_ERROR") {
+  //         console.error("❌ Device auth realtime error");
+  //       }
+  //     });
 
-    // Cleanup
-    return () => {
-      console.log("🔴 Cleaning up device auth realtime");
-      supabase.removeChannel(deviceChannel);
-    };
-  }, [deviceAuth.deviceId, isCheckingAuth, userData, id]);
+  //   // Cleanup
+  //   return () => {
+  //     console.log("🔴 Cleaning up device auth realtime");
+  //     supabase.removeChannel(deviceChannel);
+  //   };
+  // }, [deviceAuth.deviceId, isCheckingAuth, userData, id]);
 
   // Fetch config function (extracted for reuse)
   const fetchConfig = async () => {
@@ -330,9 +330,9 @@ export default function LivePage({ params }: LivePageProps) {
 
   // Fetch config and setup Realtime subscription (only if device is authorized)
   useEffect(() => {
-    if (!deviceAuth.isAuthorized) {
-      return;
-    }
+    // if (!deviceAuth.isAuthorized) {
+    //   return;
+    // }
 
     // Initial fetch
     fetchConfig();
@@ -366,7 +366,7 @@ export default function LivePage({ params }: LivePageProps) {
       console.log("Cleaning up realtime subscription");
       supabase.removeChannel(channel);
     };
-  }, [id, deviceAuth.isAuthorized]);
+  }, [id]); // Removed deviceAuth.isAuthorized
 
   // Perfect scaling with correct 16:9 landscape preview
   useEffect(() => {
@@ -389,223 +389,223 @@ export default function LivePage({ params }: LivePageProps) {
   }, []);
 
   // Device authentication loading state (skip for admin)
-  if (deviceAuth.isLoading && userData?.role !== "admin") {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-400" />
-          <p className="text-white text-lg">Verifying device...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (deviceAuth.isLoading && userData?.role !== "admin") {
+  //   return (
+  //     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+  //       <div className="text-center space-y-4">
+  //         <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-400" />
+  //         <p className="text-white text-lg">Verifying device...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Device needs registration (skip for admin)
-  if (deviceAuth.needsRegistration && userData?.role !== "admin") {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="max-w-md w-full mx-auto px-6">
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 space-y-6">
-            {/* Icon */}
-            <div className="flex justify-center">
-              <div className="relative inline-flex">
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl"></div>
-                <div className="relative w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center border-4 border-blue-500/50">
-                  <Smartphone className="w-10 h-10 text-blue-400" />
-                </div>
-              </div>
-            </div>
+  // if (deviceAuth.needsRegistration && userData?.role !== "admin") {
+  //   return (
+  //     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+  //       <div className="max-w-md w-full mx-auto px-6">
+  //         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 space-y-6">
+  //           {/* Icon */}
+  //           <div className="flex justify-center">
+  //             <div className="relative inline-flex">
+  //               <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl"></div>
+  //               <div className="relative w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center border-4 border-blue-500/50">
+  //                 <Smartphone className="w-10 h-10 text-blue-400" />
+  //               </div>
+  //             </div>
+  //           </div>
 
-            {/* Title */}
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Register Device
-              </h1>
-              <p className="text-slate-400">
-                This device needs to be registered before accessing the display
-              </p>
-            </div>
+  //           {/* Title */}
+  //           <div className="text-center">
+  //             <h1 className="text-3xl font-bold text-white mb-2">
+  //               Register Device
+  //             </h1>
+  //             <p className="text-slate-400">
+  //               This device needs to be registered before accessing the display
+  //             </p>
+  //           </div>
 
-            {/* Device ID */}
-            <div className="bg-slate-900/50 rounded-lg p-4">
-              <p className="text-xs text-slate-500 mb-1">Device ID</p>
-              <p className="text-sm text-slate-300 font-mono break-all">
-                {deviceAuth.deviceId}
-              </p>
-            </div>
+  //           {/* Device ID */}
+  //           <div className="bg-slate-900/50 rounded-lg p-4">
+  //             <p className="text-xs text-slate-500 mb-1">Device ID</p>
+  //             <p className="text-sm text-slate-300 font-mono break-all">
+  //               {deviceAuth.deviceId}
+  //             </p>
+  //           </div>
 
-            {/* Registration Form */}
-            <form onSubmit={handleRegisterDevice} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Device Name
-                </label>
-                <input
-                  type="text"
-                  value={registrationName}
-                  onChange={(e) => setRegistrationName(e.target.value)}
-                  placeholder="e.g., Reception TV, Lobby Display"
-                  className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isRegistering}
-                />
-              </div>
+  //           {/* Registration Form */}
+  //           <form onSubmit={handleRegisterDevice} className="space-y-4">
+  //             <div>
+  //               <label className="block text-sm font-medium text-slate-300 mb-2">
+  //                 Device Name
+  //               </label>
+  //               <input
+  //                 type="text"
+  //                 value={registrationName}
+  //                 onChange={(e) => setRegistrationName(e.target.value)}
+  //                 placeholder="e.g., Reception TV, Lobby Display"
+  //                 className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  //                 disabled={isRegistering}
+  //               />
+  //             </div>
 
-              <button
-                type="submit"
-                disabled={isRegistering}
-                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                {isRegistering ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Registering...
-                  </>
-                ) : (
-                  "Register Device"
-                )}
-              </button>
-            </form>
+  //             <button
+  //               type="submit"
+  //               disabled={isRegistering}
+  //               className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+  //             >
+  //               {isRegistering ? (
+  //                 <>
+  //                   <Loader2 className="w-5 h-5 animate-spin" />
+  //                   Registering...
+  //                 </>
+  //               ) : (
+  //                 "Register Device"
+  //               )}
+  //             </button>
+  //           </form>
 
-            {/* Help text */}
-            <p className="text-xs text-slate-500 text-center">
-              After registration, an admin must approve this device before it
-              can access the display
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  //           {/* Help text */}
+  //           <p className="text-xs text-slate-500 text-center">
+  //             After registration, an admin must approve this device before it
+  //             can access the display
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Device pending approval (skip for admin)
-  if (deviceAuth.status === "pending" && userData?.role !== "admin") {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-amber-950 via-slate-900 to-slate-950">
-        <div className="text-center space-y-6 max-w-2xl px-8">
-          {/* Icon */}
-          <div className="relative inline-flex">
-            <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl"></div>
-            <div className="relative w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-amber-500/50">
-              <Clock className="w-16 h-16 text-amber-400 animate-pulse" />
-            </div>
-          </div>
+  // if (deviceAuth.status === "pending" && userData?.role !== "admin") {
+  //   return (
+  //     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-amber-950 via-slate-900 to-slate-950">
+  //       <div className="text-center space-y-6 max-w-2xl px-8">
+  //         {/* Icon */}
+  //         <div className="relative inline-flex">
+  //           <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl"></div>
+  //           <div className="relative w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-amber-500/50">
+  //             <Clock className="w-16 h-16 text-amber-400 animate-pulse" />
+  //           </div>
+  //         </div>
 
-          {/* Title */}
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-3">
-              Awaiting Approval
-            </h1>
-            <p className="text-xl text-slate-400">
-              {deviceAuth.deviceName || "This device"}
-            </p>
-          </div>
+  //         {/* Title */}
+  //         <div>
+  //           <h1 className="text-4xl font-bold text-white mb-3">
+  //             Awaiting Approval
+  //           </h1>
+  //           <p className="text-xl text-slate-400">
+  //             {deviceAuth.deviceName || "This device"}
+  //           </p>
+  //         </div>
 
-          {/* Message */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
-            <p className="text-slate-300 text-lg leading-relaxed mb-4">
-              Your device has been registered and is waiting for admin approval.
-              Please contact your administrator to approve this device.
-            </p>
-            <div className="bg-slate-900/50 rounded-lg p-4">
-              <p className="text-xs text-slate-500 mb-1">Device ID</p>
-              <p className="text-sm text-slate-300 font-mono break-all">
-                {deviceAuth.deviceId}
-              </p>
-            </div>
-          </div>
+  //         {/* Message */}
+  //         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
+  //           <p className="text-slate-300 text-lg leading-relaxed mb-4">
+  //             Your device has been registered and is waiting for admin approval.
+  //             Please contact your administrator to approve this device.
+  //           </p>
+  //           <div className="bg-slate-900/50 rounded-lg p-4">
+  //             <p className="text-xs text-slate-500 mb-1">Device ID</p>
+  //             <p className="text-sm text-slate-300 font-mono break-all">
+  //               {deviceAuth.deviceId}
+  //             </p>
+  //           </div>
+  //         </div>
 
-          {/* Status indicator */}
-          <div className="flex items-center justify-center gap-3 text-slate-500">
-            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium uppercase tracking-wider">
-              Status: Pending Approval
-            </span>
-            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-          </div>
+  //         {/* Status indicator */}
+  //         <div className="flex items-center justify-center gap-3 text-slate-500">
+  //           <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+  //           <span className="text-sm font-medium uppercase tracking-wider">
+  //             Status: Pending Approval
+  //           </span>
+  //           <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+  //         </div>
 
-          {/* Refresh button */}
-          <button
-            onClick={checkDeviceAuth}
-            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-          >
-            Check Status
-          </button>
-        </div>
-      </div>
-    );
-  }
+  //         {/* Refresh button */}
+  //         <button
+  //           onClick={checkDeviceAuth}
+  //           className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+  //         >
+  //           Check Status
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Device denied (skip for admin)
-  if (deviceAuth.status === "denied" && userData?.role !== "admin") {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
-        <div className="text-center space-y-6 max-w-2xl px-8">
-          {/* Icon */}
-          <div className="relative inline-flex">
-            <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl"></div>
-            <div className="relative w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-red-500/50">
-              <ShieldAlert className="w-16 h-16 text-red-400" />
-            </div>
-          </div>
+  // if (deviceAuth.status === "denied" && userData?.role !== "admin") {
+  //   return (
+  //     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-slate-900 to-slate-950">
+  //       <div className="text-center space-y-6 max-w-2xl px-8">
+  //         {/* Icon */}
+  //         <div className="relative inline-flex">
+  //           <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl"></div>
+  //           <div className="relative w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-red-500/50">
+  //             <ShieldAlert className="w-16 h-16 text-red-400" />
+  //           </div>
+  //         </div>
 
-          {/* Title */}
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-3">
-              Access Denied
-            </h1>
-            <p className="text-xl text-slate-400">
-              {deviceAuth.deviceName || "This device"}
-            </p>
-          </div>
+  //         {/* Title */}
+  //         <div>
+  //           <h1 className="text-4xl font-bold text-white mb-3">
+  //             Access Denied
+  //           </h1>
+  //           <p className="text-xl text-slate-400">
+  //             {deviceAuth.deviceName || "This device"}
+  //           </p>
+  //         </div>
 
-          {/* Message */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-red-900/50 rounded-2xl p-6">
-            <p className="text-slate-300 text-lg leading-relaxed mb-4">
-              This device has been denied access to the display. Please contact
-              your administrator for more information.
-            </p>
-            <div className="bg-slate-900/50 rounded-lg p-4">
-              <p className="text-xs text-slate-500 mb-1">Device ID</p>
-              <p className="text-sm text-slate-300 font-mono break-all">
-                {deviceAuth.deviceId}
-              </p>
-            </div>
-          </div>
+  //         {/* Message */}
+  //         <div className="bg-slate-800/50 backdrop-blur-sm border border-red-900/50 rounded-2xl p-6">
+  //           <p className="text-slate-300 text-lg leading-relaxed mb-4">
+  //             This device has been denied access to the display. Please contact
+  //             your administrator for more information.
+  //           </p>
+  //           <div className="bg-slate-900/50 rounded-lg p-4">
+  //             <p className="text-xs text-slate-500 mb-1">Device ID</p>
+  //             <p className="text-sm text-slate-300 font-mono break-all">
+  //               {deviceAuth.deviceId}
+  //             </p>
+  //           </div>
+  //         </div>
 
-          {/* Status indicator */}
-          <div className="flex items-center justify-center gap-3 text-slate-500">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-sm font-medium uppercase tracking-wider">
-              Status: Access Denied
-            </span>
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  //         {/* Status indicator */}
+  //         <div className="flex items-center justify-center gap-3 text-slate-500">
+  //           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+  //           <span className="text-sm font-medium uppercase tracking-wider">
+  //             Status: Access Denied
+  //           </span>
+  //           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Device not authorized (catch-all, skip for admin)
-  if (!deviceAuth.isAuthorized && userData?.role !== "admin") {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="text-center space-y-4 max-w-md px-6">
-          <ShieldAlert className="w-16 h-16 mx-auto text-red-400" />
-          <h2 className="text-white text-2xl font-bold">Unauthorized Device</h2>
-          <p className="text-slate-400">
-            {deviceAuth.error ||
-              "This device is not authorized to access this display"}
-          </p>
-          <button
-            onClick={checkDeviceAuth}
-            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // if (!deviceAuth.isAuthorized && userData?.role !== "admin") {
+  //   return (
+  //     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+  //       <div className="text-center space-y-4 max-w-md px-6">
+  //         <ShieldAlert className="w-16 h-16 mx-auto text-red-400" />
+  //         <h2 className="text-white text-2xl font-bold">Unauthorized Device</h2>
+  //         <p className="text-slate-400">
+  //           {deviceAuth.error ||
+  //             "This device is not authorized to access this display"}
+  //         </p>
+  //         <button
+  //           onClick={checkDeviceAuth}
+  //           className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // From here on, device is authorized (or user is admin) - proceed with normal display logic
 
