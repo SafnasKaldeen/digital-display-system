@@ -23,9 +23,12 @@ interface AdSchedule {
   enabled: boolean;
   title: string;
   image: string;
+  video: string;
+  mediaType: "image" | "video";
   caption: string;
   frequency: number;
   duration: number;
+  playCount: number;
   dateRange: {
     start: string;
     end: string;
@@ -35,6 +38,7 @@ interface AdSchedule {
     end: string;
   };
   daysOfWeek: number[];
+  animation?: string;
 }
 
 interface HospitalCustomization {
@@ -165,27 +169,7 @@ function HospitalTemplateAuthentic({
       "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=800&fit=crop",
       "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=800&fit=crop",
     ],
-    advertisements: customization.advertisements || [
-      {
-        id: "ad1",
-        enabled: true,
-        title: "Free Health Checkup Camp",
-        image:
-          "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&h=600&fit=crop",
-        caption: "Join us for a free health checkup camp this weekend!",
-        frequency: 300,
-        duration: 15,
-        dateRange: {
-          start: "2024-01-01",
-          end: "2024-12-31",
-        },
-        timeRange: {
-          start: "08:00",
-          end: "18:00",
-        },
-        daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-      },
-    ],
+    advertisements: customization.advertisements || [],
     layout: customization.layout || "Authentic",
     doctorRotationSpeed: customization.doctorRotationSpeed || 6000,
   };
@@ -284,11 +268,17 @@ function HospitalTemplateAuthentic({
         setActiveAd(scheduleToShow);
         setShowAd(true);
 
+        // For videos, use playCount; for images, use duration
+        const displayDuration =
+          scheduleToShow.mediaType === "video"
+            ? scheduleToShow.playCount * 1000 // Will be handled by video player
+            : scheduleToShow.duration * 1000;
+
         adDurationRef.current = setTimeout(() => {
           console.log(`Ad duration finished: ${scheduleToShow.title}`);
           setShowAd(false);
           setActiveAd(null);
-        }, scheduleToShow.duration * 1000);
+        }, displayDuration);
       }
     };
 
@@ -480,11 +470,15 @@ function HospitalTemplateAuthentic({
 
           {/* When ad IS showing: Show ad content */}
           {showAd && activeAd && (
-            <div className="absolute inset-0 flex items-center justify-center p-8 z-40">
+            <div className="absolute inset-0 flex items-center justify-center z-40">
               <FullScreenAd
                 title={activeAd.title}
                 caption={activeAd.caption}
                 imageUrl={activeAd.image}
+                videoUrl={activeAd.video}
+                mediaType={activeAd.mediaType}
+                playCount={activeAd.playCount}
+                animation={activeAd.animation || "fade"}
                 accentColor={settings.accentColor}
                 primaryColor={settings.primaryColor}
                 secondaryColor={settings.secondaryColor}
@@ -505,6 +499,8 @@ function HospitalTemplateAuthentic({
                 }}
                 onDurationEnd={() => {
                   console.log("Ad duration ended automatically");
+                  setShowAd(false);
+                  setActiveAd(null);
                 }}
               />
             </div>

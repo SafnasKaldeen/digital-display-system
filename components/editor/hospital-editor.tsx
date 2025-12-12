@@ -9,6 +9,8 @@ import {
   Calendar,
   Clock,
   Image as ImageIcon,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   Select,
@@ -20,6 +22,9 @@ import {
 import { ImageUploader } from "./ImageUploader";
 import CollapsibleSection from "./CollapsibleSection";
 import { DoctorCarouselEditor } from "./DoctorCarouselEditor";
+import { AdvertisementEditor } from "./AdvertisementEditor";
+
+import { Video } from "lucide-react";
 
 interface HospitalEditorProps {
   config: any;
@@ -164,6 +169,10 @@ export function HospitalEditor({
   const galleryImages = config.galleryImages || []; // Simple array of image URLs for 1:1 gallery
   const advertisements = config.advertisements || []; // Array of ad objects with full scheduling
 
+  // Advertisement Sorting
+  const [adSortOption, setAdSortOption] = useState<string>("manual");
+  const sortedAdvertisements = [...advertisements];
+
   // Handle basic field updates
   const handleFieldChange = (field: string, value: any) => {
     onConfigChange({ ...config, [field]: value });
@@ -236,18 +245,21 @@ export function HospitalEditor({
     const defaultEndDate = new Date();
     defaultEndDate.setDate(defaultEndDate.getDate() + 7);
 
+    // Add to the beginning of the array
     onConfigChange({
       ...config,
       advertisements: [
-        ...advertisements,
         {
           id: `ad-${Date.now()}`,
           enabled: true,
           title: "",
           image: "",
+          video: "",
+          mediaType: "image",
           caption: "",
           frequency: 300, // 5 minutes (how often to show)
-          duration: 30, // 30 seconds (how long to display)
+          duration: 30, // 30 seconds (how long to display) - for images
+          playCount: 1, // how many times to play - for videos
           dateRange: {
             start: defaultStartDate.toISOString(),
             end: defaultEndDate.toISOString(),
@@ -258,6 +270,7 @@ export function HospitalEditor({
           },
           daysOfWeek: [1, 2, 3, 4, 5], // Weekdays
         },
+        ...advertisements,
       ],
     });
   };
@@ -804,337 +817,16 @@ export function HospitalEditor({
       </CollapsibleSection>
 
       {/* Advertisement Schedules Section - 16:9 Full Screen with Scheduling */}
-      <CollapsibleSection
-        title="📺 Advertisement Schedules (16:9 Fullscreen)"
-        defaultOpen={true}
-      >
-        <div className="space-y-4">
-          <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-            <p className="text-sm text-purple-400">
-              <strong>Full Screen Advertisements:</strong> Schedule 16:9 ads to
-              display in fullscreen mode with complete scheduling controls. Ads
-              will only show when enabled and within their schedule range.
-            </p>
-          </div>
-
-          <div className="flex justify-end mb-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddAdvertisement}
-              className="border-purple-500 text-purple-400 h-7 bg-transparent hover:bg-purple-500/10"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Add Advertisement
-            </Button>
-          </div>
-
-          {advertisements.map((ad: any, idx: number) => {
-            const isCustomFrequency = !frequencyOptions.some(
-              (opt) => opt.value === ad.frequency
-            );
-            const selectedValue = isCustomFrequency ? "custom" : ad.frequency;
-
-            return (
-              <div
-                key={ad.id}
-                className="bg-slate-700/50 p-4 rounded-lg space-y-4 border border-slate-600"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={ad.enabled}
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "enabled",
-                            e.target.checked
-                          )
-                        }
-                        className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500"
-                      />
-                      <span className="text-sm font-medium text-slate-300">
-                        Ad #{idx + 1} {ad.enabled ? "✓" : "✗"}
-                      </span>
-                    </div>
-                    <div className="px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-400">
-                      16:9 Fullscreen
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemoveAdvertisement(idx)}
-                    className="text-red-400 hover:bg-red-500/10"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <Input
-                    value={ad.title}
-                    onChange={(e) =>
-                      handleUpdateAdvertisement(idx, "title", e.target.value)
-                    }
-                    placeholder="Advertisement Title"
-                    className="bg-slate-700 border-slate-600 text-slate-50"
-                  />
-
-                  <Input
-                    value={ad.caption}
-                    onChange={(e) =>
-                      handleUpdateAdvertisement(idx, "caption", e.target.value)
-                    }
-                    placeholder="Advertisement Description"
-                    className="bg-slate-700 border-slate-600 text-slate-50"
-                  />
-
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">
-                      Advertisement Image (16:9 recommended)
-                    </label>
-                    <ImageUploader
-                      images={ad.image ? [ad.image] : []}
-                      onChange={(imgs) =>
-                        handleUpdateAdvertisement(idx, "image", imgs[0] || "")
-                      }
-                      maxImages={1}
-                      userId={currentUserId}
-                      displayId={displayId}
-                      imageType="advertisement"
-                      environment={environment}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block">
-                        Display Frequency
-                      </label>
-                      <Select
-                        value={selectedValue.toString()}
-                        onValueChange={(value) =>
-                          handleFrequencyChange(
-                            idx,
-                            value === "custom" ? "custom" : parseInt(value)
-                          )
-                        }
-                      >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-50">
-                          <SelectValue>
-                            {isCustomFrequency
-                              ? `Custom (${formatSeconds(ad.frequency)})`
-                              : frequencyOptions.find(
-                                  (opt) => opt.value === ad.frequency
-                                )?.label || "Select frequency"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
-                          {frequencyOptions.map((option) => (
-                            <SelectItem
-                              key={option.value.toString()}
-                              value={option.value.toString()}
-                              className="text-slate-200 hover:bg-slate-700"
-                            >
-                              <div>
-                                <div className="font-medium">
-                                  {option.label}
-                                </div>
-                                {option.description && (
-                                  <div className="text-xs text-slate-400">
-                                    {option.description}
-                                  </div>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      {selectedValue === "custom" && (
-                        <div className="mt-2">
-                          <label className="text-xs text-slate-400 mb-1 block">
-                            Custom Interval (seconds)
-                          </label>
-                          <Input
-                            type="number"
-                            value={customFrequency[idx] || ad.frequency}
-                            onChange={(e) =>
-                              handleCustomFrequencyChange(idx, e.target.value)
-                            }
-                            min="30"
-                            max="2592000"
-                            className="bg-slate-700 border-slate-600 text-slate-50"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Current: {formatSeconds(ad.frequency)} (
-                            {ad.frequency}s)
-                          </p>
-                        </div>
-                      )}
-
-                      {selectedValue !== "custom" && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Show every {formatSeconds(ad.frequency)}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block">
-                        Duration (seconds)
-                      </label>
-                      <Input
-                        type="number"
-                        value={ad.duration}
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "duration",
-                            parseInt(e.target.value) || 30
-                          )
-                        }
-                        min="5"
-                        max="300"
-                        className="bg-slate-700 border-slate-600 text-slate-50"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Display for {ad.duration}s
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Start Date
-                      </label>
-                      <Input
-                        type="date"
-                        value={
-                          ad.dateRange.start
-                            ? ad.dateRange.start.split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "dateRange.start",
-                            new Date(e.target.value).toISOString()
-                          )
-                        }
-                        className="bg-slate-700 border-slate-600 text-slate-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        End Date
-                      </label>
-                      <Input
-                        type="date"
-                        value={
-                          ad.dateRange.end ? ad.dateRange.end.split("T")[0] : ""
-                        }
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "dateRange.end",
-                            new Date(e.target.value).toISOString()
-                          )
-                        }
-                        className="bg-slate-700 border-slate-600 text-slate-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Start Time
-                      </label>
-                      <Input
-                        type="time"
-                        value={ad.timeRange.start || "09:00"}
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "timeRange.start",
-                            e.target.value
-                          )
-                        }
-                        className="bg-slate-700 border-slate-600 text-slate-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1 block flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        End Time
-                      </label>
-                      <Input
-                        type="time"
-                        value={ad.timeRange.end || "17:00"}
-                        onChange={(e) =>
-                          handleUpdateAdvertisement(
-                            idx,
-                            "timeRange.end",
-                            e.target.value
-                          )
-                        }
-                        className="bg-slate-700 border-slate-600 text-slate-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-slate-400 mb-2 block">
-                      Active Days
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {daysOfWeek.map((day) => (
-                        <label
-                          key={day.id}
-                          className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            ad.daysOfWeek?.includes(day.id)
-                              ? "bg-purple-500 text-white"
-                              : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={ad.daysOfWeek?.includes(day.id) || false}
-                            onChange={(e) =>
-                              handleUpdateAdDays(idx, day.id, e.target.checked)
-                            }
-                            className="hidden"
-                          />
-                          {day.label}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {advertisements.length === 0 && (
-            <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-700 rounded-lg">
-              <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-              <p className="text-sm mb-2">No advertisements configured</p>
-              <p className="text-xs text-slate-500">
-                Add fullscreen 16:9 ads with custom schedules
-              </p>
-            </div>
-          )}
-        </div>
+      <CollapsibleSection title="📢 Advertisement Schedules (16:9 Full Screen)">
+        <AdvertisementEditor
+          advertisements={advertisements}
+          onAdvertisementsChange={(ads) =>
+            handleFieldChange("advertisements", ads)
+          }
+          displayId={displayId}
+          userId={currentUserId}
+          environment={environment}
+        />
       </CollapsibleSection>
 
       {/* Gallery Images Section - Simple 1:1 Images */}
