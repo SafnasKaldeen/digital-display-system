@@ -1240,7 +1240,7 @@ export function MasjidTemplate({
 
               {/* Date - positioned on the right with high z-index */}
               <div
-                className="absolute right-48 top-1/4 transform -translate-y-1/2 z-50"
+                className="absolute right-40 top-1/4 transform -translate-y-1/2 z-50"
                 style={{
                   maxWidth: "40%",
                 }}
