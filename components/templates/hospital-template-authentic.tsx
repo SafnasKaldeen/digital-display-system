@@ -586,7 +586,7 @@ function HospitalTemplateAuthentic({
       </div>
 
       {/* Debug Info */}
-      {process.env.NODE_ENV === "development" && (
+      {/* {process.env.NODE_ENV === "development" && (
         <div className="absolute bottom-20 right-8 z-50">
           <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20 text-xs text-white space-y-1">
             <div>
@@ -608,7 +608,7 @@ function HospitalTemplateAuthentic({
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
