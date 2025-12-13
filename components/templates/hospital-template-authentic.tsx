@@ -69,6 +69,7 @@ interface AdQueueState {
   currentAd: AdSchedule | null;
   isPlaying: boolean;
   currentIndex: number;
+  isTransitioning: boolean;
 }
 
 function HospitalTemplateAuthentic({
@@ -109,11 +110,14 @@ function HospitalTemplateAuthentic({
     currentAd: null,
     isPlaying: false,
     currentIndex: 0,
+    isTransitioning: false,
   });
 
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const scheduledAdsRef = useRef<Set<string>>(new Set());
   const lastCheckTimeRef = useRef<number>(0);
+  const adStartTimeRef = useRef<number>(0);
+  const adSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const bgImages =
     settings.enableSlideshow &&
@@ -190,62 +194,98 @@ function HospitalTemplateAuthentic({
     [settings.advertisements, isAdScheduledNow]
   );
 
-  // Play next ad in queue
-  const playNext = useCallback(() => {
+  // Handle ad completion - FIXED to not be called during render
+  const handleAdComplete = useCallback(() => {
+    console.log("✓ Ad completed, transitioning to next");
+
+    // Clear any safety timeout
+    if (adSafetyTimeoutRef.current) {
+      clearTimeout(adSafetyTimeoutRef.current);
+      adSafetyTimeoutRef.current = null;
+    }
+
+    // Move to next ad in queue
     setAdQueueState((prev) => {
-      // No more ads in queue
-      if (prev.currentIndex >= prev.queue.length) {
-        console.log("✅ Ad queue completed, returning to normal display");
+      const nextIndex = prev.currentIndex + 1;
+
+      console.log(
+        `📊 Queue status: current=${prev.currentIndex}, next=${nextIndex}, total=${prev.queue.length}`
+      );
+
+      // Check if queue is finished
+      if (nextIndex >= prev.queue.length) {
+        console.log("✅ All ads completed, returning to normal display");
         return {
           queue: [],
           currentAd: null,
           isPlaying: false,
           currentIndex: 0,
+          isTransitioning: false,
         };
       }
 
-      const nextAd = prev.queue[prev.currentIndex];
+      // Move to transitioning state with next index
       console.log(
-        `▶️ Playing ad ${prev.currentIndex + 1}/${prev.queue.length}:`,
-        {
-          title: nextAd.title,
-          type: nextAd.mediaType,
-          duration:
-            nextAd.mediaType === "image"
-              ? `${nextAd.duration}s`
-              : `${nextAd.playCount} plays`,
-        }
+        `⏳ Transitioning to ad ${nextIndex + 1}/${prev.queue.length}`
       );
-
       return {
         ...prev,
-        currentAd: nextAd,
-        isPlaying: true,
+        currentAd: null,
+        isPlaying: false,
+        currentIndex: nextIndex,
+        isTransitioning: true,
       };
     });
-  }, []);
 
-  // Handle ad completion
-  const handleAdComplete = useCallback(() => {
-    console.log("✓ Ad completed");
-
-    setAdQueueState((prev) => ({
-      ...prev,
-      currentAd: null,
-      isPlaying: false,
-      currentIndex: prev.currentIndex + 1,
-    }));
-
-    // Small delay before next ad
+    // After transition delay, play the next ad
     setTimeout(() => {
-      playNext();
-    }, 300);
-  }, [playNext]);
+      setAdQueueState((prev) => {
+        // Safety check - make sure we still have ads
+        if (prev.currentIndex >= prev.queue.length) {
+          console.log("⚠️ No more ads in queue");
+          return {
+            ...prev,
+            isTransitioning: false,
+          };
+        }
+
+        const nextAd = prev.queue[prev.currentIndex];
+        console.log(
+          `🎬 NOW PLAYING: Ad ${prev.currentIndex + 1}/${prev.queue.length} - ${
+            nextAd.title
+          } (${nextAd.mediaType})`
+        );
+
+        // Record start time and set safety timeout
+        adStartTimeRef.current = Date.now();
+        const maxAdDuration =
+          nextAd.mediaType === "image"
+            ? nextAd.duration * 1000 + 10000 // Image duration + 10s buffer
+            : 360000; // 6 minutes max for videos
+
+        adSafetyTimeoutRef.current = setTimeout(() => {
+          console.error("⏱️ AD SAFETY TIMEOUT - Ad stuck, forcing skip");
+          handleAdComplete();
+        }, maxAdDuration);
+
+        return {
+          ...prev,
+          currentAd: nextAd,
+          isPlaying: true,
+          isTransitioning: false,
+        };
+      });
+    }, 2000);
+  }, []);
 
   // Check schedule periodically
   const checkSchedule = useCallback(() => {
-    // Don't check if currently playing
-    if (adQueueState.isPlaying) {
+    // Don't check if currently playing, transitioning, OR if there's already a queue
+    if (
+      adQueueState.isPlaying ||
+      adQueueState.isTransitioning ||
+      adQueueState.queue.length > 0
+    ) {
       return;
     }
 
@@ -255,44 +295,36 @@ function HospitalTemplateAuthentic({
     if (matchingAds.length > 0) {
       console.log(
         `🎬 Found ${matchingAds.length} scheduled ad(s):`,
-        matchingAds.map((ad) => ({ title: ad.title, priority: ad.priority }))
+        matchingAds.map(
+          (ad, idx) => `${idx + 1}. ${ad.title} (${ad.mediaType})`
+        )
       );
 
       // Mark these ads as scheduled for this frequency window
       matchingAds.forEach((ad) => scheduledAdsRef.current.add(ad.id));
 
-      // Start the queue
+      // Start the queue with first ad
+      const firstAd = matchingAds[0];
+      console.log(
+        `▶️ Starting queue with: ${firstAd.title} (${firstAd.mediaType})`
+      );
+
       setAdQueueState({
         queue: matchingAds,
-        currentAd: null,
-        isPlaying: false,
+        currentAd: firstAd,
+        isPlaying: true,
         currentIndex: 0,
+        isTransitioning: false,
       });
 
       // Update last check time
       lastCheckTimeRef.current = now.getTime();
-
-      // Start playing first ad
-      setTimeout(() => {
-        playNext();
-      }, 100);
-    }
-  }, [adQueueState.isPlaying, findScheduledAds, playNext]);
-
-  // Auto-play next ad when currentIndex changes
-  useEffect(() => {
-    if (
-      adQueueState.currentIndex > 0 &&
-      !adQueueState.isPlaying &&
-      adQueueState.currentIndex < adQueueState.queue.length
-    ) {
-      playNext();
     }
   }, [
-    adQueueState.currentIndex,
     adQueueState.isPlaying,
+    adQueueState.isTransitioning,
     adQueueState.queue.length,
-    playNext,
+    findScheduledAds,
   ]);
 
   // Set up periodic schedule checking
@@ -311,6 +343,9 @@ function HospitalTemplateAuthentic({
       console.log("🛑 Stopping ad schedule checker");
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
+      }
+      if (adSafetyTimeoutRef.current) {
+        clearTimeout(adSafetyTimeoutRef.current);
       }
     };
   }, [checkSchedule]);
@@ -436,7 +471,7 @@ function HospitalTemplateAuthentic({
         <div className="flex-1 relative overflow-hidden">
           {/* Normal Display Content */}
           <div
-            className={`transition-opacity duration-300 h-full ${
+            className={`transition-opacity duration-500 h-full ${
               showAd ? "opacity-0 pointer-events-none" : "opacity-100"
             }`}
           >
@@ -507,10 +542,10 @@ function HospitalTemplateAuthentic({
                             <div
                               key={idx}
                               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                idx < adQueueState.currentIndex + 1
-                                  ? "bg-white"
+                                idx < adQueueState.currentIndex
+                                  ? "bg-green-400"
                                   : idx === adQueueState.currentIndex
-                                  ? "bg-white/80 scale-125"
+                                  ? "bg-white scale-125"
                                   : "bg-white/30"
                               }`}
                             />
@@ -521,6 +556,15 @@ function HospitalTemplateAuthentic({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Transition Indicator */}
+          {adQueueState.isTransitioning && (
+            <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/50">
+              <div className="text-white text-xl font-medium">
+                Loading next content...
+              </div>
             </div>
           )}
         </div>
@@ -545,12 +589,21 @@ function HospitalTemplateAuthentic({
       {process.env.NODE_ENV === "development" && (
         <div className="absolute bottom-20 right-8 z-50">
           <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20 text-xs text-white space-y-1">
-            <div>Ads in queue: {adQueueState.queue.length}</div>
-            <div>Currently playing: {showAd ? "Yes" : "No"}</div>
-            {showAd && (
+            <div>
+              Queue:{" "}
+              {adQueueState.queue
+                .map((a) => a.title.substring(0, 10))
+                .join(", ")}
+            </div>
+            <div>Current Index: {adQueueState.currentIndex}</div>
+            <div>Playing: {showAd ? "Yes" : "No"}</div>
+            <div>
+              Transitioning: {adQueueState.isTransitioning ? "Yes" : "No"}
+            </div>
+            {adQueueState.currentAd && (
               <div>
-                Position: {adQueueState.currentIndex + 1}/
-                {adQueueState.queue.length}
+                Current: {adQueueState.currentAd.title} (
+                {adQueueState.currentAd.mediaType})
               </div>
             )}
           </div>

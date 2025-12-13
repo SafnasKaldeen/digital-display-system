@@ -69,40 +69,60 @@ export default function FullScreenAd({
   const videoRef = useRef<HTMLVideoElement>(null);
   const animationClass = getAnimationClass(animation);
 
-  // Store initial values in refs to prevent re-renders
-  const durationRef = useRef(duration);
-  const playCountRef = useRef(playCount);
-  const videoUrlRef = useRef(videoUrl);
+  // Store callback in ref to prevent re-renders and ensure we always have latest version
   const onDurationEndRef = useRef(onDurationEnd);
+  const hasCalledEndRef = useRef(false);
 
-  // Update refs when props change
+  // Update ref when callback changes
   useEffect(() => {
-    durationRef.current = duration;
-    playCountRef.current = playCount;
-    videoUrlRef.current = videoUrl;
     onDurationEndRef.current = onDurationEnd;
-  }, [duration, playCount, videoUrl, onDurationEnd]);
+  }, [onDurationEnd]);
+
+  // Helper to safely call onDurationEnd outside of render
+  const callOnDurationEnd = useCallback(() => {
+    if (!hasCalledEndRef.current && onDurationEndRef.current) {
+      hasCalledEndRef.current = true;
+      console.log("📢 Scheduling onDurationEnd callback");
+      // Defer to next tick to avoid calling during render
+      setTimeout(() => {
+        console.log("✓ Executing onDurationEnd");
+        onDurationEndRef.current?.();
+      }, 0);
+    }
+  }, []);
 
   // Image timer functionality
   useEffect(() => {
     if (mediaType === "image" && showTimer && duration > 0) {
+      hasCalledEndRef.current = false;
       setTimeRemaining(duration);
+
+      // Safety timeout - if timer doesn't complete naturally, force skip
+      const safetyTimeout = setTimeout(() => {
+        console.warn("⏱️ Image timer safety timeout triggered");
+        callOnDurationEnd();
+      }, duration + 5000); // Duration + 5 second buffer
+
       const interval = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 100) {
             clearInterval(interval);
-            onDurationEndRef.current?.();
+            clearTimeout(safetyTimeout);
+            callOnDurationEnd();
             return 0;
           }
           return prev - 100;
         });
       }, 100);
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(safetyTimeout);
+      };
     }
-  }, [mediaType, showTimer, duration]);
+  }, [mediaType, showTimer, duration, callOnDurationEnd]);
 
-  // Video initialization - MODIFIED to use playCount
+  // Video initialization
   useEffect(() => {
     if (mediaType !== "video" || !videoUrl || !videoRef.current) {
       return;
@@ -111,45 +131,109 @@ export default function FullScreenAd({
     const video = videoRef.current;
     let isMounted = true;
     let cleanupTimeout: NodeJS.Timeout;
+    let loadingTimeout: NodeJS.Timeout;
+    let stallTimeout: NodeJS.Timeout;
 
-    console.log("Setting up video player with playCount:", playCount);
+    console.log(
+      `🎥 Setting up video: ${videoUrl.substring(
+        videoUrl.lastIndexOf("/") + 1
+      )} (playCount: ${playCount})`
+    );
+
+    // Reset hasCalledEndRef when new video starts
+    hasCalledEndRef.current = false;
+
+    // Set a timeout for video loading (30 seconds)
+    loadingTimeout = setTimeout(() => {
+      if (isMounted && !isVideoReady && !hasVideoError) {
+        console.error("⏱️ Video loading timeout - taking too long to load");
+        setHasVideoError(true);
+        setIsVideoLoading(false);
+        // Auto-skip after showing error for 3 seconds
+        setTimeout(() => {
+          if (isMounted) {
+            console.log("⏭️ Auto-skipping failed video");
+            callOnDurationEnd();
+          }
+        }, 3000);
+      }
+    }, 30000); // 30 second timeout
 
     const handleCanPlay = () => {
       if (!isMounted) return;
-      console.log("Video can play");
+      console.log("✓ Video ready to play");
       setIsVideoReady(true);
       setIsVideoLoading(false);
+      clearTimeout(loadingTimeout); // Clear loading timeout
     };
 
     const handlePlaying = () => {
       if (!isMounted) return;
-      console.log("Video playing");
+      console.log("▶️ Video is playing");
       setIsPlaying(true);
       setIsVideoLoading(false);
+      clearTimeout(loadingTimeout); // Clear loading timeout
+      clearTimeout(stallTimeout); // Clear any previous stall timeout
+
+      // Set a stall detection timeout (if video doesn't end in reasonable time)
+      const maxDuration = 300000; // 5 minutes max per video
+      stallTimeout = setTimeout(() => {
+        if (isMounted && isPlaying) {
+          console.error("⏱️ Video appears to be stalled or too long");
+          setHasVideoError(true);
+          setTimeout(() => {
+            if (isMounted) {
+              console.log("⏭️ Auto-skipping stalled video");
+              callOnDurationEnd();
+            }
+          }, 2000);
+        }
+      }, maxDuration);
     };
 
     const handleWaiting = () => {
       if (!isMounted) return;
-      console.log("Video waiting");
+      console.log("⏳ Video buffering");
       setIsVideoLoading(true);
+
+      // If buffering takes too long, show error
+      const bufferTimeout = setTimeout(() => {
+        if (isMounted && isVideoLoading) {
+          console.error("⏱️ Video buffering timeout");
+          setHasVideoError(true);
+          setTimeout(() => {
+            if (isMounted) {
+              console.log("⏭️ Auto-skipping buffering video");
+              callOnDurationEnd();
+            }
+          }, 2000);
+        }
+      }, 15000); // 15 second buffer timeout
+
+      // Clear this timeout when video resumes
+      const handleResumed = () => {
+        clearTimeout(bufferTimeout);
+        video.removeEventListener("playing", handleResumed);
+      };
+      video.addEventListener("playing", handleResumed, { once: true });
     };
 
     const handleEnded = () => {
       if (!isMounted) return;
-      console.log("Video ended");
+      console.log("🏁 Video ended");
 
       setCurrentPlayCount((prev) => {
         const newCount = prev + 1;
-        const totalPlays = playCountRef.current;
+        console.log(`✓ Completed play ${newCount} of ${playCount}`);
 
-        console.log(`Play ${newCount} of ${totalPlays} completed`);
-
-        if (newCount >= totalPlays) {
-          console.log(`All ${totalPlays} plays completed, ending video`);
+        if (newCount >= playCount) {
+          console.log(
+            `✅ All ${playCount} plays completed - calling onDurationEnd`
+          );
           setIsPlaying(false);
-          onDurationEndRef.current?.();
+          callOnDurationEnd();
         } else {
-          console.log(`Replaying video (${newCount + 1}/${totalPlays})`);
+          console.log(`🔄 Replaying video (${newCount + 1}/${playCount})`);
           // Restart video for next play
           if (video) {
             video.currentTime = 0;
@@ -168,10 +252,20 @@ export default function FullScreenAd({
     const handleError = (e: Event) => {
       if (!isMounted) return;
       const videoElement = e.target as HTMLVideoElement;
-      console.error("Video error:", videoElement.error);
+      console.error("❌ Video error:", videoElement.error);
       setIsVideoLoading(false);
       setHasVideoError(true);
       setIsVideoReady(false);
+      clearTimeout(loadingTimeout);
+      clearTimeout(stallTimeout);
+
+      // Auto-skip after showing error for 3 seconds
+      setTimeout(() => {
+        if (isMounted) {
+          console.log("⏭️ Auto-skipping failed video");
+          callOnDurationEnd();
+        }
+      }, 3000);
     };
 
     // Reset states
@@ -188,7 +282,6 @@ export default function FullScreenAd({
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = "anonymous";
-    // Don't use loop as we handle it manually with playCount
     video.loop = false;
 
     // Add event listeners
@@ -209,7 +302,10 @@ export default function FullScreenAd({
             }
           })
           .catch((error) => {
-            console.log("Autoplay blocked, showing manual play button:", error);
+            console.log(
+              "⚠️ Autoplay blocked, showing manual play button:",
+              error
+            );
             if (isMounted) {
               setShowPlayButton(true);
             }
@@ -219,9 +315,11 @@ export default function FullScreenAd({
 
     // Cleanup function
     return () => {
-      console.log("Cleaning up video player");
+      console.log("🧹 Cleaning up video player");
       isMounted = false;
       clearTimeout(cleanupTimeout);
+      clearTimeout(loadingTimeout);
+      clearTimeout(stallTimeout);
 
       // Remove event listeners
       video.removeEventListener("canplay", handleCanPlay);
@@ -237,7 +335,7 @@ export default function FullScreenAd({
         video.load();
       }
     };
-  }, [mediaType, videoUrl, playCount]); // Added playCount dependency
+  }, [mediaType, videoUrl, playCount, callOnDurationEnd]);
 
   // Manual play handler
   const handleManualPlay = useCallback(async () => {
@@ -257,9 +355,9 @@ export default function FullScreenAd({
 
   // Skip button handler (for testing)
   const handleSkipVideo = useCallback(() => {
-    console.log("Skipping video early");
-    onDurationEndRef.current?.();
-  }, []);
+    console.log("⏩ Skipping video");
+    callOnDurationEnd();
+  }, [callOnDurationEnd]);
 
   const progressPercentage =
     mediaType === "image" && duration > 0
@@ -276,7 +374,6 @@ export default function FullScreenAd({
   return (
     <>
       <style jsx>{`
-        /* Animation styles remain the same */
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -524,20 +621,14 @@ export default function FullScreenAd({
                       Video Failed to Load
                     </h3>
                     <p className="text-white/70 mb-6">
-                      Unable to load the video content.
+                      Unable to load the video content. Skipping to next...
                     </p>
-                    {onDurationEnd && (
-                      <button
-                        onClick={onDurationEnd}
-                        className="px-6 py-3 rounded-lg font-medium"
-                        style={{
-                          backgroundColor: accentColor,
-                          color: "white",
-                        }}
-                      >
-                        Continue
-                      </button>
-                    )}
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      <span className="text-white/70 text-sm">
+                        Auto-skipping in 3s
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}

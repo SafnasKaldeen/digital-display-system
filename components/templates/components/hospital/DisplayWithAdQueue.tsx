@@ -1,7 +1,7 @@
 // components/DisplayWithAdQueue.tsx
 import React, { useState } from "react";
 import FullScreenAd from "./FullScreenAd";
-import { useAdQueueManager, Advertisement } from "../hooks/useAdQueueManager";
+import { useAdQueueManager, Advertisement } from "@/hooks/useAdQueueManager";
 
 interface DisplayWithAdQueueProps {
   advertisements: Advertisement[];
