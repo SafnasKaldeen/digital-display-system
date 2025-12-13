@@ -1004,9 +1004,9 @@ export default function PrayerTimesManager({
                               "صبح",
                               "சுபஹ்",
                               "பஜ்ர்",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
@@ -1029,9 +1029,9 @@ export default function PrayerTimesManager({
                               "مغرب",
                               "Maghrib",
                               "மக்ரிப்",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
@@ -1054,9 +1054,9 @@ export default function PrayerTimesManager({
                               "عصر",
                               "Asr",
                               "அஸ்ர்",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
@@ -1079,9 +1079,9 @@ export default function PrayerTimesManager({
                               "شروق",
                               "Sunup",
                               "சூரிய உதயம்",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
@@ -1105,9 +1105,9 @@ export default function PrayerTimesManager({
                               "عشاء",
                               "Esha",
                               "இஷா",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
@@ -1131,9 +1131,9 @@ export default function PrayerTimesManager({
                               "ظهر",
                               "Zuhr",
                               "ழுஹர்",
-                            ].map((suggestion) => (
+                            ].map((suggestion, index) => (
                               <button
-                                key={suggestion}
+                                key={`${suggestion}-${index}`}
                                 type="button"
                                 onClick={() => {
                                   const newNames = { ...prayerNames };
