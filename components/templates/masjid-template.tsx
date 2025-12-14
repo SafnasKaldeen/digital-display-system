@@ -1094,9 +1094,10 @@ export function MasjidTemplate({
   const renderHorizontalLayout = () => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const isAdhanSoon = isCloseToAdhan();
+    const currentSeconds = now.getSeconds();
+    const currentTotalMinutes = currentMinutes + currentSeconds / 60;
 
-    // Find next prayer and calculate times until adhan and iqamah
+    // Find next prayer and check if it's Adhan time
     const getNextPrayerInfo = () => {
       const prayerList = prayers.filter(
         (p) => p.name.toLowerCase() !== "sunrise"
@@ -1109,64 +1110,62 @@ export function MasjidTemplate({
         const prayerTime = prayerHours * 60 + prayerMinutes;
         const iqamahTime = prayerTime + prayerList[i].offset;
 
-        const currentTotalMinutes = currentMinutes + now.getSeconds() / 60;
-
-        // If we haven't reached the iqamah yet
-        if (currentTotalMinutes < iqamahTime) {
-          // Calculate time until adhan
-          const adhanDiff = prayerTime - currentTotalMinutes;
-          const adhanSeconds = Math.floor(adhanDiff * 60);
-          const adhanHours = Math.floor(adhanSeconds / 3600);
-          const adhanMins = Math.floor((adhanSeconds % 3600) / 60);
-          const adhanSecs = adhanSeconds % 60;
-
-          // Calculate time until iqamah
+        // Check if it's currently Adhan time (between Adhan and Iqamah)
+        if (
+          currentTotalMinutes >= prayerTime &&
+          currentTotalMinutes < iqamahTime
+        ) {
+          // Calculate countdown to Iqamah
           const iqamahDiff = iqamahTime - currentTotalMinutes;
           const iqamahSeconds = Math.floor(iqamahDiff * 60);
-          const iqamahHours = Math.floor(iqamahSeconds / 3600);
-          const iqamahMins = Math.floor((iqamahSeconds % 3600) / 60);
+          const iqamahMins = Math.floor(iqamahSeconds / 60);
           const iqamahSecs = iqamahSeconds % 60;
 
           return {
             prayer: prayerList[i],
-            adhanHours: adhanHours.toString().padStart(2, "0"),
-            adhanMins: adhanMins.toString().padStart(2, "0"),
-            adhanSecs: adhanSecs.toString().padStart(2, "0"),
-            iqamahHours: iqamahHours.toString().padStart(2, "0"),
-            iqamahMins: iqamahMins.toString().padStart(2, "0"),
-            iqamahSecs: iqamahSecs.toString().padStart(2, "0"),
+            isAdhanTime: true,
+            iqamahCountdownMins: iqamahMins.toString().padStart(2, "0"),
+            iqamahCountdownSecs: iqamahSecs.toString().padStart(2, "0"),
+          };
+        }
+
+        // If we haven't reached this prayer yet
+        if (currentTotalMinutes < prayerTime) {
+          // Format time without AM/PM for horizontal layout
+          const formatTimeNoAMPM = (time: string) => {
+            const [hours, minutes] = time.split(":");
+            const hour = Number.parseInt(hours);
+            const displayHour = hour % 12 || 12;
+            return `${displayHour.toString().padStart(2, "0")}:${minutes}`;
+          };
+
+          return {
+            prayer: prayerList[i],
+            isAdhanTime: false,
+            adhanTime: formatTimeNoAMPM(prayerList[i].time),
+            iqamahTime: formatTimeNoAMPM(
+              calculateIqamahTime(prayerList[i].time, prayerList[i].offset)
+            ),
           };
         }
       }
 
       // If all prayers passed, show tomorrow's Fajr
       const fajr = prayerList[0];
-      const [hours, minutes] = fajr.time.split(":").map(Number);
-      const fajrMinutes = hours * 60 + minutes;
-      const fajrIqamah = fajrMinutes + fajr.offset;
-
-      const minutesLeftToday =
-        24 * 60 - (currentMinutes + now.getSeconds() / 60);
-      const adhanDiff = minutesLeftToday + fajrMinutes;
-      const adhanSeconds = Math.floor(adhanDiff * 60);
-      const adhanHours = Math.floor(adhanSeconds / 3600);
-      const adhanMins = Math.floor((adhanSeconds % 3600) / 60);
-      const adhanSecs = adhanSeconds % 60;
-
-      const iqamahDiff = minutesLeftToday + fajrIqamah;
-      const iqamahSeconds = Math.floor(iqamahDiff * 60);
-      const iqamahHours = Math.floor(iqamahSeconds / 3600);
-      const iqamahMins = Math.floor((iqamahSeconds % 3600) / 60);
-      const iqamahSecs = iqamahSeconds % 60;
+      const formatTimeNoAMPM = (time: string) => {
+        const [hours, minutes] = time.split(":");
+        const hour = Number.parseInt(hours);
+        const displayHour = hour % 12 || 12;
+        return `${displayHour.toString().padStart(2, "0")}:${minutes}`;
+      };
 
       return {
         prayer: fajr,
-        adhanHours: adhanHours.toString().padStart(2, "0"),
-        adhanMins: adhanMins.toString().padStart(2, "0"),
-        adhanSecs: adhanSecs.toString().padStart(2, "0"),
-        iqamahHours: iqamahHours.toString().padStart(2, "0"),
-        iqamahMins: iqamahMins.toString().padStart(2, "0"),
-        iqamahSecs: iqamahSecs.toString().padStart(2, "0"),
+        isAdhanTime: false,
+        adhanTime: formatTimeNoAMPM(fajr.time),
+        iqamahTime: formatTimeNoAMPM(
+          calculateIqamahTime(fajr.time, fajr.offset)
+        ),
       };
     };
 
@@ -1259,95 +1258,129 @@ export function MasjidTemplate({
                   {currentTime.toLocaleDateString("en-US", {
                     month: "long",
                   })}
-                  {/* {" / "}
-                  {currentTime.toLocaleDateString("en-US", {
-                    year: "numeric",
-                  })} */}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Middle Section - Next Adhan and Iqamah Times */}
-        <div className="grid grid-cols-2 gap-12 mb-2">
-          {/* Next Adhan */}
-          <div
-            className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
-            style={{
-              backgroundColor: `${customization.colors.primary}40`,
-              border: `3px solid ${customization.colors.accent}80`,
-              boxShadow: `0 8px 32px ${customization.colors.primary}60, inset 0 0 40px ${customization.colors.accent}20`,
-            }}
-          >
+        {/* Middle Section - Prayer Times or Iqamah Countdown */}
+        {nextPrayerInfo.isAdhanTime ? (
+          // Single card for Iqamah countdown during Adhan time
+          <div className="mb-2">
             <div
-              className="text-7xl font-bold mb-1 px-10 py-0 rounded-full inline-block"
+              className="p-12 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden animate-pulse"
               style={{
-                backgroundColor: `${customization.colors.accent}CC`,
-                color: "#FFFFFF",
-                textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                fontFamily: customization.font,
-                border: "2px solid rgba(255, 255, 255, 0.3)",
+                backgroundColor: `${customization.colors.accent}60`,
+                border: `5px solid ${customization.colors.accent}`,
+                boxShadow: `0 0 60px ${customization.colors.accent}80, 0 12px 40px rgba(0, 0, 0, 0.6)`,
               }}
             >
-              {customization.showArabic ? (
-                <span style={{ fontFamily: "Arial, sans-serif" }}>
-                  {nextPrayerInfo.prayer.name}
+              <div
+                className="text-8xl font-bold mb-4 px-12 py-2 rounded-full inline-block"
+                style={{
+                  backgroundColor: `${customization.colors.accent}DD`,
+                  color: "#FFFFFF",
+                  textShadow: "3px 3px 8px rgba(0, 0, 0, 0.9)",
+                  fontFamily: customization.font,
+                  border: "3px solid rgba(255, 255, 255, 0.4)",
+                }}
+              >
+                <div className="p-2">
+                  {nextPrayerInfo.prayer.name} - {t.iqamahIn}
+                </div>
+              </div>
+              <div className="flex items-center justify-center mt-0">
+                <span
+                  className="text-[20rem] font-extrabold font-mono leading-none"
+                  style={{
+                    color: "#FFFF00",
+                    textShadow:
+                      "0 0 50px rgba(255, 255, 0, 0.8), 6px 6px 20px rgba(0, 0, 0, 0.9)",
+                    fontFamily: customization.font,
+                  }}
+                >
+                  {nextPrayerInfo.iqamahCountdownMins}:
+                  {nextPrayerInfo.iqamahCountdownSecs}
                 </span>
-              ) : (
-                <div className="p-4">{nextPrayerInfo.prayer.name}</div>
-              )}
-            </div>
-            <div className="flex items-center justify-center">
-              <span
-                className="text-[18rem] font-extrabold font-mono leading-none"
-                style={{
-                  color: "#FF4444",
-                  textShadow:
-                    "0 0 40px rgba(255, 68, 68, 0.6), 5px 5px 15px rgba(0, 0, 0, 0.9)",
-                  fontFamily: customization.font,
-                }}
-              >
-                {nextPrayerInfo.adhanMins}:{nextPrayerInfo.adhanSecs}
-              </span>
+              </div>
             </div>
           </div>
-
-          {/* Next Iqamah */}
-          <div
-            className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
-            style={{
-              backgroundColor: `${customization.colors.primary}40`,
-              border: `3px solid ${customization.colors.accent}80`,
-              boxShadow: `0 8px 32px ${customization.colors.primary}60, inset 0 0 40px ${customization.colors.accent}20`,
-            }}
-          >
+        ) : (
+          // Two cards showing next Adhan and Iqamah times
+          <div className="grid grid-cols-2 gap-12 mb-2">
+            {/* Next Adhan Time */}
             <div
-              className="text-7xl font-bold mb-1 px-10 py-0 rounded-full inline-block"
+              className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
               style={{
-                backgroundColor: `${customization.colors.accent}CC`,
-                color: "#FFFFFF",
-                textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                fontFamily: customization.font,
-                border: "2px solid rgba(255, 255, 255, 0.3)",
+                backgroundColor: `${customization.colors.primary}40`,
+                border: `3px solid ${customization.colors.accent}80`,
+                boxShadow: `0 8px 32px ${customization.colors.primary}60, inset 0 0 40px ${customization.colors.accent}20`,
               }}
             >
-              <div className="p-4">{t.iqamah}</div>
-            </div>
-            <div className="flex items-center justify-center">
-              <span
-                className="text-[18rem] font-extrabold font-mono leading-none"
+              <div
+                className="text-7xl font-bold mb-4 px-10 py-0 rounded-full inline-block"
                 style={{
-                  color: "#FFFF00",
-                  textShadow: "5px 5px 15px rgba(0, 0, 0, 0.9)",
+                  backgroundColor: `${customization.colors.accent}CC`,
+                  color: "#FFFFFF",
+                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
                   fontFamily: customization.font,
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
                 }}
               >
-                {nextPrayerInfo.iqamahMins}:{nextPrayerInfo.iqamahSecs}
-              </span>
+                <div className="p-4">{nextPrayerInfo.prayer.name}</div>
+              </div>
+              <div className="flex items-center justify-center mt-0">
+                <span
+                  className="text-[18rem] font-extrabold font-mono leading-none"
+                  style={{
+                    color: "#FF4444",
+                    textShadow:
+                      "0 0 40px rgba(255, 68, 68, 0.6), 5px 5px 15px rgba(0, 0, 0, 0.9)",
+                    fontFamily: customization.font,
+                  }}
+                >
+                  {nextPrayerInfo.adhanTime}
+                </span>
+              </div>
+            </div>
+
+            {/* Next Iqamah Time */}
+            <div
+              className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
+              style={{
+                backgroundColor: `${customization.colors.primary}40`,
+                border: `3px solid ${customization.colors.accent}80`,
+                boxShadow: `0 8px 32px ${customization.colors.primary}60, inset 0 0 40px ${customization.colors.accent}20`,
+              }}
+            >
+              <div
+                className="text-7xl font-bold mb-4 px-10 py-0 rounded-full inline-block"
+                style={{
+                  backgroundColor: `${customization.colors.accent}CC`,
+                  color: "#FFFFFF",
+                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
+                  fontFamily: customization.font,
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                }}
+              >
+                <div className="p-4">{t.iqamah}</div>
+              </div>
+              <div className="flex items-center justify-center mt-0">
+                <span
+                  className="text-[18rem] font-extrabold font-mono leading-none"
+                  style={{
+                    color: "#FFFF00",
+                    textShadow: "5px 5px 15px rgba(0, 0, 0, 0.9)",
+                    fontFamily: customization.font,
+                  }}
+                >
+                  {nextPrayerInfo.iqamahTime}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom Section - Masjid Name & Hijri Date */}
         <div className="p-8 mt-0 rounded-3xl backdrop-blur-md text-center">
