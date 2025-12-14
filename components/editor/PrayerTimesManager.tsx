@@ -1052,7 +1052,7 @@ export default function PrayerTimesManager({
                               "Asr",
                               "Afternoon Prayer",
                               "عصر",
-                              "Asr",
+                              "அஸ்ர்",
                               "அஸ்ர்",
                             ].map((suggestion, index) => (
                               <button

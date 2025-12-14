@@ -62,6 +62,30 @@ interface MasjidTemplateProps {
   backgroundStyle: React.CSSProperties;
 }
 
+// Helper function to get display name for prayer (show Jummah instead of Dhuhr on Friday)
+const getPrayerDisplayName = (prayerName: string, language: string) => {
+  const now = new Date();
+  const isFriday = now.getDay() === 5; // 5 = Friday
+
+  // Check for various forms of Dhuhr/Zuhr
+  const isDhuhr =
+    prayerName.toLowerCase().includes("dhuhr") ||
+    prayerName.toLowerCase().includes("zuhr") ||
+    prayerName.toLowerCase() === "ழுஹர்" ||
+    prayerName === "Dhuhr" ||
+    prayerName === "Zuhr";
+  prayerName.toLowerCase().includes("noon prayer") ||
+    prayerName.toLowerCase().includes("ظهر");
+
+  if (isFriday && isDhuhr) {
+    if (language === "ta") {
+      return "ஜும்மா";
+    }
+    return "Jummah";
+  }
+  return prayerName;
+};
+
 // Translations for labels
 const translations = {
   en: {
@@ -76,6 +100,8 @@ const translations = {
     ishraqTime: "ISHRAQ PRAYER",
     ishraqSubtitle: "Voluntary Prayer Time After Sunrise",
     ishraqRemaining: "Time Remaining",
+    current: "CURRENT",
+    next: "NEXT",
   },
   ta: {
     adhan: "அதான்",
@@ -89,6 +115,8 @@ const translations = {
     ishraqTime: "இஷ்ராக் தொழுகை",
     ishraqSubtitle: "சூரிய உதயத்திற்குப் பிறகு தன்னார்வ தொழுகை நேரம்",
     ishraqRemaining: "மீதமுள்ள நேரம்",
+    current: "தற்போதைய",
+    next: "அடுத்து",
   },
 };
 
@@ -649,7 +677,9 @@ export function MasjidTemplate({
           const remainingTimeInMs =
             (durationInMinutes - timeSinceIqamah) * 60 * 1000;
           setShowInstructions(true);
-          setInstructionsPrayer(prayer.name);
+          setInstructionsPrayer(
+            getPrayerDisplayName(prayer.name, customization.language)
+          );
           setInstructionsRemainingTime(Math.max(0, remainingTimeInMs));
           return;
         }
@@ -938,7 +968,7 @@ export function MasjidTemplate({
         const seconds = totalSecondsUntil % 60;
 
         setNextEvent({
-          name: prayer.name,
+          name: getPrayerDisplayName(prayer.name, customization.language),
           type: "adhan",
           timeUntil: `${hours.toString().padStart(2, "0")}:${minutes
             .toString()
@@ -960,7 +990,7 @@ export function MasjidTemplate({
         const seconds = totalSecondsUntil % 60;
 
         setNextEvent({
-          name: prayer.name,
+          name: getPrayerDisplayName(prayer.name, customization.language),
           type: "iqamah",
           timeUntil: `${hours.toString().padStart(2, "0")}:${minutes
             .toString()
@@ -984,7 +1014,7 @@ export function MasjidTemplate({
       const displaySeconds = totalSecondsUntil % 60;
 
       setNextEvent({
-        name: prayers[0].name,
+        name: getPrayerDisplayName(prayers[0].name, customization.language),
         type: "adhan",
         timeUntil: `${displayHours.toString().padStart(2, "0")}:${displayMinutes
           .toString()
@@ -1247,7 +1277,7 @@ export function MasjidTemplate({
           <div className="flex flex-col justify-center space-y-6">
             {prayers.map((prayer) => (
               <div
-                key={prayer.name}
+                key={getPrayerDisplayName(prayer.name, customization.language)}
                 className="flex items-center justify-between p-7 rounded-xl backdrop-blur-sm"
                 style={{
                   backgroundColor: `${customization.colors.primary}40`,
@@ -1259,7 +1289,7 @@ export function MasjidTemplate({
                     className="text-5xl font-extrabold leading-tight"
                     style={textStyle}
                   >
-                    {prayer.name}
+                    {getPrayerDisplayName(prayer.name, customization.language)}{" "}
                   </h3>
                   <p
                     className="text-3xl opacity-85 leading-tight mt-1"
@@ -1315,9 +1345,6 @@ export function MasjidTemplate({
               className="p-8 rounded-3xl backdrop-blur-sm text-center flex-1 flex flex-col justify-center mt-6"
               style={{ backgroundColor: `${customization.colors.primary}60` }}
             >
-              <p className="text-2xl opacity-80 mb-2" style={textStyle}>
-                {t.currentTime}
-              </p>
               <p
                 className="text-7xl font-bold font-mono mb-2"
                 style={textStyle}
@@ -1452,7 +1479,7 @@ export function MasjidTemplate({
           >
             <div className="flex items-start relative">
               <div className="flex-1">
-                <div className="flex items-start leading-none">
+                <div className="flex items-start leading-none relative">
                   {/* Hours & Minutes */}
                   <span
                     className="text-[22rem] px-4 font-extrabold font-mono tracking-wide"
@@ -1461,6 +1488,7 @@ export function MasjidTemplate({
                       textShadow:
                         "0 0 30px rgba(0, 255, 0, 0.5), 4px 4px 12px rgba(0, 0, 0, 0.9)",
                       fontFamily: customization.font,
+                      width: "fit-content",
                     }}
                   >
                     {currentTime.toLocaleTimeString("en-US", {
@@ -1470,10 +1498,10 @@ export function MasjidTemplate({
                     })}
                   </span>
 
-                  {/* Right side - Seconds, AM/PM, and Date stacked */}
+                  {/* Right side - Seconds, AM/PM, and Date stacked - Fixed position */}
                   <div
-                    className="flex flex-col ml-0 px-6"
-                    style={{ height: "22rem" }}
+                    className="flex flex-col pl-16 absolute"
+                    style={{ height: "22rem", left: "58rem" }}
                   >
                     {/* Top Half - Date */}
                     <div
@@ -1565,7 +1593,11 @@ export function MasjidTemplate({
                 }}
               >
                 <div className="p-2">
-                  {nextPrayerInfo.prayer.name} - {t.iqamahIn}
+                  {getPrayerDisplayName(
+                    nextPrayerInfo.prayer.name,
+                    customization.language
+                  )}{" "}
+                  - {t.iqamahIn}
                 </div>
               </div>
               <div className="flex items-center justify-center mt-0">
@@ -1606,7 +1638,13 @@ export function MasjidTemplate({
                   border: "2px solid rgba(255, 255, 255, 0.3)",
                 }}
               >
-                <div className="p-4">{nextPrayerInfo.prayer.name}</div>
+                <div className="p-4">
+                  {getPrayerDisplayName(
+                    nextPrayerInfo.prayer.name,
+                    customization.language
+                  )}{" "}
+                  -{" "}
+                </div>
               </div>
               <div className="flex items-center justify-center mt-0">
                 <span
@@ -1738,19 +1776,15 @@ export function MasjidTemplate({
         <div className="flex-1 w-full max-w-8xl space-y-12">
           {/* Current Time Display - Updated with prayer card style but same layout */}
           <div
-            className="flex flex-col items-center justify-center p-8 rounded-3xl backdrop-blur-md transition-all text-center"
+            className="flex flex-col items-center justify-center p-8 rounded-3xl backdrop-blur-sm transition-all text-center"
             style={{
-              backgroundColor: `${customization.colors.primary}80`,
+              backgroundColor: `${customization.colors.primary}30`,
               border: `4px solid ${customization.colors.accent}`,
               boxShadow: `0 10px 30px rgba(0, 0, 0, 0.4)`,
             }}
           >
-            <p className="text-4xl opacity-80 mb-4" style={textStyle}>
-              {t.currentTime}
-            </p>
-
             <p
-              className="text-[14rem] font-bold font-mono leading-none"
+              className="text-[16rem] font-bold font-mono leading-none"
               style={{
                 ...textStyle,
                 color: "#00FF00",
@@ -1764,23 +1798,33 @@ export function MasjidTemplate({
                   second: "2-digit",
                   hour12: true,
                 })
-                .replace(/\s/g, "")}
+                .replace(" ", "\u2009")}
             </p>
 
-            <div className="flex items-center justify-center gap-12 mt-8">
+            <div className="flex items-center justify-center gap-12 mt-4">
               <div className="text-center">
-                <p className="text-4xl opacity-80" style={textStyle}>
-                  {currentTime.toLocaleDateString("en-US", {
-                    weekday: "long",
-                  })}
-                </p>
-                <p className="text-5xl font-semibold mt-1" style={textStyle}>
-                  {currentTime.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-semibold" style={textStyle}>
+                    {currentTime.toLocaleDateString("en-US", {
+                      weekday: "long",
+                    })}
+                  </span>
+
+                  <span
+                    className="text-6xl font-semibold opacity-70"
+                    style={textStyle}
+                  >
+                    –
+                  </span>
+
+                  <span className="text-6xl font-semibold" style={textStyle}>
+                    {currentTime.toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
               </div>
 
               {hijriDate && customization.showHijriDate && (
@@ -1808,12 +1852,16 @@ export function MasjidTemplate({
           {/* Prayer Card Grid */}
           <div className="grid grid-cols-5 gap-6">
             {prayers.map((prayer, index) => {
-              const isNextPrayer = nextPrayer.prayer.name === prayer.name;
+              const isNextPrayer =
+                getPrayerDisplayName(
+                  nextPrayer.prayer.name,
+                  customization.language
+                ) === getPrayerDisplayName(prayer.name, customization.language);
               const isCurrentActive = isCurrentPrayerActive(prayer.name);
 
               // Determine card style based on prayer status
               let cardStyle = {
-                backgroundColor: `${customization.colors.primary}80`,
+                backgroundColor: `${customization.colors.primary}30`,
                 border: `4px solid ${customization.colors.accent}`,
                 boxShadow: `0 10px 30px rgba(0, 0, 0, 0.4)`,
               };
@@ -1834,8 +1882,11 @@ export function MasjidTemplate({
 
               return (
                 <div
-                  key={prayer.name}
-                  className={`p-6 rounded-3xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${
+                  key={getPrayerDisplayName(
+                    prayer.name,
+                    customization.language
+                  )}
+                  className={`p-6 rounded-3xl backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${
                     isCurrentActive ? "animate-pulse" : ""
                   } ${isNextPrayer ? "ring-4 ring-inset" : ""}`}
                   style={cardStyle}
@@ -1862,7 +1913,10 @@ export function MasjidTemplate({
                           : "2px 2px 6px rgba(0, 0, 0, 0.9)",
                       }}
                     >
-                      {prayer.name}
+                      {getPrayerDisplayName(
+                        prayer.name,
+                        customization.language
+                      )}
                     </h3>
 
                     {/* Status Indicator */}
@@ -1923,7 +1977,7 @@ export function MasjidTemplate({
                             ? "#FFD700"
                             : isNextPrayer
                             ? `${customization.colors.accent}CC`
-                            : `${customization.colors.accent}80`,
+                            : `${customization.colors.accent}30`,
                         }}
                       ></div>
                       <div className="mx-4">
