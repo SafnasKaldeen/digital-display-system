@@ -1643,7 +1643,6 @@ export function MasjidTemplate({
                     nextPrayerInfo.prayer.name,
                     customization.language
                   )}{" "}
-                  -{" "}
                 </div>
               </div>
               <div className="flex items-center justify-center mt-0">

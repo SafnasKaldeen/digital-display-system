@@ -95,6 +95,30 @@ const translations = {
   },
 };
 
+// Helper function to get display name for prayer (show Jummah instead of Dhuhr on Friday)
+const getPrayerDisplayName = (prayerName: string, language: string) => {
+  const now = new Date();
+  const isFriday = now.getDay() === 5; // 5 = Friday
+
+  // Check for various forms of Dhuhr/Zuhr
+  const isDhuhr =
+    prayerName.toLowerCase().includes("dhuhr") ||
+    prayerName.toLowerCase().includes("zuhr") ||
+    prayerName.toLowerCase() === "ழுஹர்" ||
+    prayerName === "Dhuhr" ||
+    prayerName === "Zuhr";
+  prayerName.toLowerCase().includes("noon prayer") ||
+    prayerName.toLowerCase().includes("ظهر");
+
+  if (isFriday && isDhuhr) {
+    if (language === "ta") {
+      return "ஜும்மா";
+    }
+    return "Jummah";
+  }
+  return prayerName;
+};
+
 export function MasjidTemplateAuthentic({
   customization,
   backgroundStyle,
@@ -192,7 +216,10 @@ export function MasjidTemplateAuthentic({
           offset: customization.iqamahOffsets.fajr,
         },
         {
-          name: customization.prayerNames.dhuhr || "dhuhr",
+          name: getPrayerDisplayName(
+            customization.prayerNames.dhuhr || "dhuhr",
+            language
+          ),
           key: "dhuhr",
           time: customization.prayerTimes.dhuhr,
           offset: customization.iqamahOffsets.dhuhr,
@@ -551,7 +578,10 @@ export function MasjidTemplateAuthentic({
         offset: customization.iqamahOffsets.fajr,
       },
       {
-        name: customization.prayerNames.dhuhr || "Dhuhr",
+        name: getPrayerDisplayName(
+          customization.prayerNames.dhuhr || "Dhuhr",
+          language
+        ),
         key: "dhuhr",
         time: customization.prayerTimes.dhuhr,
         offset: customization.iqamahOffsets.dhuhr,
@@ -645,7 +675,10 @@ export function MasjidTemplateAuthentic({
         offset: customization.iqamahOffsets.fajr,
       },
       {
-        name: customization.prayerNames.dhuhr || "Dhuhr",
+        name: getPrayerDisplayName(
+          customization.prayerNames.dhuhr || "Dhuhr",
+          language
+        ),
         key: "dhuhr",
         time: customization.prayerTimes.dhuhr,
         offset: customization.iqamahOffsets.dhuhr,
@@ -770,7 +803,10 @@ export function MasjidTemplateAuthentic({
       icon: "🌅",
     },
     {
-      name: customization.prayerNames.dhuhr || "Dhuhr",
+      name: getPrayerDisplayName(
+        customization.prayerNames.dhuhr || "Dhuhr",
+        language
+      ),
       nameAr: "الظهر",
       adhan: to12Hour(customization.prayerTimes.dhuhr),
       offset: customization.iqamahOffsets.dhuhr,
@@ -1176,7 +1212,10 @@ export function MasjidTemplateAuthentic({
               const prayerKeyMap = {
                 fajr: customization.prayerNames.fajr || "Fajr",
                 sunrise: customization.prayerNames.sunrise || "Sunrise",
-                dhuhr: customization.prayerNames.dhuhr || "Dhuhr",
+                dhuhr: getPrayerDisplayName(
+                  customization.prayerNames.dhuhr || "Dhuhr",
+                  language
+                ),
                 asr: customization.prayerNames.asr || "Asr",
                 maghrib: customization.prayerNames.maghrib || "Maghrib",
                 isha: customization.prayerNames.isha || "Isha",
