@@ -1491,11 +1491,11 @@ export function MasjidTemplate({
                       width: "fit-content",
                     }}
                   >
-                    {currentTime.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}
+                    {`${(currentTime.getHours() % 12 || 12)
+                      .toString()
+                      .padStart(2, "0")}:${String(
+                      currentTime.getMinutes()
+                    ).padStart(2, "0")}`}
                   </span>
 
                   {/* Right side - Seconds, AM/PM, and Date stacked - Fixed position */}
