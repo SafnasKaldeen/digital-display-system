@@ -1270,7 +1270,7 @@ export function MasjidTemplate({
         </div>
 
         {/* Middle Section - Next Adhan and Iqamah Times */}
-        <div className="grid grid-cols-2 gap-12 mb-4">
+        <div className="grid grid-cols-2 gap-12 mb-2">
           {/* Next Adhan */}
           <div
             className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
