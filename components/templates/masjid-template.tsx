@@ -1439,7 +1439,7 @@ export function MasjidTemplate({
               <div></div>
               <div className="relative">
                 <div
-                  className="text-center text-5xl font-bold italic tracking-wider relative"
+                  className="text-center text-4xl font-bold italic tracking-wider relative"
                   style={{
                     color: customization.colors.text,
                     textShadow: `
@@ -1460,7 +1460,7 @@ export function MasjidTemplate({
               </div>
               <div className="relative">
                 <div
-                  className="text-center text-5xl font-bold italic tracking-wider"
+                  className="text-center text-4xl font-bold italic tracking-wider"
                   style={{
                     color: customization.colors.text,
                     textShadow: `
@@ -1704,9 +1704,9 @@ export function MasjidTemplate({
                           border: `1.5px solid ${customization.colors.text}60`,
                         }}
                       >
-                        <div className="relative px-6 py-6">
+                        <div className="relative px-4 py-4">
                           <p
-                            className="text-5xl font-black leading-none tracking-tighter"
+                            className="text-6xl font-black leading-none tracking-tighter"
                             style={{
                               color: customization.colors.primary,
                               textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
@@ -1742,9 +1742,9 @@ export function MasjidTemplate({
                           border: `1.5px solid ${customization.colors.secondary}80`,
                         }}
                       >
-                        <div className="relative px-6 py-6">
+                        <div className="relative px-4 py-4">
                           <p
-                            className="text-5xl font-black leading-none tracking-tighter"
+                            className="text-6xl font-black leading-none tracking-tighter"
                             style={{
                               color: customization.colors.text,
                               textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
@@ -1842,9 +1842,9 @@ export function MasjidTemplate({
 
                 {/* Date with enhanced styling */}
                 <div className="mt-2">
-                  <div className="inline-block px-8 py-3 rounded-full mb-0">
+                  <div className="inline-block px-8 py-1 rounded-full mb-0">
                     <p
-                      className="text-4xl font-semibold"
+                      className="text-5xl font-semibold"
                       style={{
                         color: customization.colors.text,
                         textShadow: `
@@ -1919,15 +1919,15 @@ export function MasjidTemplate({
                 }}
               >
                 <div className="relative text-center flex flex-col justify-center h-full">
-                  <div className="mb-8">
+                  <div className="mb-8 flex items-baseline justify-center gap-6">
                     <p
-                      className="text-5xl font-bold mb-2"
+                      className="text-7xl font-bold leading-none"
                       style={{
-                        color: customization.colors.text,
+                        color: customization.colors.secondary,
                         textShadow: `
-                        3px 3px 12px rgba(0, 0, 0, 0.9),
-                        0 0 30px ${customization.colors.accent}60
-                      `,
+        3px 3px 12px rgba(0, 0, 0, 0.9),
+        0 0 30px ${customization.colors.accent}60
+      `,
                         fontFamily: customization.font,
                         letterSpacing: "0.05em",
                       }}
@@ -1938,10 +1938,13 @@ export function MasjidTemplate({
                       )}
                     </p>
                     <p
-                      className="text-3xl font-semibold"
+                      className="text-6xl font-bold leading-none"
                       style={{
-                        color: customization.colors.text,
-                        textShadow: "2px 2px 8px rgba(0, 0, 0, 0.8)",
+                        color: customization.colors.accent,
+                        textShadow: `
+        2px 2px 8px rgba(0, 0, 0, 0.8),
+        0 0 20px ${customization.colors.accent}60
+      `,
                         fontFamily: customization.font,
                       }}
                     >
