@@ -1310,59 +1310,161 @@ export function MasjidTemplate({
 
     const currentPrayerInfo = getCurrentPrayer();
 
+    // Get dynamic background style
+    const getVerticalBackgroundStyle = () => {
+      // If there's a slideshow or image from config, use it
+      if (
+        customization.backgroundType === "slideshow" &&
+        customization.backgroundImage &&
+        customization.backgroundImage.length > 0
+      ) {
+        return {
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          transition: "background-image 1s ease-in-out",
+        };
+      }
+      // Otherwise use the enhanced gradient background
+      return {
+        background: `linear-gradient(165deg, 
+        ${customization.colors.primary}15 0%,
+        ${customization.colors.primary}08 30%,
+        ${customization.colors.primary}05 70%,
+        ${customization.colors.primary}02 100%
+      )`,
+      };
+    };
+
+    const verticalBackgroundStyle = getVerticalBackgroundStyle();
+
     return (
-      <div className="w-full h-full flex flex-col p-6">
-        {/* Top: Masjid Header */}
-        <div className="mb-10 text-center">
-          <h1
-            className="text-7xl font-bold leading-none tracking-wide"
+      <div
+        className="w-full h-full flex flex-col p-8 relative overflow-hidden"
+        style={verticalBackgroundStyle}
+      >
+        {/* Decorative background elements (only show if no image background) */}
+        {customization.backgroundType !== "slideshow" && (
+          <div className="absolute inset-0 overflow-hidden">
+            <div
+              className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 rounded-full bg-gradient-to-r from-purple-900/10 to-transparent blur-3xl"
+              style={{ backgroundColor: `${customization.colors.primary}10` }}
+            ></div>
+            <div
+              className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 rounded-full bg-gradient-to-l from-blue-900/10 to-transparent blur-3xl"
+              style={{ backgroundColor: `${customization.colors.secondary}10` }}
+            ></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          </div>
+        )}
+
+        {/* Top: Masjid Header with config-based design */}
+        <div className="mb-12 text-center relative z-10">
+          <div
+            className="inline-block px-12 py-4 mb-6 rounded-full"
             style={{
-              color: customization.colors.text,
-              textShadow: "3px 3px 10px rgba(0, 0, 0, 0.9)",
-              fontFamily: customization.font,
+              background: `linear-gradient(135deg, ${customization.colors.primary}30 0%, ${customization.colors.primary}10 100%)`,
+              border: `2px solid ${customization.colors.primary}40`,
+              backdropFilter: "blur(10px)",
+              boxShadow: `0 10px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 ${customization.colors.primary}20`,
             }}
           >
-            {customization.masjidName}
-          </h1>
+            <h1
+              className="text-7xl font-bold leading-none tracking-wider"
+              style={{
+                color: customization.colors.text,
+                textShadow: `
+                0 2px 10px rgba(0, 0, 0, 0.8),
+                0 4px 20px ${customization.colors.primary}40,
+                0 8px 30px ${customization.colors.primary}20
+              `,
+                fontFamily: customization.font,
+                letterSpacing: "0.1em",
+              }}
+            >
+              {customization.masjidName}
+            </h1>
+          </div>
+          <div
+            className="h-1 w-48 mx-auto rounded-full"
+            style={{
+              background: `linear-gradient(90deg, transparent 0%, ${customization.colors.accent} 50%, transparent 100%)`,
+              boxShadow: `0 0 20px ${customization.colors.accent}40`,
+            }}
+          ></div>
         </div>
 
-        <div className="flex-1 grid grid-cols-[45%_55%] gap-6 min-h-0">
+        <div className="flex-1 grid grid-cols-[45%_55%] gap-8 min-h-0 relative z-10">
           {/* Left Section: Prayer Times */}
           <div
-            className="flex flex-col bg-transparent rounded-md bg-white p-4"
+            className="flex flex-col rounded-3xl p-6 backdrop-blur-sm"
             style={{
-              backgroundColor: `${customization.colors.primary}30`,
-              border: `3px solid ${customization.colors.primary}80`,
-              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
+              background: `
+              linear-gradient(165deg, 
+                ${customization.colors.primary}20 0%, 
+                ${customization.colors.primary}10 30%,
+                ${customization.colors.primary}05 70%,
+                ${customization.colors.primary}02 100%
+              )
+            `,
+              border: `2px solid ${customization.colors.primary}40`,
+              boxShadow: `
+              0 25px 50px -12px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 ${customization.colors.primary}20,
+              inset 0 -1px 0 ${customization.colors.primary}10
+            `,
             }}
           >
-            {/* ADHAN IQAMAH Header */}
-            <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-8 mt-4 px-2">
+            {/* ADHAN IQAMAH Header with config-based colors */}
+            <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 mb-10 mt-4 px-3">
               <div></div>
-              <div
-                className="text-center text-5xl font-bold italic tracking-wider"
-                style={{
-                  color: customization.colors.text,
-                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.9)",
-                  fontFamily: customization.font,
-                }}
-              >
-                ADHAN
+              <div className="relative">
+                <div
+                  className="text-center text-5xl font-bold italic tracking-wider relative"
+                  style={{
+                    color: customization.colors.text,
+                    textShadow: `
+                    2px 2px 8px rgba(0, 0, 0, 0.8),
+                    0 0 30px ${customization.colors.primary}40
+                  `,
+                    fontFamily: customization.font,
+                  }}
+                >
+                  {t.adhan}
+                  <div
+                    className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, ${customization.colors.primary} 50%, transparent 100%)`,
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div
-                className="text-center text-5xl font-bold italic tracking-wider"
-                style={{
-                  color: customization.colors.text,
-                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.9)",
-                  fontFamily: customization.font,
-                }}
-              >
-                IQAMAH
+              <div className="relative">
+                <div
+                  className="text-center text-5xl font-bold italic tracking-wider"
+                  style={{
+                    color: customization.colors.text,
+                    textShadow: `
+                    2px 2px 8px rgba(0, 0, 0, 0.8),
+                    0 0 30px ${customization.colors.secondary}40
+                  `,
+                    fontFamily: customization.font,
+                  }}
+                >
+                  {t.iqamah}
+                  <div
+                    className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, ${customization.colors.secondary} 50%, transparent 100%)`,
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
 
             {/* Prayer Times Grid */}
-            <div className="flex-1 flex flex-col justify-between">
+            <div className="flex-1 flex flex-col justify-between gap-4">
               {prayers.map((prayer, index) => {
                 const isCurrentPrayer =
                   currentPrayerInfo.isActive &&
@@ -1374,157 +1476,205 @@ export function MasjidTemplate({
                       prayer.name,
                       customization.language
                     )}
-                    className={`grid grid-cols-[2fr_1fr_1fr] items-stretch gap-2 transition-all duration-300 ${
-                      isCurrentPrayer ? "animate-pulse" : ""
+                    className={`relative group transition-all duration-500 ${
+                      isCurrentPrayer ? "scale-[1.02]" : "hover:scale-[1.01]"
                     }`}
                   >
-                    {/* Prayer Name */}
-                    <div
-                      className="relative overflow-hidden rounded-2xl flex items-center group"
-                      style={{
-                        backgroundColor: isCurrentPrayer
-                          ? `${customization.colors.accent}80`
-                          : `${customization.colors.primary}95`,
-                        boxShadow: isCurrentPrayer
-                          ? `0 0 40px ${customization.colors.accent}60, 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
-                          : "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-                        border: `2px solid ${
-                          isCurrentPrayer
-                            ? customization.colors.accent + "40"
-                            : customization.colors.primary + "60"
-                        }`,
-                      }}
-                    >
-                      {/* Gradient overlay */}
+                    {/* Decorative glow behind current prayer */}
+                    {isCurrentPrayer && (
                       <div
-                        className="absolute inset-0 opacity-10"
+                        className="absolute inset-0 rounded-2xl blur-xl"
                         style={{
-                          background: `linear-gradient(135deg, ${customization.colors.primary}00 0%, ${customization.colors.primary}80 100%)`,
+                          background: `${customization.colors.accent}40`,
+                          animation: "pulse 3s ease-in-out infinite",
                         }}
                       ></div>
+                    )}
 
-                      {/* Animated border shine */}
-                      {isCurrentPrayer && (
+                    <div
+                      className={`grid grid-cols-[2fr_1fr_1fr] items-stretch gap-3 relative transition-all duration-300`}
+                    >
+                      {/* Prayer Name */}
+                      <div
+                        className="relative overflow-hidden rounded-2xl flex items-center transition-all duration-500 group-hover:brightness-110"
+                        style={{
+                          background: isCurrentPrayer
+                            ? `linear-gradient(135deg, 
+                              ${customization.colors.accent}40 0%,
+                              ${customization.colors.accent}20 50%,
+                              ${customization.colors.accent}10 100%
+                            )`
+                            : `linear-gradient(135deg, 
+                              ${customization.colors.primary}30 0%,
+                              ${customization.colors.primary}15 50%,
+                              ${customization.colors.primary}08 100%
+                            )`,
+                          boxShadow: isCurrentPrayer
+                            ? `
+                            0 20px 40px ${customization.colors.accent}30,
+                            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                            inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                          `
+                            : `
+                            0 10px 30px rgba(0, 0, 0, 0.4),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                            inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                          `,
+                          border: `1.5px solid ${
+                            isCurrentPrayer
+                              ? customization.colors.accent + "60"
+                              : customization.colors.primary + "40"
+                          }`,
+                        }}
+                      >
+                        {/* Animated gradient overlay */}
                         <div
-                          className="absolute inset-0 opacity-30"
+                          className="absolute inset-0 opacity-20"
                           style={{
-                            background: `linear-gradient(90deg, transparent 0%, ${customization.colors.accent}60 50%, transparent 100%)`,
-                            animation: "shimmer 2s infinite",
+                            background: `linear-gradient(90deg, 
+                            transparent 0%, 
+                            ${
+                              isCurrentPrayer
+                                ? customization.colors.accent
+                                : customization.colors.primary
+                            }30 50%, 
+                            transparent 100%
+                          )`,
+                            animation: "shimmer 3s ease-in-out infinite",
                           }}
                         ></div>
-                      )}
 
-                      <div className="relative px-6 py-8 flex items-center w-full">
-                        {/* Decorative left bar */}
+                        <div className="relative px-8 py-6 flex items-center w-full">
+                          {/* Decorative left accent */}
+                          <div
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-4/5 rounded-r-full"
+                            style={{
+                              background: `linear-gradient(180deg, 
+                              ${
+                                isCurrentPrayer
+                                  ? customization.colors.accent
+                                  : customization.colors.secondary
+                              } 0%,
+                              ${
+                                isCurrentPrayer
+                                  ? customization.colors.accent + "80"
+                                  : customization.colors.secondary + "80"
+                              } 100%
+                            )`,
+                              boxShadow: isCurrentPrayer
+                                ? `0 0 30px ${customization.colors.accent}80`
+                                : `0 0 15px ${customization.colors.secondary}40`,
+                            }}
+                          ></div>
+
+                          <h3
+                            className="text-6xl font-bold uppercase tracking-wider ml-4 relative"
+                            style={{
+                              color: customization.colors.text,
+                              textShadow: isCurrentPrayer
+                                ? `
+                                0 0 30px ${customization.colors.accent}60,
+                                2px 2px 12px rgba(0, 0, 0, 0.9)
+                              `
+                                : "2px 2px 12px rgba(0, 0, 0, 0.9)",
+                              fontFamily: customization.font,
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            {getPrayerDisplayName(
+                              prayer.name,
+                              customization.language
+                            )}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Adhan Time */}
+                      <div
+                        className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center transition-all duration-500 group-hover:brightness-110"
+                        style={{
+                          background: `linear-gradient(135deg, 
+                          ${customization.colors.text}F8 0%,
+                          ${customization.colors.text}E0 100%
+                        )`,
+                          boxShadow: `
+                          0 12px 32px rgba(0, 0, 0, 0.5),
+                          inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                          inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                        `,
+                          border: `1.5px solid ${customization.colors.text}60`,
+                        }}
+                      >
+                        {/* Metallic shine effect */}
+                        <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent opacity-20"></div>
+
+                        <div className="relative px-6 py-6">
+                          <p
+                            className="text-5xl font-black leading-none tracking-tighter"
+                            style={{
+                              color: customization.colors.primary,
+                              textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                              fontFamily: "'Orbitron', " + customization.font,
+                              letterSpacing: "-0.02em",
+                            }}
+                          >
+                            {formatTimeNoAMPM(prayer.time)}
+                          </p>
+                          <div
+                            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 rounded-full"
+                            style={{
+                              background: `linear-gradient(90deg, transparent 0%, ${customization.colors.primary} 50%, transparent 100%)`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Iqamah Time */}
+                      <div
+                        className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center transition-all duration-500 group-hover:brightness-110"
+                        style={{
+                          background: `linear-gradient(135deg, 
+                          ${customization.colors.secondary} 0%,
+                          ${customization.colors.secondary}DD 50%,
+                          ${customization.colors.secondary}BB 100%
+                        )`,
+                          boxShadow: `
+                          0 15px 35px rgba(0, 0, 0, 0.5),
+                          inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                          inset 0 -1px 0 rgba(0, 0, 0, 0.3)
+                        `,
+                          border: `1.5px solid ${customization.colors.secondary}80`,
+                        }}
+                      >
+                        {/* Corner glow */}
                         <div
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-3/4 rounded-r-full"
+                          className="absolute top-0 right-0 w-20 h-20 opacity-30"
                           style={{
-                            backgroundColor: isCurrentPrayer
-                              ? customization.colors.accent
-                              : customization.colors.secondary,
-                            boxShadow: isCurrentPrayer
-                              ? `0 0 20px ${customization.colors.accent}80`
-                              : "none",
+                            background: `radial-gradient(circle at top right, ${customization.colors.accent} 0%, transparent 70%)`,
                           }}
                         ></div>
 
-                        <h3
-                          className="text-6xl font-bold uppercase tracking-wider ml-0"
-                          style={{
-                            color: customization.colors.text,
-                            textShadow: isCurrentPrayer
-                              ? `0 0 20px ${customization.colors.accent}60, 2px 2px 10px rgba(0, 0, 0, 0.9)`
-                              : "2px 2px 10px rgba(0, 0, 0, 0.9)",
-                            fontFamily: customization.font,
-                          }}
-                        >
-                          {getPrayerDisplayName(
-                            prayer.name,
-                            customization.language
-                          )}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Adhan Time */}
-                    <div
-                      className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center group"
-                      style={{
-                        backgroundColor: `${customization.colors.text}F5`,
-                        boxShadow:
-                          "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.1)",
-                        border: `2px solid ${customization.colors.text}40`,
-                      }}
-                    >
-                      {/* Subtle gradient overlay */}
-                      <div
-                        className="absolute inset-0 opacity-5"
-                        style={{
-                          background: `radial-gradient(circle at top right, ${customization.colors.primary}80 0%, transparent 70%)`,
-                        }}
-                      ></div>
-
-                      {/* Top edge highlight */}
-                      <div
-                        className="absolute top-0 left-0 right-0 h-px opacity-30"
-                        style={{
-                          background: `linear-gradient(90deg, transparent 0%, ${customization.colors.primary} 50%, transparent 100%)`,
-                        }}
-                      ></div>
-
-                      <div className="relative px-5 py-5">
-                        <p
-                          className="text-5xl font-extrabold leading-none tracking-tight"
-                          style={{
-                            color: customization.colors.primary,
-                            textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                            fontFamily: "'Orbitron', " + customization.font,
-                          }}
-                        >
-                          {formatTimeNoAMPM(prayer.time)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Iqamah Time */}
-                    <div
-                      className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center group"
-                      style={{
-                        backgroundColor: customization.colors.secondary,
-                        boxShadow: `0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)`,
-                        border: `2px solid ${customization.colors.secondary}60`,
-                      }}
-                    >
-                      {/* Gradient overlay */}
-                      <div
-                        className="absolute inset-0 opacity-20"
-                        style={{
-                          background: `linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%)`,
-                        }}
-                      ></div>
-
-                      {/* Corner accent */}
-                      <div
-                        className="absolute top-0 right-0 w-16 h-16 opacity-20"
-                        style={{
-                          background: `radial-gradient(circle at top right, ${customization.colors.accent}80 0%, transparent 70%)`,
-                        }}
-                      ></div>
-
-                      <div className="relative px-5 py-5">
-                        <p
-                          className="text-5xl font-extrabold leading-none tracking-tight"
-                          style={{
-                            color: customization.colors.text,
-                            textShadow:
-                              "2px 2px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 0, 0, 0.5)",
-                            fontFamily: "'Orbitron', " + customization.font,
-                          }}
-                        >
-                          {formatTimeNoAMPM(
-                            calculateIqamahTime(prayer.time, prayer.offset)
-                          )}
-                        </p>
+                        <div className="relative px-6 py-6">
+                          <p
+                            className="text-5xl font-black leading-none tracking-tighter"
+                            style={{
+                              color: customization.colors.text,
+                              textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
+                              fontFamily: "'Orbitron', " + customization.font,
+                              letterSpacing: "-0.02em",
+                            }}
+                          >
+                            {formatTimeNoAMPM(
+                              calculateIqamahTime(prayer.time, prayer.offset)
+                            )}
+                          </p>
+                          <div
+                            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 rounded-full"
+                            style={{
+                              background: `linear-gradient(90deg, transparent 0%, ${customization.colors.text}40 50%, transparent 100%)`,
+                            }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1534,131 +1684,250 @@ export function MasjidTemplate({
           </div>
 
           {/* Right Section: Time, Date, and Countdown */}
-          <div className="flex flex-col gap-4 h-full">
+          <div className="flex flex-col gap-6 h-full pr-8">
             {/* Current Time and Date Card */}
             <div
-              className="p-8 rounded-3xl text-center flex flex-col justify-center"
+              className="p-10 rounded-3xl relative backdrop-blur-sm"
               style={{
-                backgroundColor: `${customization.colors.primary}30`,
-                border: `3px solid ${customization.colors.primary}80`,
-                boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
+                background: `linear-gradient(165deg, 
+                ${customization.colors.primary}20 0%,
+                ${customization.colors.primary}10 30%,
+                ${customization.colors.primary}05 70%,
+                ${customization.colors.primary}02 100%
+              )`,
+                border: `2px solid ${customization.colors.primary}40`,
+                boxShadow: `
+                0 25px 50px -12px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 ${customization.colors.primary}30,
+                inset 0 -1px 0 ${customization.colors.primary}15
+              `,
               }}
             >
-              {/* Time */}
-              <p
-                className="text-[10rem] font-extrabold font-mono leading-none tracking-tight"
-                style={{
-                  color: customization.colors.text,
-                  textShadow: "4px 4px 15px rgba(0, 0, 0, 0.9)",
-                  fontFamily: "'Orbitron', 'Oxanium', monospace",
-                }}
-              >
-                {currentTime
-                  .toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false,
-                  })
-                  .replace(/\s/g, "")}
-                <span className="text-[6rem] ml-3">
-                  {currentTime.getHours() >= 12 ? "PM" : "AM"}
-                </span>
-              </p>
-
-              {/* Date */}
-              <div className="mt-6">
-                <p
-                  className="text-4xl font-semibold"
-                  style={{
-                    color: customization.colors.text,
-                    textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
-                    fontFamily: customization.font,
-                    opacity: 0.95,
-                  }}
-                >
-                  {currentTime.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    day: "numeric",
-                  })}
-                  th off{" "}
-                  {currentTime.toLocaleDateString("en-US", {
-                    month: "long",
-                  })}{" "}
-                  -{currentTime.getFullYear()}
-                </p>
-              </div>
-
-              {/* Hijri Date */}
-              {hijriDate && customization.showHijriDate && (
-                <div className="mt-4">
+              <div className="relative text-center flex flex-col justify-center">
+                {/* Time with enhanced typography */}
+                <div className="mb-6">
                   <p
-                    className="text-3xl font-semibold"
+                    className="text-[11rem] font-black leading-none tracking-tighter font-mono"
                     style={{
                       color: customization.colors.text,
-                      textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                      fontFamily: customization.font,
-                      opacity: 0.9,
+                      textShadow: `
+                      0 2px 20px ${customization.colors.primary}30,
+                      0 4px 30px rgba(0, 0, 0, 0.8),
+                      0 8px 40px rgba(0, 0, 0, 0.6)
+                    `,
+                      fontFamily: "'Orbitron', 'Rajdhani', monospace",
                     }}
                   >
-                    {hijriDate}
+                    {currentTime
+                      .toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false,
+                      })
+                      .replace(/\s/g, "")}
                   </p>
+                  <div className="flex justify-center items-center gap-4 mt-2">
+                    <div
+                      className="h-0.5 flex-1"
+                      style={{
+                        background: `linear-gradient(90deg, transparent 0%, ${customization.colors.text}20 50%, transparent 100%)`,
+                      }}
+                    ></div>
+                    <span
+                      className="text-5xl font-bold px-4 py-2 rounded-full"
+                      style={{
+                        background: `${customization.colors.primary}30`,
+                        color: customization.colors.text,
+                        textShadow: "0 2px 8px rgba(0, 0, 0, 0.8)",
+                      }}
+                    >
+                      {currentTime.getHours() >= 12 ? "PM" : "AM"}
+                    </span>
+                    <div
+                      className="h-0.5 flex-1"
+                      style={{
+                        background: `linear-gradient(90deg, transparent 0%, ${customization.colors.text}20 50%, transparent 100%)`,
+                      }}
+                    ></div>
+                  </div>
                 </div>
-              )}
+
+                {/* Date with enhanced styling */}
+                <div className="mt-8">
+                  <div
+                    className="inline-block px-8 py-3 rounded-full mb-4"
+                    style={{
+                      background: `linear-gradient(135deg, ${customization.colors.primary}25 0%, transparent 100%)`,
+                      border: `1px solid ${customization.colors.primary}40`,
+                    }}
+                  >
+                    <p
+                      className="text-4xl font-semibold"
+                      style={{
+                        color: customization.colors.text,
+                        textShadow: `
+                        0 2px 10px rgba(0, 0, 0, 0.8),
+                        0 0 20px ${customization.colors.primary}20
+                      `,
+                        fontFamily: customization.font,
+                        opacity: 0.95,
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      {currentTime.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        day: "numeric",
+                      })}
+                      <span className="mx-2">•</span>
+                      {currentTime.toLocaleDateString("en-US", {
+                        month: "long",
+                      })}
+                      <span className="mx-2">•</span>
+                      {currentTime.getFullYear()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Hijri Date */}
+                {hijriDate && customization.showHijriDate && (
+                  <div className="mt-6">
+                    <div
+                      className="inline-block px-6 py-2 rounded-full"
+                      style={{
+                        background: `linear-gradient(135deg, ${customization.colors.secondary}25 0%, transparent 100%)`,
+                        border: `1px solid ${customization.colors.secondary}40`,
+                      }}
+                    >
+                      <p
+                        className="text-3xl font-medium"
+                        style={{
+                          color: customization.colors.text,
+                          textShadow: `
+                          0 2px 8px rgba(0, 0, 0, 0.8),
+                          0 0 20px ${customization.colors.secondary}20
+                        `,
+                          fontFamily: customization.font,
+                          opacity: 0.9,
+                        }}
+                      >
+                        {hijriDate}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Iqamah Countdown or Peace Be Upon Him */}
             {currentPrayerInfo.isActive ? (
               <div
-                className="flex-1 p-10 rounded-3xl text-center flex flex-col justify-center animate-pulse"
+                className="flex-1 p-10 rounded-3xl relative overflow-hidden backdrop-blur-sm"
                 style={{
-                  backgroundColor: `${customization.colors.accent}60`,
-                  border: `4px solid ${customization.colors.accent}`,
-                  boxShadow: `0 0 50px ${customization.colors.accent}60, 0 10px 40px rgba(0, 0, 0, 0.6)`,
+                  background: `linear-gradient(165deg, 
+                  ${customization.colors.accent}50 0%,
+                  ${customization.colors.accent}30 50%,
+                  ${customization.colors.accent}15 100%
+                )`,
+                  border: `2px solid ${customization.colors.accent}80`,
+                  boxShadow: `
+                  0 30px 60px ${customization.colors.accent}40,
+                  inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.3)
+                `,
                 }}
               >
-                <p
-                  className="text-4xl font-bold mb-6"
-                  style={{
-                    color: customization.colors.text,
-                    textShadow: "3px 3px 8px rgba(0, 0, 0, 0.9)",
-                    fontFamily: customization.font,
-                  }}
-                >
-                  {getPrayerDisplayName(
-                    currentPrayerInfo.prayer.name,
-                    customization.language
-                  )}{" "}
-                  - {t.iqamahIn}
-                </p>
-                <p
-                  className="text-[11rem] font-extrabold font-mono leading-none"
-                  style={{
-                    color: customization.colors.text,
-                    textShadow: "5px 5px 20px rgba(0, 0, 0, 0.9)",
-                    fontFamily: "'Orbitron', 'Oxanium', monospace",
-                  }}
-                >
-                  {currentPrayerInfo.countdownMins}:
-                  {currentPrayerInfo.countdownSecs}
-                </p>
+                <div className="relative text-center flex flex-col justify-center h-full">
+                  <div className="mb-8">
+                    <p
+                      className="text-5xl font-bold mb-2"
+                      style={{
+                        color: customization.colors.text,
+                        textShadow: `
+                        3px 3px 12px rgba(0, 0, 0, 0.9),
+                        0 0 30px ${customization.colors.accent}60
+                      `,
+                        fontFamily: customization.font,
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      {getPrayerDisplayName(
+                        currentPrayerInfo.prayer.name,
+                        customization.language
+                      )}
+                    </p>
+                    <p
+                      className="text-3xl font-semibold"
+                      style={{
+                        color: customization.colors.text,
+                        textShadow: "2px 2px 8px rgba(0, 0, 0, 0.8)",
+                        fontFamily: customization.font,
+                      }}
+                    >
+                      {t.iqamahIn}
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    <p
+                      className="text-[12rem] font-black leading-none tracking-tighter relative"
+                      style={{
+                        color: customization.colors.text,
+                        textShadow: `
+                        0 5px 30px ${customization.colors.accent}60,
+                        0 10px 40px rgba(0, 0, 0, 0.8)
+                      `,
+                        fontFamily: "'Orbitron', 'Oxanium', monospace",
+                        animation: "pulse 1.5s ease-in-out infinite",
+                      }}
+                    >
+                      {currentPrayerInfo.countdownMins}:
+                      {currentPrayerInfo.countdownSecs}
+                    </p>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-8 w-3/4 mx-auto">
+                    <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-1000 ease-out"
+                        style={{
+                          width: "100%",
+                          background: `linear-gradient(90deg, 
+                          ${customization.colors.accent}80 0%,
+                          ${customization.colors.accent} 50%,
+                          ${customization.colors.accent}80 100%
+                        )`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex-1 flex items-center justify-center relative">
                 {/* <div
-                  className="text-center p-8 rounded-3xl"
+                  className="absolute inset-0 rounded-3xl"
                   style={{
-                    backgroundColor: `${customization.colors.primary}20`,
-                    border: `2px solid ${customization.colors.primary}60`,
+                    background: `linear-gradient(165deg, 
+                    ${customization.colors.primary}10 0%,
+                    ${customization.colors.primary}05 100%
+                  )`,
+                    border: `2px solid ${customization.colors.primary}30`,
+                    backdropFilter: "blur(10px)",
                   }}
-                >
+                ></div>
+                <div className="relative text-center">
                   <p
-                    className="text-5xl font-semibold italic tracking-wide"
+                    className="text-6xl font-semibold italic tracking-wider"
                     style={{
                       color: customization.colors.text,
-                      textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
+                      textShadow: `
+                      0 2px 20px ${customization.colors.primary}30,
+                      0 4px 30px rgba(0, 0, 0, 0.6)
+                    `,
                       fontFamily: customization.font,
-                      opacity: 0.9,
+                      letterSpacing: "0.1em",
                     }}
                   >
                     PEACE BE UPON HIM
@@ -1668,6 +1937,27 @@ export function MasjidTemplate({
             )}
           </div>
         </div>
+
+        {/* Add keyframes for animations */}
+        <style jsx>{`
+          @keyframes shimmer {
+            0% {
+              transform: translateX(-100%) rotate(45deg);
+            }
+            100% {
+              transform: translateX(100%) rotate(45deg);
+            }
+          }
+          @keyframes pulse {
+            0%,
+            100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.8;
+            }
+          }
+        `}</style>
       </div>
     );
   };
@@ -1788,7 +2078,7 @@ export function MasjidTemplate({
 
                   {/* Right side - Seconds, AM/PM, and Date stacked - Fixed position */}
                   <div
-                    className="flex flex-col pl-48 absolute"
+                    className="flex flex-col pl-58 absolute"
                     style={{ height: "22rem", left: "58rem" }}
                   >
                     {/* Top Half - Date */}
