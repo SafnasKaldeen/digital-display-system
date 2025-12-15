@@ -106,8 +106,8 @@ const translations = {
   ta: {
     adhan: "அதான்",
     iqamah: "இகாமத்",
-    adhanIn: "அதான் வரும் நேரம்",
-    iqamahIn: "இகாமத் வரும் நேரம்",
+    adhanIn: "அதான் நேரம்",
+    iqamahIn: "இகாமத் நேரம்",
     nextAdhan: "அடுத்த அதான்",
     nextIqamah: "இகாமத்",
     currentTime: "தற்போதைய நேரம்",
