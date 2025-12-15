@@ -2362,6 +2362,13 @@ export function MasjidTemplate({
   const renderCenteredLayout = () => {
     const isAdhanSoon = isCloseToAdhan();
 
+    const formatTimeNoAMPM = (time: string) => {
+      const [hours, minutes] = time.split(":");
+      const hour = Number.parseInt(hours);
+      const displayHour = hour % 12 || 12;
+      return `${displayHour.toString().padStart(2, "0")}:${minutes}`;
+    };
+
     // Function to determine the next prayer
     const getNextPrayer = () => {
       const now = new Date();
@@ -2583,7 +2590,7 @@ export function MasjidTemplate({
                         {/* {t.adhan} */}
                       </p>
                       <p
-                        className="text-5xl font-bold font-mono"
+                        className="text-7xl font-bold font-mono"
                         style={{
                           ...textStyle,
                           color: isCurrentActive
@@ -2600,7 +2607,7 @@ export function MasjidTemplate({
                             : "none",
                         }}
                       >
-                        {formatTime(prayer.time)}
+                        {formatTimeNoAMPM(prayer.time)}
                       </p>
                     </div>
 
