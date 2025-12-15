@@ -161,7 +161,7 @@ export default function MasjidEditorPanel({
     showHijriDate: true,
     showNextPrayer: true,
     showCurrentTime: true,
-    font: "Amiri",
+    font: "Inter",
     fontSize: 16,
     logo: "",
     masjidName: "Masjid Al-Noor",
