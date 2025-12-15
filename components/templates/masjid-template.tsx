@@ -2570,7 +2570,7 @@ export function MasjidTemplate({
                         </span>
                       )}
                       {isNextPrayer && !isCurrentActive && (
-                        <span className="px-3 py-1 text-sm font-bold rounded-full bg-gradient-to-r from-blue-400 to-purple-600 text-white">
+                        <span className="px-0 py-0 text-sm font-bold rounded-full bg-gradient-to-r from-blue-400 to-purple-600 text-white">
                           {t.next}
                         </span>
                       )}
