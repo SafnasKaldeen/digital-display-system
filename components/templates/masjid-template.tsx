@@ -2666,7 +2666,7 @@ export function MasjidTemplate({
                         {t.iqamah}
                       </p>
                       <p
-                        className="text-5xl font-bold font-mono"
+                        className="text-7xl font-bold font-mono"
                         style={{
                           ...textStyle,
                           color: isCurrentActive
@@ -2683,7 +2683,7 @@ export function MasjidTemplate({
                             : "none",
                         }}
                       >
-                        {formatTime(
+                        {formatTimeNoAMPM(
                           calculateIqamahTime(prayer.time, prayer.offset)
                         )}
                       </p>
