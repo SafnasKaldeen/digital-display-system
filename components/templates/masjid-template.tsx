@@ -1266,7 +1266,7 @@ export function MasjidTemplate({
     </div>
   );
 
-  // VERTICAL LAYOUT
+  // VERTICAL LAYOUT - ENHANCED WITH NEXT PRAYER HIGHLIGHTING
   const renderVerticalLayout = () => {
     const formatTimeNoAMPM = (time: string) => {
       const [hours, minutes] = time.split(":");
@@ -1308,11 +1308,82 @@ export function MasjidTemplate({
       return { prayer: null, isActive: false };
     };
 
+    // NEW: Get next upcoming prayer and time until it
+    const getNextUpcomingPrayer = () => {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentSeconds = now.getSeconds();
+      const currentTotalMinutes = currentMinutes + currentSeconds / 60;
+
+      for (const prayer of prayers) {
+        const [hours, minutes] = prayer.time.split(":").map(Number);
+        const adhanTime = hours * 60 + minutes;
+
+        if (adhanTime > currentTotalMinutes) {
+          const diffInMinutes = adhanTime - currentTotalMinutes;
+          return {
+            prayer,
+            minutesUntil: diffInMinutes,
+            isWithin5Minutes: diffInMinutes <= 5,
+            isWithin2Minutes: diffInMinutes <= 2,
+            isWithin1Minute: diffInMinutes <= 1,
+          };
+        }
+      }
+
+      // If no prayer found today, return tomorrow's Fajr
+      return {
+        prayer: prayers[0],
+        minutesUntil: 999,
+        isWithin5Minutes: false,
+        isWithin2Minutes: false,
+        isWithin1Minute: false,
+      };
+    };
+
     const currentPrayerInfo = getCurrentPrayer();
+    const nextPrayerInfo = getNextUpcomingPrayer();
 
     return (
       <div className="w-full h-full flex flex-col p-8 relative overflow-hidden">
-        {/* REMOVED ALL DECORATIVE BACKGROUND ELEMENTS */}
+        <style>
+          {`
+            @keyframes urgentBlink {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.3; }
+            }
+            
+            @keyframes moderateBlink {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+            
+            @keyframes gentleBlink {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.7; }
+            }
+            
+            @keyframes glowPulse {
+              0%, 100% {
+                box-shadow: 
+                  0 0 40px ${customization.colors.accent}60,
+                  0 0 80px ${customization.colors.accent}40,
+                  0 25px 50px rgba(0, 0, 0, 0.6);
+              }
+              50% {
+                box-shadow: 
+                  0 0 60px ${customization.colors.accent}90,
+                  0 0 120px ${customization.colors.accent}70,
+                  0 25px 50px rgba(0, 0, 0, 0.8);
+              }
+            }
+            
+            @keyframes shimmer {
+              0% { background-position: -200% center; }
+              100% { background-position: 200% center; }
+            }
+          `}
+        </style>
 
         {/* Top: Masjid Header with config-based design */}
         <div className="mb-12 text-center relative z-10">
@@ -1363,7 +1434,7 @@ export function MasjidTemplate({
             `,
             }}
           >
-            {/* ADHAN IQAMAH Header with config-based colors */}
+            {/* ADHAN IQAMAH Header */}
             <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 mb-10 mt-4 px-3">
               <div></div>
               <div className="relative">
@@ -1417,6 +1488,27 @@ export function MasjidTemplate({
                   currentPrayerInfo.isActive &&
                   currentPrayerInfo.prayer?.name === prayer.name;
 
+                const isNextPrayer =
+                  !currentPrayerInfo.isActive &&
+                  nextPrayerInfo.prayer?.name === prayer.name;
+
+                const isUpcomingSoon =
+                  isNextPrayer && nextPrayerInfo.isWithin5Minutes;
+                const isVeryClose =
+                  isNextPrayer && nextPrayerInfo.isWithin2Minutes;
+                const isAlmostTime =
+                  isNextPrayer && nextPrayerInfo.isWithin1Minute;
+
+                // Determine animation style based on urgency
+                let blinkAnimation = "";
+                if (isAlmostTime) {
+                  blinkAnimation = "urgentBlink 0.5s ease-in-out infinite";
+                } else if (isVeryClose) {
+                  blinkAnimation = "moderateBlink 1s ease-in-out infinite";
+                } else if (isUpcomingSoon) {
+                  blinkAnimation = "gentleBlink 2s ease-in-out infinite";
+                }
+
                 return (
                   <div
                     key={getPrayerDisplayName(
@@ -1424,16 +1516,29 @@ export function MasjidTemplate({
                       customization.language
                     )}
                     className={`relative group transition-all duration-500 ${
-                      isCurrentPrayer ? "scale-[1.02]" : "hover:scale-[1.01]"
+                      isCurrentPrayer
+                        ? "scale-[1.02]"
+                        : isUpcomingSoon
+                        ? "scale-[1.01]"
+                        : "hover:scale-[1.01]"
                     }`}
+                    style={{
+                      animation: blinkAnimation,
+                    }}
                   >
-                    {/* Decorative glow behind current prayer */}
-                    {isCurrentPrayer && (
+                    {/* Decorative glow behind current prayer or upcoming prayer */}
+                    {(isCurrentPrayer || isUpcomingSoon) && (
                       <div
                         className="absolute inset-0 rounded-2xl blur-xl"
                         style={{
-                          background: `${customization.colors.accent}40`,
-                          animation: "pulse 3s ease-in-out infinite",
+                          background: isCurrentPrayer
+                            ? `${customization.colors.accent}40`
+                            : `${customization.colors.accent}${
+                                isAlmostTime ? "50" : isVeryClose ? "40" : "30"
+                              }`,
+                          animation: isUpcomingSoon
+                            ? "glowPulse 2s ease-in-out infinite"
+                            : "pulse 3s ease-in-out infinite",
                         }}
                       ></div>
                     )}
@@ -1451,6 +1556,18 @@ export function MasjidTemplate({
                               ${customization.colors.accent}20 50%,
                               ${customization.colors.accent}10 100%
                             )`
+                            : isUpcomingSoon
+                            ? `linear-gradient(135deg, 
+                              ${customization.colors.accent}${
+                                isAlmostTime ? "35" : isVeryClose ? "28" : "22"
+                              } 0%,
+                              ${customization.colors.accent}${
+                                isAlmostTime ? "20" : isVeryClose ? "15" : "12"
+                              } 50%,
+                              ${customization.colors.accent}${
+                                isAlmostTime ? "12" : isVeryClose ? "08" : "05"
+                              } 100%
+                            )`
                             : `linear-gradient(135deg, 
                               ${customization.colors.primary}30 0%,
                               ${customization.colors.primary}15 50%,
@@ -1462,6 +1579,14 @@ export function MasjidTemplate({
                             inset 0 1px 0 rgba(255, 255, 255, 0.2),
                             inset 0 -1px 0 rgba(0, 0, 0, 0.2)
                           `
+                            : isUpcomingSoon
+                            ? `
+                            0 15px 35px ${customization.colors.accent}${
+                                isAlmostTime ? "40" : isVeryClose ? "30" : "20"
+                              },
+                            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                            inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                          `
                             : `
                             0 10px 30px rgba(0, 0, 0, 0.4),
                             inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -1470,26 +1595,31 @@ export function MasjidTemplate({
                           border: `1.5px solid ${
                             isCurrentPrayer
                               ? customization.colors.accent + "60"
+                              : isUpcomingSoon
+                              ? customization.colors.accent +
+                                (isAlmostTime
+                                  ? "50"
+                                  : isVeryClose
+                                  ? "40"
+                                  : "30")
                               : customization.colors.primary + "40"
                           }`,
                         }}
                       >
                         {/* Animated gradient overlay */}
-                        <div
-                          className="absolute inset-0 opacity-20"
-                          style={{
-                            background: `linear-gradient(90deg, 
-                            transparent 0%, 
-                            ${
-                              isCurrentPrayer
-                                ? customization.colors.accent
-                                : customization.colors.primary
-                            }30 50%, 
-                            transparent 100%
-                          )`,
-                            animation: "shimmer 3s ease-in-out infinite",
-                          }}
-                        ></div>
+                        {(isCurrentPrayer || isUpcomingSoon) && (
+                          <div
+                            className="absolute inset-0 opacity-20"
+                            style={{
+                              background: `linear-gradient(90deg, 
+                              transparent 0%, 
+                              ${customization.colors.accent}30 50%, 
+                              transparent 100%
+                            )`,
+                              animation: "shimmer 3s ease-in-out infinite",
+                            }}
+                          ></div>
+                        )}
 
                         <div className="relative px-8 py-6 flex items-center w-full">
                           {/* Decorative left accent */}
@@ -1498,19 +1628,20 @@ export function MasjidTemplate({
                             style={{
                               background: `linear-gradient(180deg, 
                               ${
-                                isCurrentPrayer
+                                isCurrentPrayer || isUpcomingSoon
                                   ? customization.colors.accent
                                   : customization.colors.secondary
                               } 0%,
                               ${
-                                isCurrentPrayer
+                                isCurrentPrayer || isUpcomingSoon
                                   ? customization.colors.accent + "80"
                                   : customization.colors.secondary + "80"
                               } 100%
                             )`,
-                              boxShadow: isCurrentPrayer
-                                ? `0 0 30px ${customization.colors.accent}80`
-                                : `0 0 15px ${customization.colors.secondary}40`,
+                              boxShadow:
+                                isCurrentPrayer || isUpcomingSoon
+                                  ? `0 0 30px ${customization.colors.accent}80`
+                                  : `0 0 15px ${customization.colors.secondary}40`,
                             }}
                           ></div>
 
@@ -1518,12 +1649,13 @@ export function MasjidTemplate({
                             className="text-6xl font-bold uppercase tracking-wider ml-4 relative"
                             style={{
                               color: customization.colors.text,
-                              textShadow: isCurrentPrayer
-                                ? `
+                              textShadow:
+                                isCurrentPrayer || isUpcomingSoon
+                                  ? `
                                 0 0 30px ${customization.colors.accent}60,
                                 2px 2px 12px rgba(0, 0, 0, 0.9)
                               `
-                                : "2px 2px 12px rgba(0, 0, 0, 0.9)",
+                                  : "2px 2px 12px rgba(0, 0, 0, 0.9)",
                               fontFamily: customization.font,
                               letterSpacing: "0.05em",
                             }}
@@ -1533,6 +1665,26 @@ export function MasjidTemplate({
                               customization.language
                             )}
                           </h3>
+
+                          {/* Show countdown badge for upcoming prayer */}
+                          {isUpcomingSoon && (
+                            <div
+                              className="ml-auto mr-4 px-4 py-2 rounded-full text-2xl font-bold"
+                              style={{
+                                background: `${customization.colors.accent}${
+                                  isAlmostTime
+                                    ? "90"
+                                    : isVeryClose
+                                    ? "80"
+                                    : "70"
+                                }`,
+                                color: "#FFFFFF",
+                                boxShadow: `0 0 20px ${customization.colors.accent}60`,
+                              }}
+                            >
+                              {Math.floor(nextPrayerInfo.minutesUntil)}m
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1641,7 +1793,7 @@ export function MasjidTemplate({
             >
               <div className="relative text-center flex flex-col justify-center">
                 {/* Time with enhanced typography */}
-                <div className="mb-6">
+                <div className="mb-6 mt-4">
                   <p
                     className="text-[11rem] font-black leading-none tracking-tighter font-mono"
                     style={{
@@ -1673,7 +1825,6 @@ export function MasjidTemplate({
                     <span
                       className="text-5xl font-bold px-4 py-2 rounded-full"
                       style={{
-                        background: `${customization.colors.primary}30`,
                         color: customization.colors.text,
                         textShadow: "0 2px 8px rgba(0, 0, 0, 0.8)",
                       }}
@@ -1691,13 +1842,7 @@ export function MasjidTemplate({
 
                 {/* Date with enhanced styling */}
                 <div className="mt-2">
-                  <div
-                    className="inline-block px-8 py-3 rounded-full mb-0"
-                    style={{
-                      background: `linear-gradient(135deg, ${customization.colors.primary}25 0%, transparent 100%)`,
-                      border: `1px solid ${customization.colors.primary}40`,
-                    }}
-                  >
+                  <div className="inline-block px-8 py-3 rounded-full mb-0">
                     <p
                       className="text-4xl font-semibold"
                       style={{
@@ -1851,14 +1996,13 @@ export function MasjidTemplate({
     );
   };
 
-  // HORIZONTAL LAYOUT
+  // HORIZONTAL LAYOUT (keeping existing implementation)
   const renderHorizontalLayout = () => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const currentSeconds = now.getSeconds();
     const currentTotalMinutes = currentMinutes + currentSeconds / 60;
 
-    // Find next prayer and check if it's Adhan time
     const getNextPrayerInfo = () => {
       const prayerList = prayers.filter(
         (p) => p.name.toLowerCase() !== "sunrise"
@@ -1871,12 +2015,10 @@ export function MasjidTemplate({
         const prayerTime = prayerHours * 60 + prayerMinutes;
         const iqamahTime = prayerTime + prayerList[i].offset;
 
-        // Check if it's currently Adhan time (between Adhan and Iqamah)
         if (
           currentTotalMinutes >= prayerTime &&
           currentTotalMinutes < iqamahTime
         ) {
-          // Calculate countdown to Iqamah
           const iqamahDiff = iqamahTime - currentTotalMinutes;
           const iqamahSeconds = Math.floor(iqamahDiff * 60);
           const iqamahMins = Math.floor(iqamahSeconds / 60);
@@ -1890,9 +2032,7 @@ export function MasjidTemplate({
           };
         }
 
-        // If we haven't reached this prayer yet
         if (currentTotalMinutes < prayerTime) {
-          // Format time without AM/PM for horizontal layout
           const formatTimeNoAMPM = (time: string) => {
             const [hours, minutes] = time.split(":");
             const hour = Number.parseInt(hours);
@@ -1911,7 +2051,6 @@ export function MasjidTemplate({
         }
       }
 
-      // If all prayers passed, show tomorrow's Fajr
       const fajr = prayerList[0];
       const formatTimeNoAMPM = (time: string) => {
         const [hours, minutes] = time.split(":");
@@ -2036,7 +2175,6 @@ export function MasjidTemplate({
 
         {/* Middle Section - Prayer Times or Iqamah Countdown */}
         {nextPrayerInfo.isAdhanTime ? (
-          // Single card for Iqamah countdown during Adhan time
           <div className="mb-2">
             <div
               className="p-12 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden animate-pulse"
@@ -2081,9 +2219,7 @@ export function MasjidTemplate({
             </div>
           </div>
         ) : (
-          // Two cards showing next Adhan and Iqamah times
           <div className="grid grid-cols-2 gap-12 mb-2">
-            {/* Next Adhan Time */}
             <div
               className="p-8 rounded-[4rem] backdrop-blur-sm text-center relative overflow-hidden"
               style={{
