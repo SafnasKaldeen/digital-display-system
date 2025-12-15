@@ -1959,9 +1959,8 @@ export function MasjidTemplate({
                   <span
                     className="text-[22rem] px-4 font-extrabold font-mono tracking-wide"
                     style={{
-                      color: "#00FF00",
-                      textShadow:
-                        "0 0 30px rgba(0, 255, 0, 0.5), 4px 4px 12px rgba(0, 0, 0, 0.9)",
+                      color: customization.colors.text,
+                      textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                       fontFamily: customization.font,
                       width: "fit-content",
                     }}
@@ -2011,9 +2010,8 @@ export function MasjidTemplate({
                       <span
                         className="text-[7rem] font-extrabold font-mono tracking-tighter"
                         style={{
-                          color: "#00FF00",
-                          textShadow:
-                            "0 0 30px rgba(0, 255, 0, 0.5), 4px 4px 12px rgba(0, 0, 0, 0.9)",
+                          color: customization.colors.text,
+                          textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                           fontFamily: customization.font,
                         }}
                       >
@@ -2024,9 +2022,8 @@ export function MasjidTemplate({
                       <span
                         className="text-[7rem] font-extrabold font-mono tracking-tighter ml-2"
                         style={{
-                          color: "#00FF00",
-                          textShadow:
-                            "0 0 30px rgba(0, 255, 0, 0.5), 4px 4px 12px rgba(0, 0, 0, 0.9)",
+                          color: customization.colors.text,
+                          textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                           fontFamily: customization.font,
                         }}
                       >
@@ -2125,8 +2122,7 @@ export function MasjidTemplate({
                   className="text-[18rem] font-extrabold font-mono leading-none"
                   style={{
                     color: customization.colors.secondary,
-                    textShadow:
-                      "0 0 40px rgba(255, 68, 68, 0.6), 5px 5px 15px rgba(0, 0, 0, 0.9)",
+                    textShadow: "5px 5px 15px rgba(0, 0, 0, 0.9)",
                     fontFamily: customization.font,
                   }}
                 >
@@ -2177,7 +2173,7 @@ export function MasjidTemplate({
           <p
             className="text-6xl font-bold tracking-wide"
             style={{
-              color: "#00FF00",
+              color: customization.colors.text,
               textShadow:
                 "0 0 20px rgba(0, 255, 0, 0.4), 3px 3px 8px rgba(0, 0, 0, 0.8)",
               fontFamily: customization.font,
@@ -2261,7 +2257,7 @@ export function MasjidTemplate({
               className="text-[16rem] font-bold font-mono leading-none"
               style={{
                 ...textStyle,
-                color: "#00FF00",
+                color: customization.colors.text,
                 textShadow: "4px 4px 8px rgba(0, 0, 0, 0.9)",
               }}
             >
