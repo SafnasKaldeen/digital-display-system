@@ -1254,7 +1254,7 @@ export function MasjidTemplateAuthentic({
                       className="text-6xl font-black"
                       style={{
                         ...textStyle,
-                        fontSize: "6rem",
+                        fontSize: "5rem",
                         color: isNextPrayer ? "#1e293b" : "#fbbf24",
                         textShadow: isNextPrayer
                           ? "2px 2px 4px rgba(0,0,0,0.2)"
