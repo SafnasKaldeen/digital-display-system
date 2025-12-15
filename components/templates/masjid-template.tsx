@@ -1324,9 +1324,9 @@ export function MasjidTemplate({
           return {
             prayer,
             minutesUntil: diffInMinutes,
-            isWithin5Minutes: diffInMinutes <= 5,
-            isWithin2Minutes: diffInMinutes <= 2,
-            isWithin1Minute: diffInMinutes <= 1,
+            isWithin5Minutes: diffInMinutes <= 10,
+            isWithin2Minutes: diffInMinutes <= 4,
+            isWithin1Minute: diffInMinutes <= 2,
           };
         }
       }
