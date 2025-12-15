@@ -2713,11 +2713,6 @@ export function MasjidTemplate({
 
                       {/* Status Indicator */}
                       <div className="absolute -top-2 right-0 flex gap-2">
-                        {isActive && (
-                          <span className="px-3 py-1 text-sm font-bold rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-black animate-pulse">
-                            {t.current}
-                          </span>
-                        )}
                         {isNextPrayer && !isActive && (
                           <span className="px-0 py-0 text-sm font-bold rounded-full bg-gradient-to-r from-blue-400 to-purple-600 text-white">
                             {t.next}
