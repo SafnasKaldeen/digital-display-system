@@ -1310,54 +1310,9 @@ export function MasjidTemplate({
 
     const currentPrayerInfo = getCurrentPrayer();
 
-    // Get dynamic background style
-    const getVerticalBackgroundStyle = () => {
-      // If there's a slideshow or image from config, use it
-      if (
-        customization.backgroundType === "slideshow" &&
-        customization.backgroundImage &&
-        customization.backgroundImage.length > 0
-      ) {
-        return {
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          transition: "background-image 1s ease-in-out",
-        };
-      }
-      // Otherwise use the enhanced gradient background
-      return {
-        background: `linear-gradient(165deg, 
-        ${customization.colors.primary}15 0%,
-        ${customization.colors.primary}08 30%,
-        ${customization.colors.primary}05 70%,
-        ${customization.colors.primary}02 100%
-      )`,
-      };
-    };
-
-    const verticalBackgroundStyle = getVerticalBackgroundStyle();
-
     return (
-      <div
-        className="w-full h-full flex flex-col p-8 relative overflow-hidden"
-        style={verticalBackgroundStyle}
-      >
-        {/* Decorative background elements (only show if no image background) */}
-        {customization.backgroundType !== "slideshow" && (
-          <div className="absolute inset-0 overflow-hidden">
-            <div
-              className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 rounded-full bg-gradient-to-r from-purple-900/10 to-transparent blur-3xl"
-              style={{ backgroundColor: `${customization.colors.primary}10` }}
-            ></div>
-            <div
-              className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 rounded-full bg-gradient-to-l from-blue-900/10 to-transparent blur-3xl"
-              style={{ backgroundColor: `${customization.colors.secondary}10` }}
-            ></div>
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          </div>
-        )}
+      <div className="w-full h-full flex flex-col p-8 relative overflow-hidden">
+        {/* REMOVED ALL DECORATIVE BACKGROUND ELEMENTS */}
 
         {/* Top: Masjid Header with config-based design */}
         <div className="mb-12 text-center relative z-10">
@@ -1605,9 +1560,6 @@ export function MasjidTemplate({
                           border: `1.5px solid ${customization.colors.text}60`,
                         }}
                       >
-                        {/* Metallic shine effect */}
-                        <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent opacity-20"></div>
-
                         <div className="relative px-6 py-6">
                           <p
                             className="text-5xl font-black leading-none tracking-tighter"
@@ -1646,14 +1598,6 @@ export function MasjidTemplate({
                           border: `1.5px solid ${customization.colors.secondary}80`,
                         }}
                       >
-                        {/* Corner glow */}
-                        <div
-                          className="absolute top-0 right-0 w-20 h-20 opacity-30"
-                          style={{
-                            background: `radial-gradient(circle at top right, ${customization.colors.accent} 0%, transparent 70%)`,
-                          }}
-                        ></div>
-
                         <div className="relative px-6 py-6">
                           <p
                             className="text-5xl font-black leading-none tracking-tighter"
@@ -1905,59 +1849,12 @@ export function MasjidTemplate({
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center relative">
-                {/* <div
-                  className="absolute inset-0 rounded-3xl"
-                  style={{
-                    background: `linear-gradient(165deg, 
-                    ${customization.colors.primary}10 0%,
-                    ${customization.colors.primary}05 100%
-                  )`,
-                    border: `2px solid ${customization.colors.primary}30`,
-                    backdropFilter: "blur(10px)",
-                  }}
-                ></div>
-                <div className="relative text-center">
-                  <p
-                    className="text-6xl font-semibold italic tracking-wider"
-                    style={{
-                      color: customization.colors.text,
-                      textShadow: `
-                      0 2px 20px ${customization.colors.primary}30,
-                      0 4px 30px rgba(0, 0, 0, 0.6)
-                    `,
-                      fontFamily: customization.font,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    PEACE BE UPON HIM
-                  </p>
-                </div> */}
+              <div className="flex-1 flex items-center justify-center">
+                {/* Empty space when no countdown */}
               </div>
             )}
           </div>
         </div>
-
-        {/* Add keyframes for animations */}
-        <style jsx>{`
-          @keyframes shimmer {
-            0% {
-              transform: translateX(-100%) rotate(45deg);
-            }
-            100% {
-              transform: translateX(100%) rotate(45deg);
-            }
-          }
-          @keyframes pulse {
-            0%,
-            100% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.8;
-            }
-          }
-        `}</style>
       </div>
     );
   };
@@ -2078,7 +1975,7 @@ export function MasjidTemplate({
 
                   {/* Right side - Seconds, AM/PM, and Date stacked - Fixed position */}
                   <div
-                    className="flex flex-col pl-58 absolute"
+                    className="flex flex-col pl-60 absolute"
                     style={{ height: "22rem", left: "58rem" }}
                   >
                     {/* Top Half - Date */}
@@ -2637,7 +2534,7 @@ export function MasjidTemplate({
       className="w-full h-full relative overflow-hidden flex items-center justify-center"
       style={dynamicBackgroundStyle}
     >
-      <div className="absolute inset-0 bg-black/50"></div>
+      <div className="absolute inset-0 bg-black/20"></div>
 
       <div className="relative z-10 w-full h-full flex items-center justify-center">
         {customization.layout === "vertical" && renderVerticalLayout()}
