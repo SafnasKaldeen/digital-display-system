@@ -1326,7 +1326,7 @@ export function MasjidTemplate({
             }}
           >
             <h1
-              className="text-7xl font-bold leading-none tracking-wider"
+              className="text-6xl font-bold leading-none tracking-wider"
               style={{
                 color: customization.colors.text,
                 textShadow: `
