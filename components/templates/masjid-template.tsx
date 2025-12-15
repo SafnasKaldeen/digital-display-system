@@ -496,19 +496,6 @@ const IshraqCountdown = ({
             </div>
           </div>
 
-          {/* Info text */}
-          <div className="text-center">
-            <p
-              className="text-4xl font-semibold mt-36"
-              style={{
-                color: "#94a3b8",
-                textShadow: `0 0 15px #94a3b860, 2px 2px 6px rgba(0,0,0,0.8)`,
-              }}
-            >
-              {t.ishraqSubtitle} ☀️
-            </p>
-          </div>
-
           {/* Corner decorative elements */}
           <div
             className="absolute top-0 left-0 w-32 h-32 rounded-tl-[2rem]"
