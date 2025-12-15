@@ -1268,8 +1268,6 @@ export function MasjidTemplate({
 
   // VERTICAL LAYOUT
   const renderVerticalLayout = () => {
-    const isAdhanSoon = isCloseToAdhan();
-
     const formatTimeNoAMPM = (time: string) => {
       const [hours, minutes] = time.split(":");
       const hour = Number.parseInt(hours);
@@ -1277,129 +1275,282 @@ export function MasjidTemplate({
       return `${displayHour.toString().padStart(2, "0")}:${minutes}`;
     };
 
+    // Determine which prayer is currently active (between Adhan and Iqamah)
+    const getCurrentPrayer = () => {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentSeconds = now.getSeconds();
+      const currentTotalMinutes = currentMinutes + currentSeconds / 60;
+
+      for (const prayer of prayers) {
+        const [hours, minutes] = prayer.time.split(":").map(Number);
+        const adhanTime = hours * 60 + minutes;
+        const iqamahTime = adhanTime + prayer.offset;
+
+        if (
+          currentTotalMinutes >= adhanTime &&
+          currentTotalMinutes < iqamahTime
+        ) {
+          // Calculate countdown to Iqamah
+          const iqamahDiff = iqamahTime - currentTotalMinutes;
+          const iqamahSeconds = Math.floor(iqamahDiff * 60);
+          const iqamahMins = Math.floor(iqamahSeconds / 60);
+          const iqamahSecs = iqamahSeconds % 60;
+
+          return {
+            prayer,
+            isActive: true,
+            countdownMins: iqamahMins.toString().padStart(2, "0"),
+            countdownSecs: iqamahSecs.toString().padStart(2, "0"),
+          };
+        }
+      }
+      return { prayer: null, isActive: false };
+    };
+
+    const currentPrayerInfo = getCurrentPrayer();
+
     return (
-      <div className="w-full h-[100%] flex flex-col p-8 overflow-hidden">
+      <div className="w-full h-full flex flex-col p-6">
         {/* Top: Masjid Header */}
-        <div className="text-center mb-4">
+        <div className="mb-10 text-center">
           <h1
-            className="text-8xl font-bold leading-tight mb-2"
+            className="text-7xl font-bold leading-none tracking-wide"
             style={{
-              color: customization.colors.accent,
-              textShadow: "4px 4px 12px rgba(0, 0, 0, 0.9)",
+              color: customization.colors.text,
+              textShadow: "3px 3px 10px rgba(0, 0, 0, 0.9)",
               fontFamily: customization.font,
             }}
           >
             {customization.masjidName}
           </h1>
-          <div className="flex items-center justify-center gap-4 mt-2">
-            <div
-              className="text-3xl font-semibold px-6 py-2 rounded-full"
-              style={{
-                backgroundColor: `${customization.colors.accent}40`,
-                color: "#FFFFFF",
-                textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                fontFamily: customization.font,
-                border: `2px solid ${customization.colors.accent}`,
-              }}
-            >
-              ADHAN - IQAMAH
-            </div>
-          </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-2 gap-6">
-          {/* Left Section: Prayer Times in 3-column format */}
-          <div className="flex flex-col justify-center space-y-3">
-            {prayers.map((prayer, index) => (
+        <div className="flex-1 grid grid-cols-[45%_55%] gap-6 min-h-0">
+          {/* Left Section: Prayer Times */}
+          <div
+            className="flex flex-col bg-transparent rounded-md bg-white p-4"
+            style={{
+              backgroundColor: `${customization.colors.primary}30`,
+              border: `3px solid ${customization.colors.primary}80`,
+              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
+            }}
+          >
+            {/* ADHAN IQAMAH Header */}
+            <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-8 mt-4 px-2">
+              <div></div>
               <div
-                key={getPrayerDisplayName(prayer.name, customization.language)}
-                className="grid grid-cols-[2fr_1.2fr_1.2fr] items-center gap-2 p-3 rounded-xl backdrop-blur-sm"
+                className="text-center text-5xl font-bold italic tracking-wider"
                 style={{
-                  backgroundColor: `${customization.colors.primary}30`,
-                  border: `2px solid ${customization.colors.accent}60`,
-                  boxShadow: `0 4px 12px rgba(0, 0, 0, 0.3)`,
+                  color: customization.colors.text,
+                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.9)",
+                  fontFamily: customization.font,
                 }}
               >
-                {/* Prayer Name */}
-                <div className="flex items-center justify-start pl-4">
-                  <h3
-                    className="text-4xl font-bold leading-tight uppercase tracking-wider"
-                    style={{
-                      color: customization.colors.text,
-                      textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                      fontFamily: customization.font,
-                    }}
-                  >
-                    {getPrayerDisplayName(prayer.name, customization.language)}
-                  </h3>
-                </div>
-
-                {/* Adhan Time */}
-                <div className="flex flex-col items-center justify-center">
-                  <div
-                    className="px-4 py-2 rounded-lg w-full text-center"
-                    style={{
-                      backgroundColor: customization.colors.primary,
-                      border: "2px solid rgba(255, 255, 255, 0.2)",
-                    }}
-                  >
-                    <p
-                      className="text-4xl font-bold leading-none"
-                      style={{
-                        color: customization.colors.secondary,
-                        fontFamily: customization.font,
-                      }}
-                    >
-                      {formatTimeNoAMPM(prayer.time)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Iqamah Time */}
-                <div className="flex flex-col items-center justify-center">
-                  <div
-                    className="px-4 py-2 rounded-lg w-full text-center"
-                    style={{
-                      backgroundColor: customization.colors.secondary,
-                      border: "2px solid rgba(255, 255, 255, 0.3)",
-                    }}
-                  >
-                    <p
-                      className="text-4xl font-bold leading-none"
-                      style={{
-                        color: "#FFFFFF",
-                        textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                        fontFamily: customization.font,
-                      }}
-                    >
-                      {formatTimeNoAMPM(
-                        calculateIqamahTime(prayer.time, prayer.offset)
-                      )}
-                    </p>
-                  </div>
-                </div>
+                ADHAN
               </div>
-            ))}
+              <div
+                className="text-center text-5xl font-bold italic tracking-wider"
+                style={{
+                  color: customization.colors.text,
+                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.9)",
+                  fontFamily: customization.font,
+                }}
+              >
+                IQAMAH
+              </div>
+            </div>
+
+            {/* Prayer Times Grid */}
+            <div className="flex-1 flex flex-col justify-between">
+              {prayers.map((prayer, index) => {
+                const isCurrentPrayer =
+                  currentPrayerInfo.isActive &&
+                  currentPrayerInfo.prayer?.name === prayer.name;
+
+                return (
+                  <div
+                    key={getPrayerDisplayName(
+                      prayer.name,
+                      customization.language
+                    )}
+                    className={`grid grid-cols-[2fr_1fr_1fr] items-stretch gap-2 transition-all duration-300 ${
+                      isCurrentPrayer ? "animate-pulse" : ""
+                    }`}
+                  >
+                    {/* Prayer Name */}
+                    <div
+                      className="relative overflow-hidden rounded-2xl flex items-center group"
+                      style={{
+                        backgroundColor: isCurrentPrayer
+                          ? `${customization.colors.accent}80`
+                          : `${customization.colors.primary}95`,
+                        boxShadow: isCurrentPrayer
+                          ? `0 0 40px ${customization.colors.accent}60, 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+                          : "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                        border: `2px solid ${
+                          isCurrentPrayer
+                            ? customization.colors.accent + "40"
+                            : customization.colors.primary + "60"
+                        }`,
+                      }}
+                    >
+                      {/* Gradient overlay */}
+                      <div
+                        className="absolute inset-0 opacity-10"
+                        style={{
+                          background: `linear-gradient(135deg, ${customization.colors.primary}00 0%, ${customization.colors.primary}80 100%)`,
+                        }}
+                      ></div>
+
+                      {/* Animated border shine */}
+                      {isCurrentPrayer && (
+                        <div
+                          className="absolute inset-0 opacity-30"
+                          style={{
+                            background: `linear-gradient(90deg, transparent 0%, ${customization.colors.accent}60 50%, transparent 100%)`,
+                            animation: "shimmer 2s infinite",
+                          }}
+                        ></div>
+                      )}
+
+                      <div className="relative px-6 py-8 flex items-center w-full">
+                        {/* Decorative left bar */}
+                        <div
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-3/4 rounded-r-full"
+                          style={{
+                            backgroundColor: isCurrentPrayer
+                              ? customization.colors.accent
+                              : customization.colors.secondary,
+                            boxShadow: isCurrentPrayer
+                              ? `0 0 20px ${customization.colors.accent}80`
+                              : "none",
+                          }}
+                        ></div>
+
+                        <h3
+                          className="text-6xl font-bold uppercase tracking-wider ml-0"
+                          style={{
+                            color: customization.colors.text,
+                            textShadow: isCurrentPrayer
+                              ? `0 0 20px ${customization.colors.accent}60, 2px 2px 10px rgba(0, 0, 0, 0.9)`
+                              : "2px 2px 10px rgba(0, 0, 0, 0.9)",
+                            fontFamily: customization.font,
+                          }}
+                        >
+                          {getPrayerDisplayName(
+                            prayer.name,
+                            customization.language
+                          )}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Adhan Time */}
+                    <div
+                      className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center group"
+                      style={{
+                        backgroundColor: `${customization.colors.text}F5`,
+                        boxShadow:
+                          "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.1)",
+                        border: `2px solid ${customization.colors.text}40`,
+                      }}
+                    >
+                      {/* Subtle gradient overlay */}
+                      <div
+                        className="absolute inset-0 opacity-5"
+                        style={{
+                          background: `radial-gradient(circle at top right, ${customization.colors.primary}80 0%, transparent 70%)`,
+                        }}
+                      ></div>
+
+                      {/* Top edge highlight */}
+                      <div
+                        className="absolute top-0 left-0 right-0 h-px opacity-30"
+                        style={{
+                          background: `linear-gradient(90deg, transparent 0%, ${customization.colors.primary} 50%, transparent 100%)`,
+                        }}
+                      ></div>
+
+                      <div className="relative px-5 py-5">
+                        <p
+                          className="text-5xl font-extrabold leading-none tracking-tight"
+                          style={{
+                            color: customization.colors.primary,
+                            textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                            fontFamily: "'Orbitron', " + customization.font,
+                          }}
+                        >
+                          {formatTimeNoAMPM(prayer.time)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Iqamah Time */}
+                    <div
+                      className="relative overflow-hidden rounded-2xl text-center flex items-center justify-center group"
+                      style={{
+                        backgroundColor: customization.colors.secondary,
+                        boxShadow: `0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)`,
+                        border: `2px solid ${customization.colors.secondary}60`,
+                      }}
+                    >
+                      {/* Gradient overlay */}
+                      <div
+                        className="absolute inset-0 opacity-20"
+                        style={{
+                          background: `linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%)`,
+                        }}
+                      ></div>
+
+                      {/* Corner accent */}
+                      <div
+                        className="absolute top-0 right-0 w-16 h-16 opacity-20"
+                        style={{
+                          background: `radial-gradient(circle at top right, ${customization.colors.accent}80 0%, transparent 70%)`,
+                        }}
+                      ></div>
+
+                      <div className="relative px-5 py-5">
+                        <p
+                          className="text-5xl font-extrabold leading-none tracking-tight"
+                          style={{
+                            color: customization.colors.text,
+                            textShadow:
+                              "2px 2px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 0, 0, 0.5)",
+                            fontFamily: "'Orbitron', " + customization.font,
+                          }}
+                        >
+                          {formatTimeNoAMPM(
+                            calculateIqamahTime(prayer.time, prayer.offset)
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right Section: Current Time and Date */}
-          <div className="flex flex-col justify-between h-full">
-            {/* Current Time Card */}
+          {/* Right Section: Time, Date, and Countdown */}
+          <div className="flex flex-col gap-4 h-full">
+            {/* Current Time and Date Card */}
             <div
-              className="p-8 rounded-2xl backdrop-blur-md text-center flex-1 flex flex-col justify-center"
+              className="p-8 rounded-3xl text-center flex flex-col justify-center"
               style={{
-                backgroundColor: `${customization.colors.primary}40`,
-                border: `4px solid ${customization.colors.accent}`,
-                boxShadow: `0 8px 24px rgba(0, 0, 0, 0.5)`,
+                backgroundColor: `${customization.colors.primary}30`,
+                border: `3px solid ${customization.colors.primary}80`,
+                boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
               }}
             >
+              {/* Time */}
               <p
-                className="text-[11rem] font-bold font-mono mb-1 leading-none"
+                className="text-[10rem] font-extrabold font-mono leading-none tracking-tight"
                 style={{
-                  color: customization.colors.secondary || "#00FF00",
-                  textShadow:
-                    "0 0 30px rgba(0, 255, 0, 0.5), 4px 4px 12px rgba(0, 0, 0, 0.9)",
-                  fontFamily: customization.font,
+                  color: customization.colors.text,
+                  textShadow: "4px 4px 15px rgba(0, 0, 0, 0.9)",
+                  fontFamily: "'Orbitron', 'Oxanium', monospace",
                 }}
               >
                 {currentTime
@@ -1407,76 +1558,114 @@ export function MasjidTemplate({
                     hour: "2-digit",
                     minute: "2-digit",
                     second: "2-digit",
-                    hour12: true,
+                    hour12: false,
                   })
                   .replace(/\s/g, "")}
+                <span className="text-[6rem] ml-3">
+                  {currentTime.getHours() >= 12 ? "PM" : "AM"}
+                </span>
               </p>
 
-              {/* Date Display */}
-              <div className="mt-4">
+              {/* Date */}
+              <div className="mt-6">
                 <p
                   className="text-4xl font-semibold"
                   style={{
-                    color: customization.colors.accent,
-                    textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
+                    color: customization.colors.text,
+                    textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
                     fontFamily: customization.font,
+                    opacity: 0.95,
                   }}
                 >
                   {currentTime.toLocaleDateString("en-US", {
                     weekday: "long",
-                    month: "long",
                     day: "numeric",
-                    year: "numeric",
                   })}
+                  th off{" "}
+                  {currentTime.toLocaleDateString("en-US", {
+                    month: "long",
+                  })}{" "}
+                  -{currentTime.getFullYear()}
                 </p>
               </div>
+
+              {/* Hijri Date */}
+              {hijriDate && customization.showHijriDate && (
+                <div className="mt-4">
+                  <p
+                    className="text-3xl font-semibold"
+                    style={{
+                      color: customization.colors.text,
+                      textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
+                      fontFamily: customization.font,
+                      opacity: 0.9,
+                    }}
+                  >
+                    {hijriDate}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Hijri Date Card */}
-            {hijriDate && customization.showHijriDate && (
+            {/* Iqamah Countdown or Peace Be Upon Him */}
+            {currentPrayerInfo.isActive ? (
               <div
-                className="p-6 rounded-2xl backdrop-blur-md text-center mt-4"
+                className="flex-1 p-10 rounded-3xl text-center flex flex-col justify-center animate-pulse"
                 style={{
-                  backgroundColor: `${customization.colors.primary}50`,
-                  border: `3px solid ${customization.colors.secondary}60`,
-                  boxShadow: `0 6px 20px rgba(0, 0, 0, 0.4)`,
+                  backgroundColor: `${customization.colors.accent}60`,
+                  border: `4px solid ${customization.colors.accent}`,
+                  boxShadow: `0 0 50px ${customization.colors.accent}60, 0 10px 40px rgba(0, 0, 0, 0.6)`,
                 }}
               >
                 <p
-                  className="text-3xl opacity-80 mb-2"
+                  className="text-4xl font-bold mb-6"
                   style={{
                     color: customization.colors.text,
+                    textShadow: "3px 3px 8px rgba(0, 0, 0, 0.9)",
                     fontFamily: customization.font,
                   }}
                 >
-                  {t.islamicDate}
+                  {getPrayerDisplayName(
+                    currentPrayerInfo.prayer.name,
+                    customization.language
+                  )}{" "}
+                  - {t.iqamahIn}
                 </p>
                 <p
-                  className="text-4xl font-semibold"
+                  className="text-[11rem] font-extrabold font-mono leading-none"
                   style={{
-                    color: customization.colors.secondary,
-                    textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                    fontFamily: customization.font,
+                    color: customization.colors.text,
+                    textShadow: "5px 5px 20px rgba(0, 0, 0, 0.9)",
+                    fontFamily: "'Orbitron', 'Oxanium', monospace",
                   }}
                 >
-                  {hijriDate}
+                  {currentPrayerInfo.countdownMins}:
+                  {currentPrayerInfo.countdownSecs}
                 </p>
               </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                {/* <div
+                  className="text-center p-8 rounded-3xl"
+                  style={{
+                    backgroundColor: `${customization.colors.primary}20`,
+                    border: `2px solid ${customization.colors.primary}60`,
+                  }}
+                >
+                  <p
+                    className="text-5xl font-semibold italic tracking-wide"
+                    style={{
+                      color: customization.colors.text,
+                      textShadow: "2px 2px 8px rgba(0, 0, 0, 0.9)",
+                      fontFamily: customization.font,
+                      opacity: 0.9,
+                    }}
+                  >
+                    PEACE BE UPON HIM
+                  </p>
+                </div> */}
+              </div>
             )}
-
-            {/* Peace Be Upon Him Text */}
-            <div className="text-center mt-6">
-              <p
-                className="text-3xl italic font-semibold"
-                style={{
-                  color: customization.colors.accent,
-                  textShadow: "2px 2px 6px rgba(0, 0, 0, 0.8)",
-                  fontFamily: customization.font,
-                }}
-              >
-                PEACE BE UPON HIM
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -1599,7 +1788,7 @@ export function MasjidTemplate({
 
                   {/* Right side - Seconds, AM/PM, and Date stacked - Fixed position */}
                   <div
-                    className="flex flex-col pl-40 absolute"
+                    className="flex flex-col pl-48 absolute"
                     style={{ height: "22rem", left: "58rem" }}
                   >
                     {/* Top Half - Date */}
