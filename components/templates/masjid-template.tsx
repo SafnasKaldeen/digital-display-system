@@ -2530,7 +2530,7 @@ export function MasjidTemplate({
       className="w-full h-full relative overflow-hidden flex items-center justify-center"
       style={dynamicBackgroundStyle}
     >
-      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="absolute inset-0 bg-black/50"></div>
 
       <div className="relative z-10 w-full h-full flex items-center justify-center">
         {customization.layout === "vertical" && renderVerticalLayout()}
