@@ -2666,7 +2666,7 @@ export function MasjidTemplate({
                         {t.iqamah}
                       </p>
                       <p
-                        className="text-7xl font-bold font-mono"
+                        className="text-7xl font-semibold font-mono"
                         style={{
                           ...textStyle,
                           color: isCurrentActive
