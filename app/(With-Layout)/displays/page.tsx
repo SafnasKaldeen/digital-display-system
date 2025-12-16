@@ -399,10 +399,8 @@ export default function DisplaysPage() {
             const templateType = getTemplateType(display.template_type);
 
             const thumbnails: Record<string, string> = {
-              masjid:
-                "https://images.unsplash.com/photo-1591154669695-5f2a8d20c089?w=400",
-              hospital:
-                "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400",
+              masjid: "/mosque-background.jpg",
+              hospital: "/hospital-background.jpg",
               restaurant:
                 "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
               retail:
