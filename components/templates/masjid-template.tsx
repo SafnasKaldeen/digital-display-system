@@ -1836,50 +1836,53 @@ export function MasjidTemplate({
                           <div
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-4/5 rounded-r-full"
                             style={{
-                              background: `linear-gradient(180deg, 
-                ${
-                  isCurrentPrayer
-                    ? customization.colors.accent
-                    : isNextPrayer
-                    ? isCritical
-                      ? "rgb(255, 0, 0)"
-                      : isExtremelyClose
-                      ? "rgb(255, 100, 0)"
-                      : isVeryClose
-                      ? "rgb(255, 200, 0)"
-                      : isUpcomingSoon
-                      ? "rgb(255, 255, 0)"
-                      : customization.colors.accent
-                    : customization.colors.secondary
-                } 0%,
-                ${
-                  isCurrentPrayer
-                    ? customization.colors.accent + "80"
-                    : isNextPrayer
-                    ? isCritical
-                      ? "rgba(255, 0, 0, 0.8)"
-                      : isExtremelyClose
-                      ? "rgba(255, 100, 0, 0.8)"
-                      : isVeryClose
-                      ? "rgba(255, 200, 0, 0.8)"
-                      : isUpcomingSoon
-                      ? "rgba(255, 255, 0, 0.8)"
-                      : customization.colors.accent + "80"
-                    : customization.colors.secondary + "80"
-                } 100%
-              )`,
-                              boxShadow:
-                                isCurrentPrayer || isNextPrayer
-                                  ? isCritical
-                                    ? "0 0 40px rgba(255, 0, 0, 0.8)"
-                                    : isExtremelyClose
-                                    ? "0 0 35px rgba(255, 100, 0, 0.8)"
-                                    : isVeryClose
-                                    ? "0 0 30px rgba(255, 200, 0, 0.8)"
-                                    : isUpcomingSoon
-                                    ? "0 0 25px rgba(255, 255, 0, 0.8)"
-                                    : `0 0 30px ${customization.colors.accent}80`
-                                  : `0 0 15px ${customization.colors.secondary}40`,
+                              background: isCurrentPrayer
+                                ? `linear-gradient(135deg, 
+      ${customization.colors.accent}40 0%,
+      ${customization.colors.accent}20 50%,
+      ${customization.colors.accent}10 100%
+    )`
+                                : isNextPrayer
+                                ? `linear-gradient(135deg, 
+      ${
+        isCritical
+          ? "rgba(255, 0, 0, 0.35)"
+          : isExtremelyClose
+          ? "rgba(255, 100, 0, 0.3)"
+          : isVeryClose
+          ? "rgba(255, 200, 0, 0.25)"
+          : isUpcomingSoon
+          ? "rgba(255, 255, 0, 0.2)"
+          : `${customization.colors.accent}30`
+      } 0%,
+      ${
+        isCritical
+          ? "rgba(255, 0, 0, 0.25)"
+          : isExtremelyClose
+          ? "rgba(255, 100, 0, 0.2)"
+          : isVeryClose
+          ? "rgba(255, 200, 0, 0.18)"
+          : isUpcomingSoon
+          ? "rgba(255, 255, 0, 0.15)"
+          : `${customization.colors.accent}20`
+      } 50%,
+      ${
+        isCritical
+          ? "rgba(255, 0, 0, 0.15)"
+          : isExtremelyClose
+          ? "rgba(255, 100, 0, 0.12)"
+          : isVeryClose
+          ? "rgba(255, 200, 0, 0.1)"
+          : isUpcomingSoon
+          ? "rgba(255, 255, 0, 0.08)"
+          : `${customization.colors.accent}10`
+      } 100%
+    )`
+                                : `linear-gradient(135deg, 
+      ${customization.colors.primary}30 0%,
+      ${customization.colors.primary}15 50%,
+      ${customization.colors.primary}08 100%
+    )`,
                             }}
                           ></div>
 
