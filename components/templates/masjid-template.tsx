@@ -1717,10 +1717,10 @@ export function MasjidTemplate({
                         style={{
                           background: isCurrentPrayer
                             ? `linear-gradient(135deg, 
-                ${customization.colors.accent}40 0%,
-                ${customization.colors.accent}20 50%,
-                ${customization.colors.accent}10 100%
-              )`
+                                ${customization.colors.accent}60 0%,
+                                ${customization.colors.accent}40 50%,
+                                ${customization.colors.accent}25 100%
+                              )`
                             : isNextPrayer
                             ? `linear-gradient(135deg, 
                 ${
@@ -2174,9 +2174,9 @@ export function MasjidTemplate({
                 className="flex-1 p-10 rounded-3xl relative overflow-hidden backdrop-blur-sm"
                 style={{
                   background: `linear-gradient(165deg, 
-                  ${customization.colors.accent}40 0%,
-                  ${customization.colors.accent}20 50%,
-                  ${customization.colors.accent}10 100%
+                  ${customization.colors.accent}50 0%,
+                  ${customization.colors.accent}30 50%,
+                  ${customization.colors.accent}15 100%
                 )`,
                   border: `2px solid ${customization.colors.accent}80`,
                   boxShadow: `
