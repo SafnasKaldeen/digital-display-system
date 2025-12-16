@@ -1452,9 +1452,7 @@ export function MasjidTemplate({
     return (
       <div className="w-full h-full flex flex-col p-8 relative overflow-hidden">
         <style>
-          {`
-           
-            
+          {`  
             @keyframes glowPulse {
               0%, 100% {
                 box-shadow: 
@@ -1626,7 +1624,6 @@ export function MasjidTemplate({
 
             {/* Prayer Times Grid */}
             <div className="flex-1 flex flex-col justify-between gap-4">
-              // Update the prayer card rendering section:
               {prayers.map((prayer, index) => {
                 const isCurrentPrayer =
                   currentPrayerInfo.isActive &&
