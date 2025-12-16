@@ -1920,39 +1920,6 @@ export function MasjidTemplate({
                               customization.language
                             )}
                           </h3>
-
-                          {/* Show countdown badge for next prayer with urgency colors */}
-                          {isNextPrayer && (
-                            <div
-                              className="ml-auto mr-4 px-4 py-2 rounded-full text-2xl font-bold"
-                              style={{
-                                background: isCritical
-                                  ? "rgba(255, 0, 0, 0.9)"
-                                  : isExtremelyClose
-                                  ? "rgba(255, 100, 0, 0.9)"
-                                  : isVeryClose
-                                  ? "rgba(255, 200, 0, 0.9)"
-                                  : isUpcomingSoon
-                                  ? "rgba(255, 255, 0, 0.9)"
-                                  : `${customization.colors.accent}70`,
-                                color: "#FFFFFF",
-                                boxShadow: isCritical
-                                  ? "0 0 25px rgba(255, 0, 0, 0.6)"
-                                  : isExtremelyClose
-                                  ? "0 0 20px rgba(255, 100, 0, 0.6)"
-                                  : isVeryClose
-                                  ? "0 0 15px rgba(255, 200, 0, 0.6)"
-                                  : isUpcomingSoon
-                                  ? "0 0 10px rgba(255, 255, 0, 0.6)"
-                                  : `0 0 20px ${customization.colors.accent}60`,
-                                animation: nextPrayerInfo.isWithin10Minutes
-                                  ? "pulse 1s ease-in-out infinite"
-                                  : "",
-                              }}
-                            >
-                              {Math.ceil(nextPrayerInfo.minutesUntil)}m
-                            </div>
-                          )}
                         </div>
                       </div>
 
