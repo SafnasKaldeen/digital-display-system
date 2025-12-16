@@ -216,6 +216,12 @@ export function MasjidTemplateAuthentic({
           offset: customization.iqamahOffsets.fajr,
         },
         {
+          name: customization.prayerNames.sunrise || "sunrise",
+          key: "sunrise",
+          time: customization.prayerTimes.sunrise,
+          offset: customization.iqamahOffsets.sunrise,
+        },
+        {
           name: getPrayerDisplayName(
             customization.prayerNames.dhuhr || "dhuhr",
             language
