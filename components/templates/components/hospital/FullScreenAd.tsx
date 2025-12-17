@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { X, Play, Loader2 } from "lucide-react";
 
 interface FullScreenAdProps {
-  title: string;
+  title?: string;
   caption: string;
   imageUrl?: string;
   videoUrl?: string;
@@ -558,7 +558,7 @@ export default function FullScreenAd({
                 playsInline
                 preload="auto"
                 crossOrigin="anonymous"
-                aria-label={`Video ad: ${title}`}
+                aria-label={title ? `Video ad: ${title}` : "Video ad"}
               >
                 <source src={videoUrl} type="video/mp4" />
                 Your browser does not support the video tag.
@@ -637,7 +637,7 @@ export default function FullScreenAd({
             imageUrl && (
               <img
                 src={imageUrl}
-                alt={title}
+                alt={title || "Advertisement"}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   console.error("Failed to load image:", imageUrl);
@@ -653,12 +653,14 @@ export default function FullScreenAd({
 
         <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
           <div className="max-w-4xl mx-auto">
-            <h2
-              className="text-5xl font-bold mb-4 drop-shadow-lg"
-              style={{ color: accentColor }}
-            >
-              {title}
-            </h2>
+            {title && (
+              <h2
+                className="text-5xl font-bold mb-4 drop-shadow-lg"
+                style={{ color: accentColor }}
+              >
+                {title}
+              </h2>
+            )}
             <p className="text-2xl text-white/90 mb-6 drop-shadow-lg">
               {caption}
             </p>

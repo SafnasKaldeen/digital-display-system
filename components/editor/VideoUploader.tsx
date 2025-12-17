@@ -19,6 +19,8 @@ export function VideoUploader({
 }: VideoUploaderProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadMethod, setUploadMethod] = useState<string>("");
   const [mediaUploadedVideos, setMediaUploadedVideos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -91,6 +93,8 @@ export function VideoUploader({
 
     setIsUploading(true);
     setUploadError(null);
+    setUploadProgress(0);
+    setUploadMethod("");
 
     try {
       const file = files[0];
@@ -100,9 +104,9 @@ export function VideoUploader({
         throw new Error("Please select a video file (MP4, WebM, etc.)");
       }
 
-      // Check file size (max 100MB for videos)
-      if (file.size > 100 * 1024 * 1024) {
-        throw new Error("Video file is too large (maximum 100MB)");
+      // Check file size (max 500MB for direct upload)
+      if (file.size > 500 * 1024 * 1024) {
+        throw new Error("Video file is too large (maximum 500MB)");
       }
 
       // Get video duration
@@ -127,22 +131,57 @@ export function VideoUploader({
         videoElement.src = URL.createObjectURL(file);
       });
 
-      // Upload video
-      await uploadVideo(file);
+      // Upload video with automatic fallback
+      await uploadVideoWithFallback(file);
     } catch (error) {
       console.error("Upload error:", error);
       setUploadError(error instanceof Error ? error.message : "Upload failed");
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+      setUploadMethod("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   };
 
-  const uploadVideo = async (file: File) => {
-    const formData = new FormData();
+  const uploadVideoWithFallback = async (file: File) => {
+    const fileSize = file.size / 1024 / 1024; // Size in MB
 
+    // If file is larger than 10MB, go directly to Cloudinary
+    if (fileSize > 10) {
+      console.log(`📦 File is ${fileSize.toFixed(2)}MB, using direct upload`);
+      setUploadMethod("Direct to Cloudinary (large file)");
+      await uploadDirectToCloudinary(file);
+      return;
+    }
+
+    // Try server upload first for smaller files
+    try {
+      setUploadMethod("Uploading via server...");
+      await uploadViaServer(file);
+    } catch (error: any) {
+      console.warn("Server upload failed, trying direct upload:", error);
+
+      // Check if error indicates we should use direct upload
+      if (
+        error.message.includes("too large") ||
+        error.message.includes("413") ||
+        error.message.includes("body") ||
+        error.message.includes("multipart")
+      ) {
+        setUploadMethod("Direct to Cloudinary (fallback)");
+        setUploadProgress(0);
+        await uploadDirectToCloudinary(file);
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  const uploadViaServer = async (file: File) => {
+    const formData = new FormData();
     formData.append("images", file);
     formData.append("userId", userId!);
     formData.append("displayId", displayId);
@@ -154,17 +193,93 @@ export function VideoUploader({
       body: formData,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Video upload failed");
+    const data = await response.json();
+
+    // Check if server suggests using direct upload
+    if (!response.ok && (data.useDirectUpload || response.status === 413)) {
+      throw new Error("File too large for server upload");
     }
 
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Video upload failed");
+    }
 
     if (data.urls && data.urls.length > 0) {
       onChange(data.urls[0]);
+      await refreshVideoLibrary();
+    } else if (data.url) {
+      onChange(data.url);
+      await refreshVideoLibrary();
+    } else {
+      throw new Error("No URL returned from upload");
+    }
+  };
 
-      // Refresh video library
+  const uploadDirectToCloudinary = async (file: File) => {
+    // Step 1: Get signature from API
+    const signatureResponse = await fetch(
+      `/api/media/upload?userId=${userId}&displayId=${displayId}&type=advertisement&isVideo=true`
+    );
+
+    if (!signatureResponse.ok) {
+      throw new Error("Failed to get upload signature");
+    }
+
+    const { signature, timestamp, folder, cloudName, apiKey } =
+      await signatureResponse.json();
+
+    // Step 2: Upload directly to Cloudinary
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("signature", signature);
+    formData.append("timestamp", timestamp.toString());
+    formData.append("folder", folder);
+    formData.append("api_key", apiKey);
+    formData.append("resource_type", "video");
+
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+
+    return new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(percentComplete);
+        }
+      });
+
+      xhr.addEventListener("load", async () => {
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText);
+          console.log("✓ Direct upload successful:", result.secure_url);
+
+          onChange(result.secure_url);
+          await refreshVideoLibrary();
+          resolve();
+        } else {
+          reject(new Error(`Upload failed: ${xhr.statusText}`));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Network error during upload"));
+      });
+
+      xhr.addEventListener("abort", () => {
+        reject(new Error("Upload aborted"));
+      });
+
+      xhr.open("POST", cloudinaryUrl);
+      xhr.send(formData);
+    });
+  };
+
+  const refreshVideoLibrary = async () => {
+    if (!userId) return;
+
+    try {
       const videosResponse = await fetch(
         `/api/media?userId=${userId}&fileType=video`
       );
@@ -178,10 +293,8 @@ export function VideoUploader({
           .map((item: any) => item.fileUrl);
         setMediaUploadedVideos(newVideos);
       }
-    } else if (data.url) {
-      onChange(data.url);
-    } else {
-      throw new Error("No URL returned from upload");
+    } catch (error) {
+      console.error("Failed to refresh video library:", error);
     }
   };
 
@@ -227,9 +340,25 @@ export function VideoUploader({
           </span>
         </button>
         <p className="text-xs text-slate-500 mt-2 text-center">
-          Supported: MP4, WebM, OGG, MOV, AVI (max 100MB, 5 minutes)
+          Supported: MP4, WebM, OGG, MOV, AVI (max 500MB, 5 minutes)
         </p>
       </div>
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-blue-400">{uploadMethod}</span>
+            <span className="text-blue-400 font-medium">{uploadProgress}%</span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-2">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {uploadError && (
         <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">

@@ -2030,7 +2030,7 @@ export function MasjidTemplate({
                 {/* Time with enhanced typography */}
                 <div className="mb-6 mt-4">
                   <p
-                    className="text-[11rem] font-black leading-none tracking-tighter font-mono"
+                    className="text-[16rem] font-black leading-none tracking-tighter font-mono"
                     style={{
                       color: customization.colors.text,
                       textShadow: `
@@ -2734,7 +2734,7 @@ export function MasjidTemplate({
                       activePrayerInfo.prayer.name,
                       customization.language
                     )}{" "}
-                    - {t.iqamah} {t.iqamahIn}
+                    - {t.iqamahIn}
                   </div>
                 </div>
               </div>
