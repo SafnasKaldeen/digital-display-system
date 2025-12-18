@@ -1,4 +1,5 @@
 // components/VideoUploader.tsx
+// Simplified version - ONLY uses direct Cloudinary upload (no API route for uploads)
 import React, { useState, useEffect, useRef } from "react";
 import { Upload, Video as VideoIcon, X, Play, Loader2 } from "lucide-react";
 
@@ -20,7 +21,6 @@ export function VideoUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [uploadMethod, setUploadMethod] = useState<string>("");
   const [mediaUploadedVideos, setMediaUploadedVideos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -43,27 +43,12 @@ export function VideoUploader({
 
         const allMedia = await response.json();
 
-        console.log("Fetched videos:", allMedia.length);
-
-        // Filter for videos of type "advertisement" AND fileType "video"
         const filteredVideos = allMedia
           .filter((item: any) => {
-            const isCorrectType = item.type === "advertisement";
-            const isVideo = item.fileType === "video";
-            console.log("Video item:", {
-              url: item.fileUrl,
-              type: item.type,
-              fileType: item.fileType,
-              matches: isCorrectType && isVideo,
-            });
-            return isCorrectType && isVideo;
+            return item.type === "advertisement" && item.fileType === "video";
           })
           .map((item: any) => item.fileUrl);
 
-        console.log(
-          "Filtered videos for advertisement:",
-          filteredVideos.length
-        );
         setMediaUploadedVideos(filteredVideos);
       } catch (err) {
         console.error("Error fetching videos:", err);
@@ -94,7 +79,6 @@ export function VideoUploader({
     setIsUploading(true);
     setUploadError(null);
     setUploadProgress(0);
-    setUploadMethod("");
 
     try {
       const file = files[0];
@@ -104,7 +88,7 @@ export function VideoUploader({
         throw new Error("Please select a video file (MP4, WebM, etc.)");
       }
 
-      // Check file size (max 500MB for direct upload)
+      // Check file size (max 500MB)
       if (file.size > 500 * 1024 * 1024) {
         throw new Error("Video file is too large (maximum 500MB)");
       }
@@ -117,7 +101,6 @@ export function VideoUploader({
         videoElement.onloadedmetadata = () => {
           window.URL.revokeObjectURL(videoElement.src);
           if (videoElement.duration > 300) {
-            // 5 minutes
             reject(new Error("Video is too long (maximum 5 minutes)"));
           } else {
             resolve();
@@ -131,91 +114,23 @@ export function VideoUploader({
         videoElement.src = URL.createObjectURL(file);
       });
 
-      // Upload video with automatic fallback
-      await uploadVideoWithFallback(file);
+      // Upload directly to Cloudinary
+      await uploadDirectToCloudinary(file);
     } catch (error) {
       console.error("Upload error:", error);
       setUploadError(error instanceof Error ? error.message : "Upload failed");
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
-      setUploadMethod("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   };
 
-  const uploadVideoWithFallback = async (file: File) => {
-    const fileSize = file.size / 1024 / 1024; // Size in MB
-
-    // If file is larger than 10MB, go directly to Cloudinary
-    if (fileSize > 10) {
-      console.log(`📦 File is ${fileSize.toFixed(2)}MB, using direct upload`);
-      setUploadMethod("Direct to Cloudinary (large file)");
-      await uploadDirectToCloudinary(file);
-      return;
-    }
-
-    // Try server upload first for smaller files
-    try {
-      setUploadMethod("Uploading via server...");
-      await uploadViaServer(file);
-    } catch (error: any) {
-      console.warn("Server upload failed, trying direct upload:", error);
-
-      // Check if error indicates we should use direct upload
-      if (
-        error.message.includes("too large") ||
-        error.message.includes("413") ||
-        error.message.includes("body") ||
-        error.message.includes("multipart")
-      ) {
-        setUploadMethod("Direct to Cloudinary (fallback)");
-        setUploadProgress(0);
-        await uploadDirectToCloudinary(file);
-      } else {
-        throw error;
-      }
-    }
-  };
-
-  const uploadViaServer = async (file: File) => {
-    const formData = new FormData();
-    formData.append("images", file);
-    formData.append("userId", userId!);
-    formData.append("displayId", displayId);
-    formData.append("type", "advertisement");
-    formData.append("environment", environment);
-
-    const response = await fetch("/api/media/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    // Check if server suggests using direct upload
-    if (!response.ok && (data.useDirectUpload || response.status === 413)) {
-      throw new Error("File too large for server upload");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.error || "Video upload failed");
-    }
-
-    if (data.urls && data.urls.length > 0) {
-      onChange(data.urls[0]);
-      await refreshVideoLibrary();
-    } else if (data.url) {
-      onChange(data.url);
-      await refreshVideoLibrary();
-    } else {
-      throw new Error("No URL returned from upload");
-    }
-  };
-
   const uploadDirectToCloudinary = async (file: File) => {
+    console.log(`🚀 Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) directly to Cloudinary`);
+
     // Step 1: Get signature from API
     const signatureResponse = await fetch(
       `/api/media/upload?userId=${userId}&displayId=${displayId}&type=advertisement&isVideo=true`
@@ -253,7 +168,7 @@ export function VideoUploader({
       xhr.addEventListener("load", async () => {
         if (xhr.status === 200) {
           const result = JSON.parse(xhr.responseText);
-          console.log("✓ Direct upload successful:", result.secure_url);
+          console.log("✓ Upload successful:", result.secure_url);
 
           onChange(result.secure_url);
           await refreshVideoLibrary();
@@ -342,14 +257,21 @@ export function VideoUploader({
         <p className="text-xs text-slate-500 mt-2 text-center">
           Supported: MP4, WebM, OGG, MOV, AVI (max 500MB, 5 minutes)
         </p>
+        <p className="text-xs text-green-500/70 mt-1 text-center">
+          ⚡ Direct upload - No size restrictions!
+        </p>
       </div>
 
       {/* Upload Progress */}
       {isUploading && (
         <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-blue-400">{uploadMethod}</span>
-            <span className="text-blue-400 font-medium">{uploadProgress}%</span>
+            <span className="text-blue-400">
+              Uploading directly to Cloudinary...
+            </span>
+            <span className="text-blue-400 font-medium">
+              {uploadProgress}%
+            </span>
           </div>
           <div className="w-full bg-slate-700 rounded-full h-2">
             <div
