@@ -972,7 +972,7 @@ export default function PrayerTimesManager({
 
                 <div className="space-y-3">
                   {Object.entries(prayerTimes)
-                    .filter(([prayer]) => prayer !== "dhuhrIqamah") // ✅ Filter out dhuhrIqamah
+                    .filter(([prayer]) => prayer !== "dhuhrIqamah")
                     .map(([prayer, time]) => {
                       const defaultNames = {
                         fajr: "Fajr",
