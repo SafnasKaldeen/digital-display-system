@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { X, Play, Loader2 } from "lucide-react";
-import Image from "next/image";
-
 
 interface FullScreenAdProps {
   title?: string;
@@ -136,11 +134,26 @@ export default function FullScreenAd({
     let loadingTimeout: NodeJS.Timeout;
     let stallTimeout: NodeJS.Timeout;
 
+    // Enhanced initial logging
     console.log(
       `🎥 Setting up video: ${videoUrl.substring(
         videoUrl.lastIndexOf("/") + 1
       )} (playCount: ${playCount})`
     );
+    console.log("📱 Device Info:", {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      deviceMemory: (navigator as any).deviceMemory || "unknown",
+      hardwareConcurrency: navigator.hardwareConcurrency || "unknown",
+      connection: (navigator as any).connection
+        ? {
+            effectiveType: (navigator as any).connection.effectiveType,
+            downlink: (navigator as any).connection.downlink,
+            rtt: (navigator as any).connection.rtt,
+            saveData: (navigator as any).connection.saveData,
+          }
+        : "unknown",
+    });
 
     // Reset hasCalledEndRef when new video starts
     hasCalledEndRef.current = false;
@@ -149,6 +162,11 @@ export default function FullScreenAd({
     loadingTimeout = setTimeout(() => {
       if (isMounted && !isVideoReady && !hasVideoError) {
         console.error("⏱️ Video loading timeout - taking too long to load");
+        console.error("Video state at timeout:", {
+          networkState: video.networkState,
+          readyState: video.readyState,
+          currentSrc: video.currentSrc,
+        });
         setHasVideoError(true);
         setIsVideoLoading(false);
         // Auto-skip after showing error for 3 seconds
@@ -164,6 +182,13 @@ export default function FullScreenAd({
     const handleCanPlay = () => {
       if (!isMounted) return;
       console.log("✓ Video ready to play");
+      console.log("Video properties:", {
+        readyState: video.readyState,
+        networkState: video.networkState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        duration: video.duration,
+      });
       setIsVideoReady(true);
       setIsVideoLoading(false);
       clearTimeout(loadingTimeout); // Clear loading timeout
@@ -254,7 +279,50 @@ export default function FullScreenAd({
     const handleError = (e: Event) => {
       if (!isMounted) return;
       const videoElement = e.target as HTMLVideoElement;
-      console.error("❌ Video error:", videoElement.error);
+
+      // Comprehensive error logging
+      const errorDetails = {
+        error: videoElement.error,
+        errorCode: videoElement.error?.code,
+        errorMessage: videoElement.error?.message,
+        networkState: videoElement.networkState,
+        readyState: videoElement.readyState,
+        currentSrc: videoElement.currentSrc,
+        videoUrl: videoUrl,
+        // Device info
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        deviceMemory: (navigator as any).deviceMemory || "unknown",
+        hardwareConcurrency: navigator.hardwareConcurrency || "unknown",
+        connection: (navigator as any).connection
+          ? {
+              effectiveType: (navigator as any).connection.effectiveType,
+              downlink: (navigator as any).connection.downlink,
+              rtt: (navigator as any).connection.rtt,
+              saveData: (navigator as any).connection.saveData,
+            }
+          : "unknown",
+        // Video element properties
+        videoWidth: videoElement.videoWidth,
+        videoHeight: videoElement.videoHeight,
+        duration: videoElement.duration,
+        // Browser capabilities
+        canPlayType: {
+          mp4: videoElement.canPlayType("video/mp4"),
+          webm: videoElement.canPlayType("video/webm"),
+          h264: videoElement.canPlayType('video/mp4; codecs="avc1.42E01E"'),
+          h265: videoElement.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"'),
+        },
+      };
+
+      console.error("❌ Video error - Full details:", errorDetails);
+      console.error("❌ Error code meanings:", {
+        1: "MEDIA_ERR_ABORTED - The fetching process was aborted by the user",
+        2: "MEDIA_ERR_NETWORK - A network error occurred",
+        3: "MEDIA_ERR_DECODE - An error occurred while decoding the media",
+        4: "MEDIA_ERR_SRC_NOT_SUPPORTED - The media format is not supported",
+      });
+
       setIsVideoLoading(false);
       setHasVideoError(true);
       setIsVideoReady(false);
@@ -268,6 +336,33 @@ export default function FullScreenAd({
           callOnDurationEnd();
         }
       }, 3000);
+    };
+
+    const handleLoadStart = () => {
+      console.log("📥 Video loadstart event");
+    };
+
+    const handleLoadedMetadata = () => {
+      console.log("📊 Video metadata loaded:", {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+      });
+    };
+
+    const handleLoadedData = () => {
+      console.log("📦 Video data loaded");
+    };
+
+    const handleProgress = () => {
+      if (video.buffered.length > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        const duration = video.duration;
+        const percentBuffered = (bufferedEnd / duration) * 100;
+        console.log(
+          `⬇️ Video buffering progress: ${percentBuffered.toFixed(1)}%`
+        );
+      }
     };
 
     // Reset states
@@ -287,6 +382,10 @@ export default function FullScreenAd({
     video.loop = false;
 
     // Add event listeners
+    video.addEventListener("loadstart", handleLoadStart);
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("progress", handleProgress);
     video.addEventListener("canplay", handleCanPlay);
     video.addEventListener("playing", handlePlaying);
     video.addEventListener("waiting", handleWaiting);
@@ -296,10 +395,14 @@ export default function FullScreenAd({
     // Try to play after a delay
     cleanupTimeout = setTimeout(() => {
       if (isMounted && video.readyState >= 2) {
+        console.log(
+          "🎬 Attempting to play video (readyState: " + video.readyState + ")"
+        );
         video
           .play()
           .then(() => {
             if (isMounted) {
+              console.log("✅ Video play() promise resolved");
               setIsPlaying(true);
             }
           })
@@ -312,6 +415,10 @@ export default function FullScreenAd({
               setShowPlayButton(true);
             }
           });
+      } else {
+        console.log(
+          "⏳ Video not ready yet (readyState: " + video.readyState + ")"
+        );
       }
     }, 2000);
 
@@ -324,6 +431,10 @@ export default function FullScreenAd({
       clearTimeout(stallTimeout);
 
       // Remove event listeners
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("progress", handleProgress);
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("waiting", handleWaiting);
@@ -344,13 +455,15 @@ export default function FullScreenAd({
     if (!videoRef.current) return;
 
     try {
+      console.log("👆 Manual play initiated");
       setIsVideoLoading(true);
       await videoRef.current.play();
+      console.log("✅ Manual play successful");
       setIsPlaying(true);
       setShowPlayButton(false);
       setIsVideoLoading(false);
     } catch (error) {
-      console.error("Manual play failed:", error);
+      console.error("❌ Manual play failed:", error);
       setIsVideoLoading(false);
     }
   }, []);
@@ -637,7 +750,7 @@ export default function FullScreenAd({
             </>
           ) : (
             imageUrl && (
-              <Image
+              <img
                 src={imageUrl}
                 alt={title || "Advertisement"}
                 className="w-full h-full object-cover"
