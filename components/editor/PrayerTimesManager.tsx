@@ -344,6 +344,9 @@ export default function PrayerTimesManager({
         if (times) {
           setOriginalScheduleTimes(times);
           setReferenceScheduleLabel(label);
+
+          // ✅ Also update the current prayer times to today's times
+          onPrayerTimesChange(times);
         }
       } catch (error) {
         console.error("Error loading schedule:", error);
@@ -356,7 +359,7 @@ export default function PrayerTimesManager({
     };
 
     loadScheduleIfNeeded();
-  }, [label, currentDate]); // ✅ Now also depends on currentDate
+  }, [label, currentDate]); // ✅ Depends on currentDate
 
   // Fetch available prayer schedules
   useEffect(() => {
@@ -973,7 +976,7 @@ export default function PrayerTimesManager({
                 <div className="space-y-3">
                   {Object.entries(prayerTimes)
                     .filter(([prayer]) => prayer !== "dhuhrIqamah")
-                    .map(([prayer, time]) => {
+                    .map(([key, value]) => {
                       const defaultNames = {
                         fajr: "Fajr",
                         sunrise: "Sunrise",
