@@ -73,6 +73,51 @@ interface AdQueueState {
   isTransitioning: boolean;
 }
 
+// Helper function to generate schedule based on frequency (in seconds)
+const generateScheduleFromFrequency = (frequency: number): string[] => {
+  const schedule: string[] = [];
+  const frequencyInMinutes = Math.floor(frequency / 60);
+
+  if (frequencyInMinutes === 1) {
+    // Every 1 minute: 00, 01, 02, ..., 59
+    for (let i = 0; i < 60; i++) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes === 5) {
+    // Every 5 minutes: 00, 05, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
+    for (let i = 0; i < 60; i += 5) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes === 10) {
+    // Every 10 minutes: 00, 10, 20, 30, 40, 50
+    for (let i = 0; i < 60; i += 10) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes === 15) {
+    // Every 15 minutes: 00, 15, 30, 45
+    for (let i = 0; i < 60; i += 15) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes === 20) {
+    // Every 20 minutes: 00, 20, 40
+    for (let i = 0; i < 60; i += 20) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes === 30) {
+    // Every 30 minutes: 00, 30
+    for (let i = 0; i < 60; i += 30) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  } else if (frequencyInMinutes > 0) {
+    // Custom interval
+    for (let i = 0; i < 60; i += frequencyInMinutes) {
+      schedule.push(i.toString().padStart(2, "0"));
+    }
+  }
+
+  return schedule;
+};
+
 function HospitalTemplateAuthentic({
   customization = {},
   backgroundStyle = {},
@@ -115,9 +160,7 @@ function HospitalTemplateAuthentic({
   });
 
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const scheduledAdsRef = useRef<Set<string>>(new Set());
-  const lastCheckTimeRef = useRef<number>(0);
-  const adStartTimeRef = useRef<number>(0);
+  const lastShownMinuteRef = useRef<string>("");
   const adSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const bgImages =
@@ -158,26 +201,11 @@ function HospitalTemplateAuthentic({
       return false;
     }
 
-    // Check frequency interval
-    const totalSeconds =
-      now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-    const isAtInterval = totalSeconds % ad.frequency === 0;
+    // Check if current minute matches the frequency schedule
+    const currentMinute = now.getMinutes().toString().padStart(2, "0");
+    const schedule = generateScheduleFromFrequency(ad.frequency);
 
-    if (!isAtInterval) return false;
-
-    // Check if already scheduled in this frequency window
-    const secondsSinceLastCheck =
-      (now.getTime() - lastCheckTimeRef.current) / 1000;
-    if (secondsSinceLastCheck < ad.frequency) {
-      if (scheduledAdsRef.current.has(ad.id)) {
-        return false;
-      }
-    } else {
-      // New frequency window - clear scheduled ads
-      scheduledAdsRef.current.clear();
-    }
-
-    return true;
+    return schedule.includes(currentMinute);
   }, []);
 
   // Find all ads that should play now
@@ -195,7 +223,7 @@ function HospitalTemplateAuthentic({
     [settings.advertisements, isAdScheduledNow]
   );
 
-  // Handle ad completion - FIXED to not be called during render
+  // Handle ad completion
   const handleAdComplete = useCallback(() => {
     console.log("✓ Ad completed, transitioning to next");
 
@@ -257,12 +285,11 @@ function HospitalTemplateAuthentic({
           } (${nextAd.mediaType})`
         );
 
-        // Record start time and set safety timeout
-        adStartTimeRef.current = Date.now();
+        // Set safety timeout
         const maxAdDuration =
           nextAd.mediaType === "image"
-            ? nextAd.duration * 1000 + 10000 // Image duration + 10s buffer
-            : 360000; // 6 minutes max for videos
+            ? nextAd.duration * 1000 + 10000
+            : 360000;
 
         adSafetyTimeoutRef.current = setTimeout(() => {
           console.error("⏱️ AD SAFETY TIMEOUT - Ad stuck, forcing skip");
@@ -291,18 +318,37 @@ function HospitalTemplateAuthentic({
     }
 
     const now = new Date();
+    const currentMinute = now.getMinutes().toString().padStart(2, "0");
+    const currentSecond = now.getSeconds();
+
+    // ONLY trigger at exactly :00 seconds (with 2 second tolerance)
+    if (currentSecond > 2) {
+      return;
+    }
+
+    // Prevent triggering multiple times in the same minute
+    if (lastShownMinuteRef.current === currentMinute) {
+      return;
+    }
+
+    console.log(
+      `🕐 Checking ads at ${now.getHours()}:${currentMinute}:${currentSecond
+        .toString()
+        .padStart(2, "0")}`
+    );
+
     const matchingAds = findScheduledAds(now);
 
     if (matchingAds.length > 0) {
       console.log(
-        `🎬 Found ${matchingAds.length} scheduled ad(s):`,
+        `🎬 Found ${matchingAds.length} scheduled ad(s) for minute ${currentMinute}:`,
         matchingAds.map(
           (ad, idx) => `${idx + 1}. ${ad.title} (${ad.mediaType})`
         )
       );
 
-      // Mark these ads as scheduled for this frequency window
-      matchingAds.forEach((ad) => scheduledAdsRef.current.add(ad.id));
+      // Mark this minute as processed
+      lastShownMinuteRef.current = currentMinute;
 
       // Start the queue with first ad
       const firstAd = matchingAds[0];
@@ -317,9 +363,8 @@ function HospitalTemplateAuthentic({
         currentIndex: 0,
         isTransitioning: false,
       });
-
-      // Update last check time
-      lastCheckTimeRef.current = now.getTime();
+    } else {
+      console.log(`✗ No ads scheduled for minute ${currentMinute}`);
     }
   }, [
     adQueueState.isPlaying,
@@ -585,31 +630,6 @@ function HospitalTemplateAuthentic({
           </div>
         </div>
       </div>
-
-      {/* Debug Info */}
-      {/* {process.env.NODE_ENV === "development" && (
-        <div className="absolute bottom-20 right-8 z-50">
-          <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20 text-xs text-white space-y-1">
-            <div>
-              Queue:{" "}
-              {adQueueState.queue
-                .map((a) => a.title.substring(0, 10))
-                .join(", ")}
-            </div>
-            <div>Current Index: {adQueueState.currentIndex}</div>
-            <div>Playing: {showAd ? "Yes" : "No"}</div>
-            <div>
-              Transitioning: {adQueueState.isTransitioning ? "Yes" : "No"}
-            </div>
-            {adQueueState.currentAd && (
-              <div>
-                Current: {adQueueState.currentAd.title} (
-                {adQueueState.currentAd.mediaType})
-              </div>
-            )}
-          </div>
-        </div>
-      )} */}
     </div>
   );
 }
