@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { X, Play, Loader2 } from "lucide-react";
-import Image from "next/image";
 
 interface FullScreenAdProps {
   title?: string;
@@ -123,7 +122,7 @@ export default function FullScreenAd({
     }
   }, [mediaType, showTimer, duration, callOnDurationEnd]);
 
-  // Video initialization
+  // Video initialization with robust error handling
   useEffect(() => {
     if (mediaType !== "video" || !videoUrl || !videoRef.current) {
       return;
@@ -134,6 +133,12 @@ export default function FullScreenAd({
     let cleanupTimeout: NodeJS.Timeout;
     let loadingTimeout: NodeJS.Timeout;
     let stallTimeout: NodeJS.Timeout;
+    let playAttemptTimeout: NodeJS.Timeout;
+    let progressCheckInterval: NodeJS.Timeout;
+    let retryPlayTimeout: NodeJS.Timeout;
+    let lastProgressTime = 0;
+    let playAttempts = 0;
+    const MAX_PLAY_ATTEMPTS = 5;
 
     console.log(
       `🎥 Setting up video: ${videoUrl.substring(
@@ -144,28 +149,36 @@ export default function FullScreenAd({
     // Reset hasCalledEndRef when new video starts
     hasCalledEndRef.current = false;
 
-    // Set a timeout for video loading (30 seconds)
+    // Set a timeout for initial video loading (20 seconds)
     loadingTimeout = setTimeout(() => {
       if (isMounted && !isVideoReady && !hasVideoError) {
         console.error("⏱️ Video loading timeout - taking too long to load");
         setHasVideoError(true);
         setIsVideoLoading(false);
-        // Auto-skip after showing error for 3 seconds
+        // Auto-skip after showing error for 2 seconds
         setTimeout(() => {
           if (isMounted) {
             console.log("⏭️ Auto-skipping failed video");
             callOnDurationEnd();
           }
-        }, 3000);
+        }, 2000);
       }
-    }, 30000); // 30 second timeout
+    }, 20000); // 20 second timeout
 
     const handleCanPlay = () => {
       if (!isMounted) return;
-      console.log("✓ Video ready to play");
+      console.log("✓ Video ready to play (canplay event)");
       setIsVideoReady(true);
       setIsVideoLoading(false);
-      clearTimeout(loadingTimeout); // Clear loading timeout
+      clearTimeout(loadingTimeout);
+    };
+
+    const handleLoadedData = () => {
+      if (!isMounted) return;
+      console.log("✓ Video data loaded (loadeddata event)");
+      setIsVideoReady(true);
+      setIsVideoLoading(false);
+      clearTimeout(loadingTimeout);
     };
 
     const handlePlaying = () => {
@@ -173,18 +186,45 @@ export default function FullScreenAd({
       console.log("▶️ Video is playing");
       setIsPlaying(true);
       setIsVideoLoading(false);
-      clearTimeout(loadingTimeout); // Clear loading timeout
-      clearTimeout(stallTimeout); // Clear any previous stall timeout
+      setShowPlayButton(false);
+      clearTimeout(loadingTimeout);
+      clearTimeout(stallTimeout);
+      clearTimeout(retryPlayTimeout);
 
-      // Set a stall detection timeout (if video doesn't end in reasonable time)
-      const maxDuration = 300000; // 5 minutes max per video
+      // Start progress monitoring to detect stalls
+      lastProgressTime = video.currentTime;
+      progressCheckInterval = setInterval(() => {
+        if (!isMounted || !video) return;
+
+        const currentProgress = video.currentTime;
+        const hasProgressed = currentProgress > lastProgressTime;
+
+        if (!hasProgressed && !video.paused && !video.ended) {
+          console.warn("⚠️ Video appears stalled (no progress detected)");
+          // Video claims to be playing but isn't progressing - try to recover
+          if (video.buffered.length > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            if (currentProgress < bufferedEnd - 0.5) {
+              console.log("🔄 Attempting to recover stalled video");
+              video
+                .play()
+                .catch((err) => console.error("Recovery play failed:", err));
+            }
+          }
+        }
+
+        lastProgressTime = currentProgress;
+      }, 3000); // Check every 3 seconds
+
+      // Set a maximum duration timeout (10 minutes)
+      const maxDuration = 600000;
       stallTimeout = setTimeout(() => {
-        if (isMounted && isPlaying) {
-          console.error("⏱️ Video appears to be stalled or too long");
+        if (isMounted && !video.ended) {
+          console.error("⏱️ Video exceeded maximum duration");
           setHasVideoError(true);
           setTimeout(() => {
             if (isMounted) {
-              console.log("⏭️ Auto-skipping stalled video");
+              console.log("⏭️ Auto-skipping long video");
               callOnDurationEnd();
             }
           }, 2000);
@@ -201,6 +241,22 @@ export default function FullScreenAd({
       const bufferTimeout = setTimeout(() => {
         if (isMounted && isVideoLoading) {
           console.error("⏱️ Video buffering timeout");
+          // Try to skip ahead slightly
+          if (video && video.buffered.length > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            if (video.currentTime < bufferedEnd - 1) {
+              console.log("🔄 Attempting to skip buffering issue");
+              video.currentTime = Math.min(
+                video.currentTime + 1,
+                bufferedEnd - 0.5
+              );
+              video
+                .play()
+                .catch((err) => console.error("Skip play failed:", err));
+              return;
+            }
+          }
+
           setHasVideoError(true);
           setTimeout(() => {
             if (isMounted) {
@@ -214,6 +270,7 @@ export default function FullScreenAd({
       // Clear this timeout when video resumes
       const handleResumed = () => {
         clearTimeout(bufferTimeout);
+        setIsVideoLoading(false);
         video.removeEventListener("playing", handleResumed);
       };
       video.addEventListener("playing", handleResumed, { once: true });
@@ -222,6 +279,9 @@ export default function FullScreenAd({
     const handleEnded = () => {
       if (!isMounted) return;
       console.log("🏁 Video ended");
+
+      clearInterval(progressCheckInterval);
+      clearTimeout(stallTimeout);
 
       setCurrentPlayCount((prev) => {
         const newCount = prev + 1;
@@ -259,14 +319,85 @@ export default function FullScreenAd({
       setIsVideoReady(false);
       clearTimeout(loadingTimeout);
       clearTimeout(stallTimeout);
+      clearInterval(progressCheckInterval);
 
-      // Auto-skip after showing error for 3 seconds
+      // Auto-skip after showing error for 2 seconds
       setTimeout(() => {
         if (isMounted) {
           console.log("⏭️ Auto-skipping failed video");
           callOnDurationEnd();
         }
+      }, 2000);
+    };
+
+    const handleStalled = () => {
+      if (!isMounted) return;
+      console.warn("⚠️ Video stalled event");
+      setIsVideoLoading(true);
+
+      // Try to recover from stall
+      setTimeout(() => {
+        if (isMounted && video && video.readyState < 3) {
+          console.log("🔄 Attempting to recover from stall");
+          video.load();
+          setTimeout(() => {
+            if (isMounted) {
+              attemptPlay();
+            }
+          }, 1000);
+        }
       }, 3000);
+    };
+
+    const handleSuspend = () => {
+      if (!isMounted) return;
+      console.log("⏸️ Video suspended");
+    };
+
+    const attemptPlay = async () => {
+      if (!isMounted || !video || playAttempts >= MAX_PLAY_ATTEMPTS) {
+        if (playAttempts >= MAX_PLAY_ATTEMPTS) {
+          console.error("❌ Max play attempts reached");
+          setShowPlayButton(true);
+          setIsVideoLoading(false);
+        }
+        return;
+      }
+
+      playAttempts++;
+      console.log(`🎬 Play attempt ${playAttempts}/${MAX_PLAY_ATTEMPTS}`);
+
+      try {
+        setIsVideoLoading(true);
+        await video.play();
+        console.log("✓ Play successful");
+        setIsPlaying(true);
+        setShowPlayButton(false);
+        setIsVideoLoading(false);
+        playAttempts = 0; // Reset on success
+      } catch (error: any) {
+        console.log(`⚠️ Play attempt ${playAttempts} failed:`, error.message);
+
+        if (error.name === "NotAllowedError") {
+          console.log("🔒 Autoplay blocked by browser");
+          setShowPlayButton(true);
+          setIsVideoLoading(false);
+          playAttempts = 0; // Reset, user needs to interact
+        } else if (playAttempts < MAX_PLAY_ATTEMPTS) {
+          // Retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, playAttempts - 1), 5000);
+          console.log(`🔄 Retrying in ${delay}ms...`);
+          retryPlayTimeout = setTimeout(() => {
+            if (isMounted) {
+              attemptPlay();
+            }
+          }, delay);
+        } else {
+          console.error("❌ All play attempts failed");
+          setShowPlayButton(true);
+          setIsVideoLoading(false);
+        }
+      }
     };
 
     // Reset states
@@ -276,43 +407,50 @@ export default function FullScreenAd({
     setHasVideoError(false);
     setShowPlayButton(false);
     setCurrentPlayCount(0);
+    playAttempts = 0;
 
-    // Setup video element
+    // Setup video element with better compatibility
     video.src = videoUrl;
     video.preload = "auto";
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = "anonymous";
     video.loop = false;
+    video.autoplay = false; // Let's control play manually
 
     // Add event listeners
     video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("loadeddata", handleLoadedData);
     video.addEventListener("playing", handlePlaying);
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("ended", handleEnded);
     video.addEventListener("error", handleError);
+    video.addEventListener("stalled", handleStalled);
+    video.addEventListener("suspend", handleSuspend);
 
-    // Try to play after a delay
+    // Start loading the video
+    video.load();
+
+    // Try to play after video has loaded some data
     cleanupTimeout = setTimeout(() => {
       if (isMounted && video.readyState >= 2) {
-        video
-          .play()
-          .then(() => {
-            if (isMounted) {
-              setIsPlaying(true);
-            }
-          })
-          .catch((error) => {
-            console.log(
-              "⚠️ Autoplay blocked, showing manual play button:",
-              error
-            );
-            if (isMounted) {
-              setShowPlayButton(true);
-            }
-          });
+        attemptPlay();
+      } else if (isMounted) {
+        // Wait a bit more for readyState to increase
+        const waitTimeout = setTimeout(() => {
+          if (isMounted) {
+            attemptPlay();
+          }
+        }, 2000);
+
+        // Cleanup this timeout too
+        const originalCleanup = cleanupTimeout;
+        cleanupTimeout = (() => {
+          clearTimeout(originalCleanup);
+          clearTimeout(waitTimeout);
+        }) as any;
       }
-    }, 2000);
+    }, 1000);
 
     // Cleanup function
     return () => {
@@ -321,13 +459,19 @@ export default function FullScreenAd({
       clearTimeout(cleanupTimeout);
       clearTimeout(loadingTimeout);
       clearTimeout(stallTimeout);
+      clearTimeout(playAttemptTimeout);
+      clearTimeout(retryPlayTimeout);
+      clearInterval(progressCheckInterval);
 
       // Remove event listeners
       video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("loadeddata", handleLoadedData);
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("ended", handleEnded);
       video.removeEventListener("error", handleError);
+      video.removeEventListener("stalled", handleStalled);
+      video.removeEventListener("suspend", handleSuspend);
 
       // Clean up video element
       if (video) {
@@ -354,9 +498,9 @@ export default function FullScreenAd({
     }
   }, []);
 
-  // Skip button handler (for testing)
+  // Skip button handler
   const handleSkipVideo = useCallback(() => {
-    console.log("⏩ Skipping video");
+    console.log("⏩ User skipped video");
     callOnDurationEnd();
   }, [callOnDurationEnd]);
 
@@ -536,7 +680,7 @@ export default function FullScreenAd({
           </button>
         )}
 
-        {/* Optional skip button for video (for testing) */}
+        {/* Skip button for video */}
         {mediaType === "video" && onDurationEnd && (
           <button
             onClick={handleSkipVideo}
@@ -627,7 +771,7 @@ export default function FullScreenAd({
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 text-white animate-spin" />
                       <span className="text-white/70 text-sm">
-                        Auto-skipping in 3s
+                        Auto-skipping in 2s
                       </span>
                     </div>
                   </div>
@@ -725,15 +869,6 @@ export default function FullScreenAd({
 
             {showScheduleInfo && scheduleInfo && (
               <div className="flex flex-wrap gap-3 text-sm">
-                <div
-                  className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border"
-                  style={{ borderColor: `${primaryColor}40` }}
-                >
-                  <span className="text-white/70">
-                    🕐 {scheduleInfo.timeRange.start} -{" "}
-                    {scheduleInfo.timeRange.end}
-                  </span>
-                </div>
                 <div
                   className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border"
                   style={{ borderColor: `${primaryColor}40` }}
