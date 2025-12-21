@@ -23,6 +23,10 @@ import {
   Cpu,
   Server,
   Zap,
+  Copy,
+  ExternalLink,
+  Clock,
+  Shield,
 } from "lucide-react";
 
 // Persistent File Server Utility
@@ -31,6 +35,7 @@ class PersistentFileServer {
   static CHANNEL_NAME = "folder-manager-channel";
   static channel = null;
   static listeners = new Map();
+  static dbVersion = 4; // Fixed version number
 
   // Initialize the file server
   static async initialize() {
@@ -45,6 +50,9 @@ class PersistentFileServer {
 
     // Request persistent storage
     await this.requestStoragePersistence();
+
+    // Initialize database
+    await this.openDB();
   }
 
   // Request persistent storage
@@ -241,6 +249,123 @@ class PersistentFileServer {
     return uploaded;
   }
 
+  // Create shareable blob URL
+  static async createShareableBlobUrl(fileName, handle) {
+    if (!handle) {
+      throw new Error("No folder access available");
+    }
+
+    try {
+      // Get file as blob URL
+      const fileData = await this.getFileUrl(fileName, handle);
+
+      // Generate a unique token for this blob URL
+      const token = btoa(`${Date.now()}-${fileName}-${Math.random()}`)
+        .replace(/=/g, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
+
+      // Store the blob URL mapping in IndexedDB with expiration
+      const shareData = {
+        blobUrl: fileData.url,
+        fileName: fileData.name,
+        type: fileData.type,
+        size: fileData.size,
+        created: Date.now(),
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+      };
+
+      // Store in IndexedDB
+      const db = await this.openDB();
+      const tx = db.transaction("shareableUrls", "readwrite");
+      const store = tx.objectStore("shareableUrls");
+      await store.put(shareData, token);
+
+      return {
+        shareableUrl: `${window.location.origin}/shared/${token}`,
+        directBlobUrl: fileData.url, // This is the actual blob:... URL
+        token: token,
+        fileName: fileData.name,
+        fileSize: fileData.size,
+        fileType: fileData.type,
+        expiresAt: shareData.expiresAt,
+      };
+    } catch (error) {
+      console.error("Failed to create shareable blob URL:", error);
+      throw error;
+    }
+  }
+
+  // Get blob URL by token
+  static async getBlobUrlByToken(token) {
+    try {
+      const db = await this.openDB();
+      const tx = db.transaction("shareableUrls", "readonly");
+      const store = tx.objectStore("shareableUrls");
+      const shareData = await store.get(token);
+
+      if (!shareData) {
+        throw new Error("Share link expired or invalid");
+      }
+
+      // Check if expired
+      if (Date.now() > shareData.expiresAt) {
+        await store.delete(token); // Clean up expired token
+        throw new Error("Share link has expired");
+      }
+
+      return shareData.blobUrl;
+    } catch (error) {
+      console.error("Failed to get blob URL by token:", error);
+      throw error;
+    }
+  }
+
+  // Get all active share links
+  static async getActiveShareLinks() {
+    try {
+      const db = await this.openDB();
+      const tx = db.transaction("shareableUrls", "readonly");
+      const store = tx.objectStore("shareableUrls");
+      const allData = await store.getAll();
+
+      const activeLinks = [];
+      const now = Date.now();
+
+      for (const item of allData) {
+        if (now < item.expiresAt) {
+          activeLinks.push({
+            token: item.token,
+            fileName: item.fileName,
+            blobUrl: item.blobUrl,
+            expiresAt: item.expiresAt,
+            created: item.created,
+          });
+        } else {
+          // Clean up expired
+          await this.cleanupExpiredToken(item.token);
+        }
+      }
+
+      return activeLinks;
+    } catch (error) {
+      console.error("Failed to get active share links:", error);
+      return [];
+    }
+  }
+
+  // Cleanup expired token
+  static async cleanupExpiredToken(token) {
+    try {
+      const db = await this.openDB();
+      const tx = db.transaction("shareableUrls", "readwrite");
+      const store = tx.objectStore("shareableUrls");
+      await store.delete(token);
+    } catch (error) {
+      console.error("Failed to cleanup expired token:", error);
+    }
+  }
+
   // Broadcast message to other tabs
   static broadcast(message) {
     if (this.channel) {
@@ -296,23 +421,46 @@ class PersistentFileServer {
     }
   }
 
-  // Helper methods
+  // Helper methods - FIXED DATABASE VERSIONING
   static async openDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("FileServerDB", 2);
+      const request = indexedDB.open("FileServerDB", this.dbVersion);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        const transaction = event.target.transaction;
 
+        // Create object stores if they don't exist
         if (!db.objectStoreNames.contains("handles")) {
           db.createObjectStore("handles");
         }
 
         if (!db.objectStoreNames.contains("blobUrls")) {
           db.createObjectStore("blobUrls");
+        }
+
+        if (!db.objectStoreNames.contains("shareableUrls")) {
+          const store = db.createObjectStore("shareableUrls");
+          store.createIndex("expiresAt", "expiresAt", { unique: false });
+        }
+
+        // Handle version upgrades
+        if (event.oldVersion < 2) {
+          // Migration from version 1 to 2
+          console.log("Migrating database from version 1 to 2");
+        }
+
+        if (event.oldVersion < 3) {
+          // Migration from version 2 to 3
+          console.log("Migrating database from version 2 to 3");
+        }
+
+        if (event.oldVersion < 4) {
+          // Migration from version 3 to 4
+          console.log("Migrating database from version 3 to 4");
         }
       };
     });
@@ -352,6 +500,39 @@ class PersistentFileServer {
       console.error("Failed to clear stored handle:", error);
     }
   }
+
+  // Cleanup all expired data
+  static async cleanupExpiredData() {
+    try {
+      const db = await this.openDB();
+      const tx = db.transaction(["shareableUrls", "blobUrls"], "readwrite");
+
+      // Clean expired share URLs
+      const shareStore = tx.objectStore("shareableUrls");
+      const index = shareStore.index("expiresAt");
+      const range = IDBKeyRange.upperBound(Date.now());
+      const cursor = await index.openCursor(range);
+
+      while (cursor) {
+        await cursor.delete();
+        cursor.continue();
+      }
+
+      // Clean old blob URLs (older than 7 days)
+      const blobStore = tx.objectStore("blobUrls");
+      const allBlobs = await blobStore.getAll();
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+      for (const key of allBlobs) {
+        // If we have metadata about when it was created, check it
+        if (key.created && key.created < sevenDaysAgo) {
+          await blobStore.delete(key);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to cleanup expired data:", error);
+    }
+  }
 }
 
 export default function DeviceFolderVideoManager() {
@@ -371,81 +552,33 @@ export default function DeviceFolderVideoManager() {
   const [activeTabs, setActiveTabs] = useState(1);
   const [sharedUrls, setSharedUrls] = useState({});
   const [serverStatus, setServerStatus] = useState("offline");
+  const [activeShareLinks, setActiveShareLinks] = useState([]);
+  const [dbInitialized, setDbInitialized] = useState(false);
 
-  // Add to main component useEffect
+  // Initialize database first
   useEffect(() => {
-    // Handle file requests from shared pages
-    const handleFileRequest = async (event) => {
-      if (event.data.type === "REQUEST_FILE") {
-        try {
-          const fileName = event.data.fileName;
-          const fileData = await PersistentFileServer.getFileUrl(
-            fileName,
-            folderHandle
-          );
-
-          // Send file data back
-          event.ports[0].postMessage({
-            url: fileData.url,
-            type: fileData.type,
-            size: fileData.size,
-            name: fileData.name,
-          });
-        } catch (error) {
-          event.ports[0].postMessage({
-            error: error.message,
-          });
-        }
+    const initDB = async () => {
+      try {
+        await PersistentFileServer.initialize();
+        setDbInitialized(true);
+        console.log("Database initialized successfully");
+      } catch (error) {
+        console.error("Failed to initialize database:", error);
+        setError("Failed to initialize database. Please refresh the page.");
       }
     };
 
-    window.addEventListener("message", handleFileRequest);
+    initDB();
+  }, []);
 
-    return () => {
-      window.removeEventListener("message", handleFileRequest);
-    };
-  }, [folderHandle]);
-
-  // Initialize file server
-  useEffect(() => {
-    const initFileServer = async () => {
-      await PersistentFileServer.initialize();
-
-      // Listen for cross-tab events
-      const cleanupFolderGranted = PersistentFileServer.addListener(
-        "folderGranted",
-        (data) => {
-          setActiveTabs((prev) => prev + 1);
-          showNotification(
-            `Folder accessed in another tab: ${data.folderName}`
-          );
-        }
-      );
-
-      const cleanupFileListRefreshed = PersistentFileServer.addListener(
-        "fileListRefreshed",
-        () => {
-          refreshFiles();
-          showNotification("File list refreshed from another tab");
-        }
-      );
-
-      const cleanupFileDeleted = PersistentFileServer.addListener(
-        "fileDeleted",
-        (data) => {
-          refreshFiles();
-          showNotification(`"${data.fileName}" deleted in another tab`);
-        }
-      );
-
-      return () => {
-        cleanupFolderGranted();
-        cleanupFileListRefreshed();
-        cleanupFileDeleted();
-      };
-    };
-
-    initFileServer();
+  // Load active share links
+  const loadActiveShareLinks = useCallback(async () => {
+    try {
+      const links = await PersistentFileServer.getActiveShareLinks();
+      setActiveShareLinks(links);
+    } catch (error) {
+      console.error("Failed to load active share links:", error);
+    }
   }, []);
 
   // Check browser support
@@ -459,9 +592,7 @@ export default function DeviceFolderVideoManager() {
 
       setIsSupported(supported);
 
-      if (supported) {
-        restoreSession();
-      } else {
+      if (!supported) {
         setError(
           "Your browser doesn't support required features. Please use Chrome/Edge 86+."
         );
@@ -471,28 +602,35 @@ export default function DeviceFolderVideoManager() {
     checkSupport();
   }, []);
 
-  // Restore previous session
-  const restoreSession = async () => {
-    try {
-      setLoading(true);
-      const handle = await PersistentFileServer.restoreFolderHandle();
+  // Restore previous session when DB is initialized
+  useEffect(() => {
+    const restoreSession = async () => {
+      if (!dbInitialized || !isSupported) return;
 
-      if (handle) {
-        setFolderHandle(handle);
-        setFolderPath(handle.name);
-        setHasWritePermission(true);
-        setServerStatus("online");
+      try {
+        setLoading(true);
+        const handle = await PersistentFileServer.restoreFolderHandle();
 
-        await loadFilesFromFolder(handle);
+        if (handle) {
+          setFolderHandle(handle);
+          setFolderPath(handle.name);
+          setHasWritePermission(true);
+          setServerStatus("online");
 
-        showNotification("Previous session restored successfully!");
+          await loadFilesFromFolder(handle);
+          await loadActiveShareLinks();
+
+          showNotification("Previous session restored successfully!");
+        }
+      } catch (err) {
+        console.error("Failed to restore session:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to restore session:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    restoreSession();
+  }, [dbInitialized, isSupported, loadActiveShareLinks]);
 
   // Request permission to access device folder
   const selectDeviceFolder = async () => {
@@ -521,6 +659,7 @@ export default function DeviceFolderVideoManager() {
       await PersistentFileServer.storeFolderHandle(dirHandle);
 
       await loadFilesFromFolder(dirHandle);
+      await loadActiveShareLinks();
 
       showNotification(
         "Folder access granted! Files are now shareable across routes."
@@ -667,6 +806,7 @@ export default function DeviceFolderVideoManager() {
   const refreshFiles = async () => {
     if (folderHandle) {
       await loadFilesFromFolder(folderHandle);
+      await loadActiveShareLinks();
     }
   };
 
@@ -689,38 +829,135 @@ export default function DeviceFolderVideoManager() {
     }
   };
 
-  // Generate shareable URL for cross-route access
+  // Generate shareable blob URL
   const generateShareableUrl = async (fileItem) => {
     try {
-      // Create a unique token for the file
-      const token = btoa(`${Date.now()}-${fileItem.name}`).replace(/=/g, "");
-      const shareableUrl = `${window.location.origin}/shared/${token}`;
+      // Create shareable blob URL
+      const shareData = await PersistentFileServer.createShareableBlobUrl(
+        fileItem.name,
+        folderHandle
+      );
 
-      // Store the mapping in localStorage (in production, use a backend)
-      const shareData = {
-        fileName: fileItem.name,
-        timestamp: Date.now(),
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-      };
-
-      localStorage.setItem(`share_${token}`, JSON.stringify(shareData));
-
+      // Store locally for this session
       setSharedUrls((prev) => ({
         ...prev,
         [fileItem.name]: {
-          url: shareableUrl,
+          shareableUrl: shareData.shareableUrl,
+          directBlobUrl: shareData.directBlobUrl,
           expiresAt: shareData.expiresAt,
+          token: shareData.token,
+          fileName: shareData.fileName,
         },
       }));
 
-      await navigator.clipboard.writeText(shareableUrl);
+      // Reload active share links
+      await loadActiveShareLinks();
 
-      showNotification(
-        `Shareable URL copied to clipboard! Valid for 24 hours.`
-      );
+      // Create simple dialog with copy options
+      const dialog = document.createElement("div");
+      dialog.className =
+        "fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4";
+
+      dialog.innerHTML = `
+        <div class="bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-white text-xl font-bold flex items-center gap-2">
+              <Share2 class="w-5 h-5" />
+              Shareable URLs Generated
+            </h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-white">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div class="mb-6">
+            <h4 class="text-white font-medium mb-2">${shareData.fileName}</h4>
+            <div class="text-sm text-slate-300 space-y-1">
+              <div>Size: ${formatSize(shareData.fileSize)}</div>
+              <div>Expires: ${formatDate(shareData.expiresAt)}</div>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-slate-400 text-sm mb-2">Direct Blob URL</label>
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  readonly 
+                  value="${shareData.directBlobUrl}" 
+                  class="flex-1 bg-slate-900 text-xs text-white p-2 rounded border border-slate-700 truncate"
+                  onclick="this.select()"
+                />
+                <button 
+                  onclick="navigator.clipboard.writeText('${
+                    shareData.directBlobUrl
+                  }'); alert('Blob URL copied!');" 
+                  class="px-3 py-2 bg-purple-500 hover:bg-purple-600 rounded text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  <Copy class="w-4 h-4 inline mr-1" />
+                  Copy
+                </button>
+              </div>
+              <p class="text-slate-500 text-xs mt-1">Works only in current browser session</p>
+            </div>
+            
+            <div>
+              <label class="block text-slate-400 text-sm mb-2">Public Share URL (24h)</label>
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  readonly 
+                  value="${shareData.shareableUrl}" 
+                  class="flex-1 bg-slate-900 text-xs text-white p-2 rounded border border-slate-700 truncate"
+                  onclick="this.select()"
+                />
+                <button 
+                  onclick="navigator.clipboard.writeText('${
+                    shareData.shareableUrl
+                  }'); alert('Share URL copied!');" 
+                  class="px-3 py-2 bg-green-500 hover:bg-green-600 rounded text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  <Copy class="w-4 h-4 inline mr-1" />
+                  Copy
+                </button>
+              </div>
+              <p class="text-slate-500 text-xs mt-1">Accessible from any route for 24 hours</p>
+            </div>
+          </div>
+          
+          <div class="mt-6 pt-4 border-t border-slate-700">
+            <button 
+              onclick="this.closest('.fixed').remove()" 
+              class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(dialog);
+
+      // Auto-close after 30 seconds
+      setTimeout(() => {
+        if (dialog.parentNode) {
+          document.body.removeChild(dialog);
+        }
+      }, 30000);
     } catch (error) {
       console.error("Error generating shareable URL:", error);
       setError(`Failed to generate shareable URL: ${error.message}`);
+
+      // Show specific error for database version issues
+      if (
+        error.message.includes("version") ||
+        error.message.includes("Version")
+      ) {
+        setError(
+          "Database version mismatch. Please refresh the page to reset."
+        );
+      }
     }
   };
 
@@ -748,6 +985,22 @@ export default function DeviceFolderVideoManager() {
     return date.toLocaleString();
   };
 
+  // Format time remaining
+  const formatTimeRemaining = (expiresAt) => {
+    const now = Date.now();
+    const remaining = expiresAt - now;
+
+    if (remaining <= 0) return "Expired";
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   // Get file icon
   const getFileIcon = (fileItem) => {
     if (fileItem.fileType === "video") {
@@ -761,13 +1014,118 @@ export default function DeviceFolderVideoManager() {
     // Simple notification implementation
     const notification = document.createElement("div");
     notification.className =
-      "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
+      "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-slideIn";
     notification.textContent = message;
     document.body.appendChild(notification);
 
     setTimeout(() => {
       document.body.removeChild(notification);
     }, 3000);
+  };
+
+  // Reset database (for development)
+  const resetDatabase = async () => {
+    if (
+      confirm(
+        "Are you sure you want to reset the database? This will clear all stored data."
+      )
+    ) {
+      try {
+        indexedDB.deleteDatabase("FileServerDB");
+        showNotification("Database reset. Please refresh the page.");
+      } catch (error) {
+        console.error("Failed to reset database:", error);
+      }
+    }
+  };
+
+  // Active Share Links Panel
+  const ActiveShareLinksPanel = () => {
+    if (activeShareLinks.length === 0 || !folderHandle) return null;
+
+    return (
+      <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 backdrop-blur-lg rounded-lg p-6 mb-6 border border-blue-400/30">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white text-xl font-bold flex items-center gap-2">
+            <Link className="w-5 h-5" />
+            Active Share Links ({activeShareLinks.length})
+          </h3>
+          <div className="flex gap-2">
+            <button
+              onClick={loadActiveShareLinks}
+              className="text-blue-300 hover:text-blue-100 text-sm flex items-center gap-1 px-3 py-1 rounded bg-blue-500/20"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={resetDatabase}
+              className="text-red-300 hover:text-red-100 text-sm flex items-center gap-1 px-3 py-1 rounded bg-red-500/20"
+              title="Reset database"
+            >
+              Reset DB
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {activeShareLinks.map((link) => (
+            <div
+              key={link.token}
+              className="bg-white/5 rounded-lg p-3 border border-white/10 hover:border-blue-400/50 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white font-medium truncate">
+                    {link.fileName}
+                  </h4>
+                  <p className="text-blue-300 text-xs truncate">
+                    {link.blobUrl?.substring(0, 40) || "No URL"}...
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  {link.blobUrl && (
+                    <button
+                      onClick={() =>
+                        navigator.clipboard.writeText(link.blobUrl)
+                      }
+                      className="p-1 hover:bg-white/10 rounded"
+                      title="Copy blob URL"
+                    >
+                      <Copy className="w-3 h-3 text-blue-300" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatTimeRemaining(link.expiresAt)}
+                </span>
+                <span className="text-green-400 flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Active
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Share Button Component
+  const ShareButton = ({ fileItem }) => {
+    return (
+      <button
+        onClick={() => generateShareableUrl(fileItem)}
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors hover:scale-105"
+      >
+        <Share2 className="w-4 h-4" />
+        Share
+      </button>
+    );
   };
 
   return (
@@ -777,13 +1135,26 @@ export default function DeviceFolderVideoManager() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <Server className="w-10 h-10" />
-            Device Folder Manager with File Server
+            Device Folder Manager with Blob URL Sharing
           </h1>
           <p className="text-purple-200">
-            Access, edit, and serve files across all routes from your device
-            storage
+            Access, edit, and serve files with direct blob URL sharing across
+            all routes
           </p>
         </div>
+
+        {/* Database Status */}
+        {!dbInitialized && (
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-300" />
+              <span className="text-yellow-200">Initializing database...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Active Share Links Panel */}
+        <ActiveShareLinksPanel />
 
         {/* Server Status Banner */}
         <div className="mb-6">
@@ -818,7 +1189,7 @@ export default function DeviceFolderVideoManager() {
                   </h3>
                   <p className="text-sm text-purple-200">
                     {serverStatus === "online"
-                      ? "Files are being served across all routes"
+                      ? "Files are being served across all routes with blob URL sharing"
                       : "Select a folder to start the file server"}
                   </p>
                 </div>
@@ -834,8 +1205,8 @@ export default function DeviceFolderVideoManager() {
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-purple-200">
-                    <Globe className="w-4 h-4" />
-                    <span>Cross-route enabled</span>
+                    <Link className="w-4 h-4" />
+                    <span>{activeShareLinks.length} active shares</span>
                   </div>
                 </div>
               )}
@@ -874,12 +1245,12 @@ export default function DeviceFolderVideoManager() {
             </h2>
             <p className="text-purple-200 mb-6 max-w-2xl mx-auto">
               Select a folder on your device to create a persistent file server.
-              Files will be accessible across all routes and persist between
-              sessions.
+              Generate direct blob URLs for immediate file sharing across all
+              routes.
             </p>
             <button
               onClick={selectDeviceFolder}
-              disabled={loading}
+              disabled={loading || !dbInitialized}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg font-semibold text-lg flex items-center gap-3 mx-auto transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
             >
               <Zap className="w-6 h-6" />
@@ -890,10 +1261,10 @@ export default function DeviceFolderVideoManager() {
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Link className="w-5 h-5 text-green-400" />
-                  <h4 className="text-white font-bold">Cross-Route Access</h4>
+                  <h4 className="text-white font-bold">Direct Blob URLs</h4>
                 </div>
                 <p className="text-sm text-purple-200">
-                  Generate shareable URLs to access files from any route
+                  Generate direct blob: URLs for immediate file access
                 </p>
               </div>
 
@@ -910,10 +1281,10 @@ export default function DeviceFolderVideoManager() {
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-5 h-5 text-yellow-400" />
-                  <h4 className="text-white font-bold">Multi-Tab Sync</h4>
+                  <h4 className="text-white font-bold">24-Hour Shares</h4>
                 </div>
                 <p className="text-sm text-purple-200">
-                  Real-time updates across all open tabs
+                  Generate shareable URLs valid for 24 hours
                 </p>
               </div>
             </div>
@@ -951,11 +1322,11 @@ export default function DeviceFolderVideoManager() {
                   <div className="flex gap-4 mt-2 text-sm">
                     <span className="text-green-300 flex items-center gap-1">
                       <CheckCircle className="w-4 h-4" />
-                      Persistent Storage
+                      {activeShareLinks.length} Active Shares
                     </span>
                     <span className="text-blue-300 flex items-center gap-1">
                       <Globe className="w-4 h-4" />
-                      Cross-Route Enabled
+                      Blob URL Generation
                     </span>
                   </div>
                 </div>
@@ -1003,11 +1374,11 @@ export default function DeviceFolderVideoManager() {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2 text-purple-200">
                   <div className="w-2 h-2 bg-green-400 rounded-full" />
-                  <span>Shareable across routes</span>
+                  <span>Direct Blob URLs</span>
                 </div>
                 <div className="flex items-center gap-2 text-purple-200">
                   <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                  <span>Multi-tab sync</span>
+                  <span>24-Hour Share Links</span>
                 </div>
               </div>
             </div>
@@ -1026,7 +1397,7 @@ export default function DeviceFolderVideoManager() {
                   No files found in server folder
                 </p>
                 <p className="text-white/40 text-sm">
-                  Upload files to make them available across all routes
+                  Upload files to generate shareable blob URLs
                 </p>
               </div>
             ) : (
@@ -1065,7 +1436,7 @@ export default function DeviceFolderVideoManager() {
                           {sharedUrls[fileItem.name] && (
                             <span className="text-green-300 flex items-center gap-1 text-xs">
                               <Link className="w-3 h-3" />
-                              Shareable
+                              Share Generated
                             </span>
                           )}
                         </div>
@@ -1082,13 +1453,7 @@ export default function DeviceFolderVideoManager() {
                             <Play className="w-4 h-4" />
                             Play
                           </button>
-                          <button
-                            onClick={() => generateShareableUrl(fileItem)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors hover:scale-105"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share
-                          </button>
+                          <ShareButton fileItem={fileItem} />
                         </>
                       ) : (
                         <>
@@ -1099,13 +1464,7 @@ export default function DeviceFolderVideoManager() {
                             <Edit3 className="w-4 h-4" />
                             Edit
                           </button>
-                          <button
-                            onClick={() => generateShareableUrl(fileItem)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors hover:scale-105"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share
-                          </button>
+                          <ShareButton fileItem={fileItem} />
                         </>
                       )}
                       <button
@@ -1163,14 +1522,14 @@ export default function DeviceFolderVideoManager() {
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                   >
                     <Share2 className="w-4 h-4" />
-                    Get Shareable URL
+                    Generate Share URL
                   </button>
                 </div>
                 <div className="flex gap-6 text-sm text-purple-200">
                   <span>Size: {formatSize(currentVideo.size)}</span>
                   <span>Modified: {formatDate(currentVideo.lastModified)}</span>
                   <span className="font-mono text-purple-300">
-                    {folderPath}
+                    Current Blob URL: {currentVideo.url.substring(0, 30)}...
                   </span>
                 </div>
               </div>
@@ -1272,8 +1631,7 @@ export default function DeviceFolderVideoManager() {
                       Click to select files
                     </p>
                     <p className="text-purple-200 text-sm">
-                      Files will be added to the server and accessible across
-                      all routes
+                      Files will be added to the server with blob URL generation
                     </p>
                   </div>
                 </label>
@@ -1281,14 +1639,14 @@ export default function DeviceFolderVideoManager() {
 
               <div className="mt-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <Globe className="w-5 h-5 text-purple-300 flex-shrink-0" />
+                  <Link className="w-5 h-5 text-purple-300 flex-shrink-0" />
                   <div>
                     <p className="text-purple-200 text-sm font-semibold mb-1">
-                      Server Distribution
+                      Blob URL Generation
                     </p>
                     <p className="text-purple-300 text-sm">
-                      Uploaded files will be immediately available across all
-                      routes and synchronized with other open tabs.
+                      Uploaded files can generate direct blob: URLs for
+                      immediate access and 24-hour shareable links.
                     </p>
                   </div>
                 </div>
@@ -1297,6 +1655,22 @@ export default function DeviceFolderVideoManager() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
