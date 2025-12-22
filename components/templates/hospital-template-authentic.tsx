@@ -557,6 +557,7 @@ function HospitalTemplateAuthentic({
           {showAd && adQueueState.currentAd && (
             <div className="absolute inset-0 flex items-center justify-center z-40">
               <FullScreenAd
+                adId={adQueueState.currentAd.id} // ← ADD THIS LINE
                 title={adQueueState.currentAd.title}
                 caption={adQueueState.currentAd.caption}
                 imageUrl={adQueueState.currentAd.image}
