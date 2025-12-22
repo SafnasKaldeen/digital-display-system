@@ -131,6 +131,7 @@ export default function RestaurantTemplate({
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastShownMinuteRef = useRef<string>("");
   const adSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCompletionRef = useRef<number>(0); // Moved to top level
 
   const settings = {
     restaurantName: customization.restaurantName || "Gourmet Delight",
@@ -230,8 +231,6 @@ export default function RestaurantTemplate({
   );
 
   // Handle ad completion
-  // Update the handleAdComplete function to prevent rapid re-renders:
-
   const handleAdComplete = useCallback(() => {
     console.log("✓ Ad completed, transitioning to next");
 
@@ -241,11 +240,8 @@ export default function RestaurantTemplate({
       adSafetyTimeoutRef.current = null;
     }
 
-    // Use a ref to track if we're already processing completion
-    const now = Date.now();
-    const lastCompletionRef = useRef<number>(0);
-
     // Prevent multiple calls within 500ms
+    const now = Date.now();
     if (now - lastCompletionRef.current < 500) {
       console.log("⚠️ Skipping duplicate completion call");
       return;
@@ -263,19 +259,13 @@ export default function RestaurantTemplate({
       // Check if queue is finished
       if (nextIndex >= prev.queue.length) {
         console.log("✅ All ads completed, returning to normal display");
-
-        // Add a small delay before clearing to prevent flash
-        setTimeout(() => {
-          setAdQueueState({
-            queue: [],
-            currentAd: null,
-            isPlaying: false,
-            currentIndex: 0,
-            isTransitioning: false,
-          });
-        }, 100);
-
-        return prev; // Return previous state while transitioning
+        return {
+          queue: [],
+          currentAd: null,
+          isPlaying: false,
+          currentIndex: 0,
+          isTransitioning: false,
+        };
       }
 
       // Move to transitioning state with next index
@@ -556,15 +546,13 @@ export default function RestaurantTemplate({
               </div>
             </div>
           </div>
-          // Replace the current Ad Display Overlay section with this:
+
           {/* Ad Display Overlay */}
           {showAd && adQueueState.currentAd && (
             <div className="absolute inset-0 flex items-center justify-center z-40">
               <FullScreenAd
-                // Use a stable key based on ad ID and currentIndex
                 key={`${adQueueState.currentAd.id}_${adQueueState.currentIndex}`}
                 adId={adQueueState.currentAd.id}
-                // Use a stable instanceId that doesn't change on every render
                 instanceId={`${adQueueState.currentAd.id}_${adQueueState.currentIndex}`}
                 title={adQueueState.currentAd.title}
                 caption={adQueueState.currentAd.caption}
@@ -621,14 +609,7 @@ export default function RestaurantTemplate({
               )}
             </div>
           )}
-          {/* Transition Indicator */}
-          {adQueueState.isTransitioning && (
-            <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/50">
-              <div className="text-white text-xl font-medium">
-                Loading next content...
-              </div>
-            </div>
-          )}
+
           {/* Transition Indicator */}
           {adQueueState.isTransitioning && (
             <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/50">
