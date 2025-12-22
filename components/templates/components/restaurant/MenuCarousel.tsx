@@ -33,9 +33,11 @@ export function MenuCarousel({
   secondaryColor,
   accentColor,
 }: MenuCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [currentMenuIndex, setCurrentMenuIndex] = useState(0);
+  const animationRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+  const menuRotationRef = useRef<NodeJS.Timeout | null>(null);
 
   const defaultMenuImage = "/default-food.jpeg";
 
@@ -44,309 +46,225 @@ export function MenuCarousel({
     (item) => item.available && item.enabled !== false
   );
 
-  // Handle menu item rotation based on menuRotationSpeed
+  // Handle scrolling animation for Authentic layout
   useEffect(() => {
-    if (activeMenuItems.length === 0) return;
+    if (layout !== "Authentic" || activeMenuItems.length === 0) return;
 
-    // Clear any existing timer
-    if (rotationTimerRef.current) {
-      clearTimeout(rotationTimerRef.current);
-    }
+    const animate = (timestamp: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+      const delta = timestamp - lastTimeRef.current;
+      lastTimeRef.current = timestamp;
 
-    // Set up rotation timer
-    rotationTimerRef.current = setTimeout(() => {
-      setIsTransitioning(true);
+      setScrollPosition((prev) => {
+        const speed = slideSpeed / 80;
+        const newPosition = prev + (speed * delta) / 16.67;
+        return newPosition;
+      });
 
-      // After transition animation starts, update index
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % activeMenuItems.length);
-        setIsTransitioning(false);
-      }, 500); // Half second for transition effect
-    }, menuRotationSpeed);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (rotationTimerRef.current) {
-        clearTimeout(rotationTimerRef.current);
-      }
+      cancelAnimationFrame(animationRef.current);
     };
-  }, [currentIndex, activeMenuItems.length, menuRotationSpeed]);
+  }, [layout, slideSpeed, activeMenuItems.length]);
 
-  // Get current menu item
-  const currentItem = activeMenuItems[currentIndex];
+  // Handle menu item rotation for Advanced layout
+  useEffect(() => {
+    if (layout === "Advanced" && activeMenuItems.length > 1) {
+      if (menuRotationRef.current) clearInterval(menuRotationRef.current);
 
-  if (activeMenuItems.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="relative flex-1 overflow-hidden rounded-3xl shadow-2xl border-2 bg-slate-800/50 flex items-center justify-center">
-          <div className="text-center text-gray-400 py-12">
-            <UtensilsCrossed className="w-16 h-16 mx-auto mb-4 opacity-30" />
-            <p className="text-xl">No menu items available</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      menuRotationRef.current = setInterval(() => {
+        setCurrentMenuIndex((prev) => (prev + 1) % activeMenuItems.length);
+      }, menuRotationSpeed);
 
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div
-        className="relative flex-1 overflow-hidden rounded-3xl shadow-2xl border-2"
-        style={{
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-          backdropFilter: "blur(20px)",
-          borderColor: `${accentColor}40`,
-        }}
-      >
-        {/* Background gradient */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-          }}
-        />
+      return () => {
+        if (menuRotationRef.current) clearInterval(menuRotationRef.current);
+      };
+    }
+  }, [layout, activeMenuItems.length, menuRotationSpeed]);
 
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-30">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold" style={{ color: primaryColor }}>
+  const getCurrentMenuItem = () => {
+    if (layout === "Advanced" && activeMenuItems.length > 0) {
+      return activeMenuItems[currentMenuIndex];
+    }
+    return activeMenuItems[0];
+  };
+
+  const duplicatedMenuItems = [
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+    ...activeMenuItems,
+  ];
+  const itemHeight = 180;
+  const totalHeight = activeMenuItems.length * itemHeight;
+
+  // Render Authentic layout (scrolling carousel)
+  const renderAuthenticLayout = () => {
+    if (activeMenuItems.length === 0) {
+      return (
+        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-full flex flex-col">
+          <div className="bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10">
+            <h2
+              className="text-3xl font-bold text-center"
+              style={{ color: primaryColor }}
+            >
               Today's Menu
             </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-white/60">
-                {currentIndex + 1} / {activeMenuItems.length}
-              </span>
-              <div className="flex gap-1">
-                {activeMenuItems.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="w-2 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      backgroundColor:
-                        idx === currentIndex
-                          ? accentColor
-                          : "rgba(255,255,255,0.3)",
-                      transform:
-                        idx === currentIndex ? "scale(1.3)" : "scale(1)",
-                    }}
-                  />
-                ))}
-              </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center text-gray-400 py-12">
+              <UtensilsCrossed className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-xl">No menu items available</p>
             </div>
           </div>
         </div>
+      );
+    }
 
-        {/* Main Content Area */}
-        <div className="absolute top-24 left-0 right-0 bottom-0 flex items-center justify-center px-8">
-          <div
-            className={`w-full transition-all duration-500 ${
-              isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
-            }`}
+    return (
+      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-full flex flex-col">
+        <div className="bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10">
+          <h2
+            className="text-3xl font-bold text-center"
+            style={{ color: primaryColor }}
           >
-            {currentItem && (
+            Today's Menu
+          </h2>
+        </div>
+
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{
+            maskImage:
+              "linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)",
+          }}
+        >
+          <div
+            className="absolute z-10 w-full px-6"
+            style={{
+              transform: `translateY(-${scrollPosition % (totalHeight * 3)}px)`,
+              willChange: "transform",
+            }}
+          >
+            {duplicatedMenuItems.map((item, index) => (
               <MenuItemCard
-                item={currentItem}
+                key={`${item.id}-${index}`}
+                item={item}
+                itemHeight={itemHeight}
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
                 accentColor={accentColor}
                 defaultMenuImage={defaultMenuImage}
               />
-            )}
+            ))}
           </div>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-black/50 z-30">
+          {/* Gradient overlays for fade effect */}
           <div
-            className="h-full transition-all"
+            className="absolute top-0 left-0 right-0 h-16 pointer-events-none z-20"
             style={{
-              backgroundColor: accentColor,
-              width: isTransitioning ? "100%" : "0%",
-              animation: `progressBar ${menuRotationSpeed}ms linear`,
+              background: `linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%)`,
+            }}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none z-20"
+            style={{
+              background: `linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)`,
             }}
           />
         </div>
-
-        {/* Gradient overlays */}
-        <div
-          className="absolute top-24 left-0 right-0 h-20 pointer-events-none z-20"
-          style={{
-            background: `linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-          }}
-        />
-        <div
-          className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none z-20"
-          style={{
-            background: `linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)`,
-          }}
-        />
       </div>
+    );
+  };
 
-      <style jsx>{`
-        @keyframes progressBar {
-          from {
-            width: 0%;
-          }
-          to {
-            width: 100%;
-          }
-        }
-      `}</style>
+  return (
+    <div className="flex flex-col justify-center h-full">
+      {renderAuthenticLayout()}
     </div>
   );
 }
 
-// Menu Item Card Component
+// Menu Item Card Component for Authentic layout
 function MenuItemCard({
   item,
+  itemHeight,
   primaryColor,
   secondaryColor,
   accentColor,
   defaultMenuImage,
 }: {
   item: MenuItem;
+  itemHeight: number;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
   defaultMenuImage: string;
 }) {
   return (
-    <div
-      className="rounded-3xl p-8 shadow-2xl border-2 backdrop-blur-md"
-      style={{
-        background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}20)`,
-        borderColor: `${accentColor}60`,
-      }}
-    >
-      <div className="flex flex-col lg:flex-row items-center gap-8">
-        {/* Menu Item Image */}
-        {item.image && (
-          <div className="relative flex-shrink-0">
-            <div className="relative w-72 h-72 rounded-3xl overflow-hidden shadow-2xl">
-              <div
-                className="absolute inset-0 opacity-60 blur-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                }}
-              />
-
-              <img
-                src={item.image || defaultMenuImage}
-                alt={item.name}
-                className="relative w-full h-full object-cover rounded-3xl border-4 border-white/40"
-                onError={(e) => {
-                  e.currentTarget.src = defaultMenuImage;
-                }}
-              />
-
-              <div
-                className="absolute inset-0 rounded-3xl opacity-20"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                }}
-              />
-
-              {/* Special Badge */}
-              {item.isSpecial && (
-                <div className="absolute top-4 right-4 bg-amber-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
-                  ⭐ SPECIAL
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Menu Item Details */}
-        <div className="flex-1 space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4 flex-1">
-                <div
-                  className="w-3 h-16 rounded-full"
-                  style={{
-                    backgroundColor: accentColor,
-                    boxShadow: `0 0 20px ${accentColor}`,
+    <div className="mb-4" style={{ height: `${itemHeight}px` }}>
+      <div
+        className={`bg-white/5 backdrop-blur-sm rounded-2xl p-4 border transition-all duration-300 h-full hover:scale-[1.02] ${
+          item.isSpecial
+            ? "border-amber-400/50 shadow-lg shadow-amber-400/20"
+            : "border-white/10"
+        }`}
+      >
+        <div className="flex gap-4 h-full">
+          {item.image && (
+            <div className="flex-shrink-0">
+              <div className="relative w-32 h-32 rounded-xl overflow-hidden">
+                <img
+                  src={item.image || defaultMenuImage}
+                  alt={item.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = defaultMenuImage;
                   }}
                 />
-                <h3
-                  className="text-5xl font-black tracking-tight leading-tight"
-                  style={{
-                    color: "white",
-                    textShadow: `0 4px 30px ${accentColor}80`,
-                  }}
-                >
-                  {item.name}
-                </h3>
+                {item.isSpecial && (
+                  <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
+                    ⭐
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="text-2xl font-bold text-white">{item.name}</h3>
               <span
-                className="text-5xl font-bold whitespace-nowrap"
-                style={{
-                  color: primaryColor,
-                  textShadow: `0 2px 15px ${primaryColor}60`,
-                }}
+                className="text-2xl font-bold whitespace-nowrap ml-2"
+                style={{ color: primaryColor }}
               >
                 {item.price}
               </span>
             </div>
-          </div>
-
-          {/* Description */}
-          {item.description && (
-            <p
-              className="text-2xl font-medium leading-relaxed"
-              style={{
-                color: `${secondaryColor}EE`,
-                textShadow: "0 2px 8px rgba(0,0,0,0.4)",
-              }}
-            >
+            <p className="text-gray-300 text-sm mb-2 line-clamp-2">
               {item.description}
             </p>
-          )}
-
-          {/* Category Badge */}
-          {item.category && (
-            <div className="flex items-center gap-4 pt-2">
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-                style={{
-                  backgroundColor: accentColor,
-                }}
-              >
-                <span className="text-white text-2xl">🍽️</span>
-              </div>
-              <span
-                className="px-6 py-2 rounded-full text-lg font-bold shadow-lg"
-                style={{
-                  backgroundColor: `${accentColor}40`,
-                  color: accentColor,
-                  border: `2px solid ${accentColor}80`,
-                }}
-              >
-                {item.category}
-              </span>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 pt-2">
-            <div
-              className="flex-1 h-1 rounded-full opacity-40"
+            <span
+              className="inline-block px-3 py-1 rounded-full text-xs font-medium self-start"
               style={{
-                backgroundColor: accentColor,
+                backgroundColor: accentColor + "30",
+                color: accentColor,
               }}
-            />
-            <div
-              className="w-4 h-4 rounded-full animate-pulse"
-              style={{
-                backgroundColor: accentColor,
-                boxShadow: `0 0 15px ${accentColor}`,
-              }}
-            />
-            <div
-              className="flex-1 h-1 rounded-full opacity-40"
-              style={{
-                backgroundColor: accentColor,
-              }}
-            />
+            >
+              {item.category}
+            </span>
           </div>
         </div>
       </div>
