@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { MasjidTemplate } from "@/components/templates/masjid-template";
 import { HospitalTemplate } from "@/components/templates/hospital-template";
-import { RestaurantTemplate } from "@/components/templates/restaurant-template";
+import RestaurantTemplate from "@/components/templates/restaurant-template";
 import { CorporateTemplate } from "@/components/templates/corporate-template";
 import { supabase } from "@/lib/supabase-client";
 import type React from "react";

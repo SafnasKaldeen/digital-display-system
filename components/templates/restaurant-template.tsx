@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
-import { UtensilsCrossed, Clock, Calendar } from "lucide-react";
-import Image from "next/image";
-import FullScreenAd from "./components/restaurant/FullScreenAd";
+"use client";
 
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { UtensilsCrossed } from "lucide-react";
+import GalleryCarousel from "./components/restaurant/GalleryCarousel";
+import FullScreenAd from "./components/restaurant/FullScreenAd";
+import { MenuCarousel } from "./components/restaurant/MenuCarousel";
+
+// Main Restaurant Template Component
 interface MenuItem {
   id: string;
   name: string;
@@ -12,6 +16,30 @@ interface MenuItem {
   image: string;
   available: boolean;
   isSpecial?: boolean;
+}
+
+interface AdSchedule {
+  id: string;
+  enabled: boolean;
+  title: string;
+  image: string;
+  video: string;
+  mediaType: "image" | "video";
+  caption: string;
+  frequency: number;
+  duration: number;
+  playCount: number;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  timeRange: {
+    start: string;
+    end: string;
+  };
+  daysOfWeek: number[];
+  animation?: string;
+  priority?: number;
 }
 
 interface RestaurantCustomization {
@@ -29,71 +57,56 @@ interface RestaurantCustomization {
   slideshowSpeed: number;
   menuItems: MenuItem[];
   galleryImages: string[];
-  advertisements: Array<{
-    id: string;
-    enabled: boolean;
-    title: string;
-    image: string;
-    video: string;
-    mediaType: "image" | "video";
-    caption: string;
-    frequency: number;
-    duration: number;
-    playCount: number;
-    dateRange: {
-      start: string;
-      end: string;
-    };
-    timeRange: {
-      start: string;
-      end: string;
-    };
-    daysOfWeek: number[];
-  }>;
+  advertisements: AdSchedule[];
+  layout: "Authentic" | "Advanced";
+  slideSpeed: number;
+  menuRotationSpeed: number;
 }
 
 interface RestaurantTemplateProps {
-  customization: RestaurantCustomization;
-  backgroundStyle: React.CSSProperties;
+  customization?: Partial<RestaurantCustomization>;
+  backgroundStyle?: React.CSSProperties;
 }
 
-// Helper function to generate schedule based on frequency (in minutes)
+interface AdQueueState {
+  queue: AdSchedule[];
+  currentAd: AdSchedule | null;
+  isPlaying: boolean;
+  currentIndex: number;
+  isTransitioning: boolean;
+}
+
+// Helper function to generate schedule based on frequency (in seconds)
 const generateScheduleFromFrequency = (frequency: number): string[] => {
   const schedule: string[] = [];
+  const frequencyInMinutes = Math.floor(frequency / 60);
 
-  if (frequency === 1) {
-    // Every 1 minute: 00, 01, 02, ..., 59
+  if (frequencyInMinutes === 1) {
     for (let i = 0; i < 60; i++) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else if (frequency === 5) {
-    // Every 5 minutes: 00, 05, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
+  } else if (frequencyInMinutes === 5) {
     for (let i = 0; i < 60; i += 5) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else if (frequency === 10) {
-    // Every 10 minutes: 00, 10, 20, 30, 40, 50
+  } else if (frequencyInMinutes === 10) {
     for (let i = 0; i < 60; i += 10) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else if (frequency === 15) {
-    // Every 15 minutes: 00, 15, 30, 45
+  } else if (frequencyInMinutes === 15) {
     for (let i = 0; i < 60; i += 15) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else if (frequency === 20) {
-    // Every 20 minutes: 00, 20, 40
+  } else if (frequencyInMinutes === 20) {
     for (let i = 0; i < 60; i += 20) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else if (frequency === 30) {
-    // Every 30 minutes: 00, 30
+  } else if (frequencyInMinutes === 30) {
     for (let i = 0; i < 60; i += 30) {
       schedule.push(i.toString().padStart(2, "0"));
     }
-  } else {
-    // Default: use frequency as interval
-    for (let i = 0; i < 60; i += frequency) {
+  } else if (frequencyInMinutes > 0) {
+    for (let i = 0; i < 60; i += frequencyInMinutes) {
       schedule.push(i.toString().padStart(2, "0"));
     }
   }
@@ -101,18 +114,23 @@ const generateScheduleFromFrequency = (frequency: number): string[] => {
   return schedule;
 };
 
-export function RestaurantTemplate({
-  customization,
-  backgroundStyle,
+export default function RestaurantTemplate({
+  customization = {},
+  backgroundStyle = {},
 }: RestaurantTemplateProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [currentMenuIndex, setCurrentMenuIndex] = useState(0);
   const [currentBackgroundIndex, setCurrentBackgroundIndex] = useState(0);
-  const [showAdvertisement, setShowAdvertisement] = useState(false);
-  const [currentAd, setCurrentAd] = useState<any>(null);
-  const isShowingAdRef = useRef(false);
+  const [adQueueState, setAdQueueState] = useState<AdQueueState>({
+    queue: [],
+    currentAd: null,
+    isPlaying: false,
+    currentIndex: 0,
+    isTransitioning: false,
+  });
+
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastShownMinuteRef = useRef<string>("");
+  const adSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const settings = {
     restaurantName: customization.restaurantName || "Gourmet Delight",
@@ -129,6 +147,9 @@ export function RestaurantTemplate({
       customization.tickerRightMessage || "Taste the Difference",
     enableSlideshow: customization.enableSlideshow || false,
     slideshowSpeed: customization.slideshowSpeed || 10000,
+    layout: customization.layout || "Authentic",
+    slideSpeed: customization.slideSpeed || 20,
+    menuRotationSpeed: customization.menuRotationSpeed || 6000,
   };
 
   const menuItems = customization.menuItems || [];
@@ -141,24 +162,6 @@ export function RestaurantTemplate({
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Gallery rotation
-  useEffect(() => {
-    if (galleryImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentGalleryIndex((prev) => (prev + 1) % galleryImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [galleryImages.length]);
-
-  // Menu rotation
-  useEffect(() => {
-    if (menuItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentMenuIndex((prev) => (prev + 1) % menuItems.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [menuItems.length]);
 
   // Background slideshow
   useEffect(() => {
@@ -173,169 +176,231 @@ export function RestaurantTemplate({
     settings.slideshowSpeed,
   ]);
 
-  // Advertisement scheduling logic - triggers at :00 seconds
-  useEffect(() => {
-    let adQueue: any[] = [];
-    let isProcessingQueue = false;
+  // Check if ad should play now based on schedule
+  const isAdScheduledNow = useCallback((ad: AdSchedule, now: Date): boolean => {
+    if (!ad.enabled) return false;
 
-    const isAdActive = (ad: any) => {
-      if (!ad.enabled) return false;
+    // Check date range
+    const startDate = new Date(ad.dateRange.start);
+    const endDate = new Date(ad.dateRange.end);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
-      const now = new Date();
-      const currentDay = now.getDay();
-      const currentTime = now.getHours() * 60 + now.getMinutes();
+    if (now < startDate || now > endDate) {
+      return false;
+    }
 
-      // Check date range
-      const startDate = new Date(ad.dateRange.start);
-      const endDate = new Date(ad.dateRange.end);
-      if (now < startDate || now > endDate) return false;
+    // Check day of week
+    const currentDay = now.getDay();
+    if (!ad.daysOfWeek.includes(currentDay)) {
+      return false;
+    }
 
-      // Check day of week
-      if (!ad.daysOfWeek.includes(currentDay)) return false;
+    // Check time range
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const [startHour, startMin] = ad.timeRange.start.split(":").map(Number);
+    const [endHour, endMin] = ad.timeRange.end.split(":").map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
 
-      // Check time range
-      const [startHour, startMin] = ad.timeRange.start.split(":").map(Number);
-      const [endHour, endMin] = ad.timeRange.end.split(":").map(Number);
-      const startTime = startHour * 60 + startMin;
-      const endTime = endHour * 60 + endMin;
-      if (currentTime < startTime || currentTime > endTime) return false;
+    if (currentTime < startMinutes || currentTime > endMinutes) {
+      return false;
+    }
 
-      return true;
-    };
+    // Check if current minute matches the frequency schedule
+    const currentMinute = now.getMinutes().toString().padStart(2, "0");
+    const schedule = generateScheduleFromFrequency(ad.frequency);
 
-    const processNextAd = () => {
-      console.log(
-        `🔄 processNextAd called. Queue length: ${adQueue.length}, isProcessingQueue: ${isProcessingQueue}, isShowingAd: ${isShowingAdRef.current}`
+    return schedule.includes(currentMinute);
+  }, []);
+
+  // Find all ads that should play now
+  const findScheduledAds = useCallback(
+    (now: Date): AdSchedule[] => {
+      const matchingAds = advertisements.filter((ad) =>
+        isAdScheduledNow(ad, now)
       );
 
-      if (isShowingAdRef.current) {
-        console.log("⏸️ Ad currently showing, waiting");
-        return;
-      }
+      // Sort by priority (lower number = higher priority)
+      return matchingAds.sort(
+        (a, b) => (a.priority || 999) - (b.priority || 999)
+      );
+    },
+    [advertisements, isAdScheduledNow]
+  );
 
-      if (adQueue.length === 0) {
-        console.log("📭 Queue is empty");
-        isProcessingQueue = false;
-        return;
-      }
+  // Handle ad completion
+  const handleAdComplete = useCallback(() => {
+    console.log("✓ Ad completed, transitioning to next");
 
-      if (isProcessingQueue) {
-        console.log("⏸️ Already processing queue, skipping");
-        return;
-      }
-      isProcessingQueue = true;
+    // Clear any safety timeout
+    if (adSafetyTimeoutRef.current) {
+      clearTimeout(adSafetyTimeoutRef.current);
+      adSafetyTimeoutRef.current = null;
+    }
 
-      const nextAd = adQueue.shift();
-      if (!nextAd) {
-        console.log("❌ No ad found in queue");
-        isProcessingQueue = false;
-        return;
-      }
-
-      console.log(`🎬 Processing ad: ${nextAd.title || nextAd.id}`);
-
-      if (!isAdActive(nextAd)) {
-        console.log(
-          `⏭️ Ad ${nextAd.title || nextAd.id} no longer active, skipping`
-        );
-        isProcessingQueue = false;
-        setTimeout(processNextAd, 100);
-        return;
-      }
+    // Move to next ad in queue
+    setAdQueueState((prev) => {
+      const nextIndex = prev.currentIndex + 1;
 
       console.log(
-        `📺 Showing ad: ${nextAd.title || nextAd.id} (${
-          adQueue.length
-        } remaining in queue)`
+        `📊 Queue status: current=${prev.currentIndex}, next=${nextIndex}, total=${prev.queue.length}`
       );
-      isShowingAdRef.current = true;
-      setCurrentAd(nextAd);
-      setShowAdvertisement(true);
-    };
 
-    const handleAdComplete = () => {
-      console.log(`✅ Ad completed. Queue has ${adQueue.length} ads waiting`);
-      isProcessingQueue = false;
-      isShowingAdRef.current = false;
-      setShowAdvertisement(false);
-      setCurrentAd(null);
-
-      setTimeout(() => {
-        console.log("🔄 Attempting to process next ad after completion");
-        processNextAd();
-      }, 1000);
-    };
-
-    (window as any).__handleAdComplete = handleAdComplete;
-
-    const checkAdvertisements = () => {
-      const now = new Date();
-      const currentMinute = now.getMinutes().toString().padStart(2, "0");
-      const currentSecond = now.getSeconds();
-
-      // ONLY trigger at exactly :00 seconds (with 2 second tolerance)
-      if (currentSecond > 2) {
-        return;
+      // Check if queue is finished
+      if (nextIndex >= prev.queue.length) {
+        console.log("✅ All ads completed, returning to normal display");
+        return {
+          queue: [],
+          currentAd: null,
+          isPlaying: false,
+          currentIndex: 0,
+          isTransitioning: false,
+        };
       }
 
-      // Prevent triggering multiple times in the same minute
-      if (lastShownMinuteRef.current === currentMinute) {
-        return;
-      }
-
+      // Move to transitioning state with next index
       console.log(
-        `🕐 Checking ads at ${now.getHours()}:${currentMinute}:${currentSecond
-          .toString()
-          .padStart(2, "0")}`
+        `⏳ Transitioning to ad ${nextIndex + 1}/${prev.queue.length}`
       );
+      return {
+        ...prev,
+        currentAd: null,
+        isPlaying: false,
+        currentIndex: nextIndex,
+        isTransitioning: true,
+      };
+    });
 
-      // Find all ads scheduled for this minute
-      const scheduledAds = advertisements.filter((ad) => {
-        if (!isAdActive(ad)) return false;
-
-        // Convert frequency (in seconds) to minutes for schedule generation
-        const frequencyInMinutes = Math.floor(ad.frequency / 60);
-        const schedule = generateScheduleFromFrequency(frequencyInMinutes);
-
-        const isScheduled = schedule.includes(currentMinute);
-        if (isScheduled) {
-          console.log(
-            `✓ Ad "${ad.title}" is scheduled for minute ${currentMinute}`
-          );
+    // After transition delay, play the next ad
+    setTimeout(() => {
+      setAdQueueState((prev) => {
+        // Safety check - make sure we still have ads
+        if (prev.currentIndex >= prev.queue.length) {
+          console.log("⚠️ No more ads in queue");
+          return {
+            ...prev,
+            isTransitioning: false,
+          };
         }
-        return isScheduled;
+
+        const nextAd = prev.queue[prev.currentIndex];
+        console.log(
+          `🎬 NOW PLAYING: Ad ${prev.currentIndex + 1}/${prev.queue.length} - ${
+            nextAd.title
+          } (${nextAd.mediaType})`
+        );
+
+        // Set safety timeout
+        const maxAdDuration =
+          nextAd.mediaType === "image"
+            ? nextAd.duration * 1000 + 10000
+            : 360000;
+
+        adSafetyTimeoutRef.current = setTimeout(() => {
+          console.error("⏱️ AD SAFETY TIMEOUT - Ad stuck, forcing skip");
+          handleAdComplete();
+        }, maxAdDuration);
+
+        return {
+          ...prev,
+          currentAd: nextAd,
+          isPlaying: true,
+          isTransitioning: false,
+        };
       });
+    }, 1000);
+  }, []);
 
-      if (scheduledAds.length === 0) {
-        console.log(`✗ No ads scheduled for minute ${currentMinute}`);
-        return;
-      }
+  // Check schedule periodically
+  const checkSchedule = useCallback(() => {
+    // Don't check if currently playing, transitioning, OR if there's already a queue
+    if (
+      adQueueState.isPlaying ||
+      adQueueState.isTransitioning ||
+      adQueueState.queue.length > 0
+    ) {
+      return;
+    }
 
+    const now = new Date();
+    const currentMinute = now.getMinutes().toString().padStart(2, "0");
+    const currentSecond = now.getSeconds();
+
+    // ONLY trigger at exactly :00 seconds (with 2 second tolerance)
+    if (currentSecond > 2) {
+      return;
+    }
+
+    // Prevent triggering multiple times in the same minute
+    if (lastShownMinuteRef.current === currentMinute) {
+      return;
+    }
+
+    console.log(
+      `🕐 Checking ads at ${now.getHours()}:${currentMinute}:${currentSecond
+        .toString()
+        .padStart(2, "0")}`
+    );
+
+    const matchingAds = findScheduledAds(now);
+
+    if (matchingAds.length > 0) {
       console.log(
-        `📋 Found ${scheduledAds.length} ads scheduled for minute ${currentMinute}`
+        `🎬 Found ${matchingAds.length} scheduled ad(s) for minute ${currentMinute}:`,
+        matchingAds.map(
+          (ad, idx) => `${idx + 1}. ${ad.title} (${ad.mediaType})`
+        )
       );
 
       // Mark this minute as processed
       lastShownMinuteRef.current = currentMinute;
 
-      // Queue all scheduled ads
-      adQueue = [...scheduledAds];
+      // Start the queue with first ad
+      const firstAd = matchingAds[0];
+      console.log(
+        `▶️ Starting queue with: ${firstAd.title} (${firstAd.mediaType})`
+      );
 
-      // Start processing if not already showing an ad
-      if (!isShowingAdRef.current && !isProcessingQueue) {
-        console.log("🚀 Starting ad queue processing");
-        setTimeout(processNextAd, 100);
-      }
-    };
+      setAdQueueState({
+        queue: matchingAds,
+        currentAd: firstAd,
+        isPlaying: true,
+        currentIndex: 0,
+        isTransitioning: false,
+      });
+    } else {
+      console.log(`✗ No ads scheduled for minute ${currentMinute}`);
+    }
+  }, [
+    adQueueState.isPlaying,
+    adQueueState.isTransitioning,
+    adQueueState.queue.length,
+    findScheduledAds,
+  ]);
 
-    const adCheckInterval = setInterval(checkAdvertisements, 1000);
+  // Set up periodic schedule checking
+  useEffect(() => {
+    console.log("🔄 Starting ad schedule checker");
+
+    // Initial check
+    checkSchedule();
+
+    // Check every second for precise timing
+    checkIntervalRef.current = setInterval(() => {
+      checkSchedule();
+    }, 1000);
 
     return () => {
-      clearInterval(adCheckInterval);
-      delete (window as any).__handleAdComplete;
-      adQueue = [];
+      console.log("🛑 Stopping ad schedule checker");
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+      }
+      if (adSafetyTimeoutRef.current) {
+        clearTimeout(adSafetyTimeoutRef.current);
+      }
     };
-  }, [advertisements]);
+  }, [checkSchedule]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -355,7 +420,6 @@ export function RestaurantTemplate({
     });
   };
 
-  // Determine background image
   let dynamicBackgroundStyle = backgroundStyle;
   if (settings.enableSlideshow && backgroundImages.length > 0) {
     dynamicBackgroundStyle = {
@@ -369,55 +433,30 @@ export function RestaurantTemplate({
     };
   }
 
-  // Show advertisement fullscreen if active
-  if (showAdvertisement && currentAd) {
-    return (
-      <FullScreenAd
-        title={currentAd.title}
-        caption={currentAd.caption || ""}
-        imageUrl={currentAd.mediaType === "image" ? currentAd.image : undefined}
-        videoUrl={currentAd.mediaType === "video" ? currentAd.video : undefined}
-        mediaType={currentAd.mediaType}
-        playCount={currentAd.playCount || 1}
-        animation="fade"
-        accentColor={settings.accentColor}
-        primaryColor={settings.primaryColor}
-        secondaryColor={settings.secondaryColor}
-        duration={currentAd.duration * 1000}
-        showTimer={currentAd.mediaType === "image"}
-        showScheduleInfo={false}
-        scheduleInfo={{
-          timeRange: currentAd.timeRange,
-          frequency: currentAd.frequency,
-          daysOfWeek: currentAd.daysOfWeek,
-        }}
-        onDurationEnd={() => {
-          const handler = (window as any).__handleAdComplete;
-          if (handler) {
-            handler();
-          }
-        }}
-      />
-    );
-  }
+  const showAd = adQueueState.isPlaying && adQueueState.currentAd;
 
   return (
     <div
-      className="w-full h-full relative overflow-hidden"
+      className="fixed inset-0 w-full h-full overflow-hidden"
       style={dynamicBackgroundStyle}
     >
-      {(settings.backgroundImage ||
-        (settings.enableSlideshow && backgroundImages.length > 0)) && (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80"></div>
-      )}
-      {!settings.backgroundImage &&
-        (!settings.enableSlideshow || backgroundImages.length === 0) && (
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+      {/* Background */}
+      <div className="absolute inset-0">
+        {(settings.backgroundImage ||
+          (settings.enableSlideshow && backgroundImages.length > 0)) && (
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80"></div>
         )}
+        {!settings.backgroundImage &&
+          (!settings.enableSlideshow || backgroundImages.length === 0) && (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+          )}
+      </div>
 
+      {/* Main Content */}
       <div className="relative z-10 h-full flex flex-col">
+        {/* Header */}
         <header
-          className="bg-black/60 backdrop-blur-md border-b-2 px-8 py-5"
+          className="bg-black/60 backdrop-blur-md border-b-2 px-8 py-5 relative z-30"
           style={{ borderColor: settings.primaryColor }}
         >
           <div className="flex items-center justify-between">
@@ -465,146 +504,115 @@ export function RestaurantTemplate({
           </div>
         </header>
 
-        <div className="flex-1 grid grid-cols-2 gap-6 p-6 overflow-hidden min-h-0">
-          <div className="flex flex-col justify-center">
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-full flex flex-col">
-              <div className="bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10">
-                <h2
-                  className="text-3xl font-bold text-center"
-                  style={{ color: settings.primaryColor }}
-                >
-                  Today's Menu
-                </h2>
-              </div>
+        {/* Main Content Area */}
+        <div className="flex-1 relative overflow-hidden">
+          {/* Normal Display Content */}
+          <div
+            className={`transition-opacity duration-500 h-full ${
+              showAd ? "opacity-0 pointer-events-none" : "opacity-100"
+            }`}
+          >
+            <div className="flex gap-8 px-8 pb-8 pt-8 h-full overflow-hidden">
+              {/* Left Side - Menu Carousel */}
+              <MenuCarousel
+                menuItems={menuItems}
+                layout={settings.layout}
+                slideSpeed={settings.slideSpeed}
+                menuRotationSpeed={settings.menuRotationSpeed}
+                primaryColor={settings.primaryColor}
+                secondaryColor={settings.secondaryColor}
+                accentColor={settings.accentColor}
+              />
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {menuItems.length > 0 ? (
-                  menuItems
-                    .filter((item) => item.available)
-                    .map((item, idx) => (
-                      <div
-                        key={item.id}
-                        className={`bg-white/5 backdrop-blur-sm rounded-2xl p-5 border transition-all duration-300 ${
-                          item.isSpecial
-                            ? "border-amber-400/50 shadow-lg shadow-amber-400/20"
-                            : "border-white/10"
-                        }`}
-                      >
-                        <div className="flex gap-4">
-                          {item.image && (
-                            <div className="flex-shrink-0">
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="w-24 h-24 object-cover rounded-xl"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <h3 className="text-2xl font-bold text-white">
-                                {item.name}
-                                {item.isSpecial && (
-                                  <span className="ml-2 text-amber-400">
-                                    ⭐
-                                  </span>
-                                )}
-                              </h3>
-                              <span
-                                className="text-2xl font-bold"
-                                style={{ color: settings.primaryColor }}
-                              >
-                                {item.price}
-                              </span>
-                            </div>
-                            <p className="text-gray-300 text-sm mb-2">
-                              {item.description}
-                            </p>
-                            <span
-                              className="inline-block px-3 py-1 rounded-full text-xs font-medium"
-                              style={{
-                                backgroundColor: settings.accentColor + "30",
-                                color: settings.accentColor,
-                              }}
-                            >
-                              {item.category}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="text-center text-gray-400 py-12">
-                    <UtensilsCrossed className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-xl">No menu items available</p>
-                  </div>
-                )}
-              </div>
-
-              {menuItems.length > 3 && (
-                <div className="bg-black/20 backdrop-blur-sm px-6 py-4 border-t border-white/10">
-                  <div className="flex justify-center gap-2">
-                    {menuItems.slice(0, 5).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="w-2 h-2 rounded-full bg-white/30"
-                      />
-                    ))}
-                  </div>
+              {/* Right Side - Gallery Carousel */}
+              <div className="flex flex-col justify-center">
+                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-full flex flex-col relative">
+                  <GalleryCarousel
+                    images={galleryImages}
+                    transitionSpeed={5000}
+                    accentColor={settings.primaryColor}
+                    isAdShowing={!!showAd}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center">
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-full flex flex-col">
-              {galleryImages.length > 0 ? (
-                <>
-                  <div className="flex-1 relative">
-                    <img
-                      src={galleryImages[currentGalleryIndex]}
-                      alt={`Gallery ${currentGalleryIndex + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  </div>
+          {/* Ad Display Overlay */}
+          {showAd && adQueueState.currentAd && (
+            <div className="absolute inset-0 flex items-center justify-center z-40">
+              <FullScreenAd
+                adId={adQueueState.currentAd.id}
+                instanceId={`${adQueueState.currentAd.id}_${Date.now()}`}
+                title={adQueueState.currentAd.title}
+                caption={adQueueState.currentAd.caption}
+                imageUrl={
+                  adQueueState.currentAd.mediaType === "image"
+                    ? adQueueState.currentAd.image
+                    : undefined
+                }
+                videoUrl={
+                  adQueueState.currentAd.mediaType === "video"
+                    ? adQueueState.currentAd.video
+                    : undefined
+                }
+                mediaType={adQueueState.currentAd.mediaType}
+                playCount={adQueueState.currentAd.playCount || 1}
+                animation={adQueueState.currentAd.animation || "fade"}
+                accentColor={settings.accentColor}
+                primaryColor={settings.primaryColor}
+                secondaryColor={settings.secondaryColor}
+                duration={adQueueState.currentAd.duration * 1000}
+                showTimer={adQueueState.currentAd.mediaType === "image"}
+                showScheduleInfo={false}
+                onDurationEnd={handleAdComplete}
+              />
 
-                  {galleryImages.length > 1 && (
-                    <div className="bg-black/30 backdrop-blur-sm px-6 py-4 border-t border-white/10">
-                      <div className="flex justify-center gap-2">
-                        {galleryImages.map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="transition-all duration-300 rounded-full"
-                            style={{
-                              width:
-                                idx === currentGalleryIndex ? "32px" : "12px",
-                              height: "12px",
-                              backgroundColor:
-                                idx === currentGalleryIndex
-                                  ? settings.primaryColor
-                                  : "#64748b",
-                            }}
-                          />
-                        ))}
+              {/* Queue Progress Indicator */}
+              {adQueueState.queue.length > 1 && (
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
+                  <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-medium">
+                        Ad {adQueueState.currentIndex + 1} of{" "}
+                        {adQueueState.queue.length}
+                      </span>
+                      <div className="flex gap-1">
+                        {Array.from({ length: adQueueState.queue.length }).map(
+                          (_, idx) => (
+                            <div
+                              key={idx}
+                              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                idx < adQueueState.currentIndex
+                                  ? "bg-green-400"
+                                  : idx === adQueueState.currentIndex
+                                  ? "bg-white scale-125"
+                                  : "bg-white/30"
+                              }`}
+                            />
+                          )
+                        )}
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <UtensilsCrossed className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-xl">No gallery images</p>
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          )}
+
+          {/* Transition Indicator */}
+          {adQueueState.isTransitioning && (
+            <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/50">
+              <div className="text-white text-xl font-medium">
+                Loading next content...
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Footer */}
         <div
-          className="bg-black/60 backdrop-blur-md border-t-2 px-8 py-3"
+          className="bg-black/60 backdrop-blur-md border-t-2 px-8 py-3 relative z-30"
           style={{ borderColor: settings.primaryColor }}
         >
           <div className="flex items-center justify-between text-base">
