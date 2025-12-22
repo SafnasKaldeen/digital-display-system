@@ -55,7 +55,7 @@ export function MenuCarousel({
 
       setScrollPosition((prev) => {
         // Convert slideSpeed (1-100) to pixels per frame
-        const speed = slideSpeed / 6000;
+        const speed = slideSpeed / 10000;
         const newPosition = prev + (speed * delta) / 16.67;
         return newPosition;
       });
