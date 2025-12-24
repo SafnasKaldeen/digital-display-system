@@ -125,7 +125,7 @@ export function MenuCarousel({
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-30">
           <h2
-            className="text-3xl font-bold text-center"
+            className="text-5xl font-bold text-center"
             style={{ color: primaryColor }}
           >
             Today's Menu
@@ -259,7 +259,7 @@ function MenuItemCard({
               {/* Menu Item Details - Center */}
               <div className="flex-1 flex flex-col justify-center space-y-1.5 min-w-0">
                 {/* Name */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 -mt-2">
                   <div
                     className="w-1.5 h-8 rounded-full flex-shrink-0"
                     style={{
@@ -268,7 +268,7 @@ function MenuItemCard({
                     }}
                   />
                   <h3
-                    className="text-2xl font-black tracking-tight leading-tight flex-1 truncate"
+                    className="text-4xl font-black tracking-tight leading-tight flex-1 truncate"
                     style={{
                       color: "white",
                       textShadow: `0 2px 15px ${accentColor}80`,
@@ -281,7 +281,7 @@ function MenuItemCard({
                 {/* Description */}
                 {item.description && (
                   <p
-                    className="text-sm font-medium line-clamp-2 leading-snug pl-4"
+                    className="text-sm font-medium line-clamp-2 leading-snug pl-4 py-2"
                     style={{
                       color: `${secondaryColor}EE`,
                       textShadow: "0 1px 3px rgba(0,0,0,0.3)",
