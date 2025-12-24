@@ -126,7 +126,7 @@ export function MenuCarousel({
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-30">
           <h2
-            className="text-3xl font-bold text-center"
+            className="text-4xl font-bold text-center"
             style={{ color: primaryColor }}
           >
             Today's Menu
@@ -254,32 +254,35 @@ function MenuItemCard({
           )}
 
           {/* Menu Item Details */}
-          <div className="flex-1 space-y-2">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-2 h-10 rounded-full"
-                    style={{
-                      backgroundColor: accentColor,
-                      boxShadow: `0 0 15px ${accentColor}`,
-                    }}
-                  />
-                  <p
-                    className="text-3xl font-black tracking-tight leading-tight"
-                    style={{
-                      color: "white",
-                      textShadow: `0 3px 20px ${accentColor}80`,
-                    }}
-                  >
-                    {item.name}
-                  </p>
-                </div>
+          <div className="flex-1 space-y-1.5">
+            <div className="space-y-1">
+              {/* Name spanning full width */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-1.5 h-8 rounded-full"
+                  style={{
+                    backgroundColor: accentColor,
+                    boxShadow: `0 0 12px ${accentColor}`,
+                  }}
+                />
+                <p
+                  className="text-2xl font-black tracking-tight leading-tight flex-1"
+                  style={{
+                    color: "white",
+                    textShadow: `0 2px 15px ${accentColor}80`,
+                  }}
+                >
+                  {item.name}
+                </p>
+              </div>
+
+              {/* Price below name */}
+              <div className="pl-4">
                 <span
-                  className="text-3xl font-bold whitespace-nowrap"
+                  className="text-2xl font-bold tracking-wide"
                   style={{
                     color: primaryColor,
-                    textShadow: `0 2px 10px ${primaryColor}60`,
+                    textShadow: `0 2px 12px ${primaryColor}80`,
                   }}
                 >
                   {item.price}
