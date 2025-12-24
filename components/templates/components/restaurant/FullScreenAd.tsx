@@ -248,25 +248,45 @@ class VideoCacheManager {
           );
 
           if (result.expiresAt < now) {
-            console.log(`⏰ Cache EXPIRED for: ${id}`);
+            const expiredHoursAgo = Math.round(
+              (now - result.expiresAt) / 1000 / 60 / 60
+            );
+            console.log(
+              `⏰ Cache EXPIRED for: ${id} (expired ${expiredHoursAgo}h ago)`
+            );
 
             if (refreshIfExpired) {
               // Refresh the TTL and use the existing cache
               console.log(`🔄 Refreshing expired cache TTL for: ${id}`);
-              await this.refreshCacheTTL(id);
+              try {
+                await this.refreshCacheTTL(id);
 
-              // Return the video with refreshed TTL
-              result.cachedAt = now;
-              result.expiresAt = now + CACHE_TTL;
+                // Return the video with refreshed TTL
+                result.cachedAt = now;
+                result.expiresAt = now + CACHE_TTL;
 
-              const newExpiresInHours = Math.round(CACHE_TTL / 1000 / 60 / 60);
-              console.log(
-                `✓ Cache TTL refreshed for: ${id} (valid for ${newExpiresInHours}h)`
-              );
-              resolve(result);
+                const newExpiresDate = new Date(result.expiresAt);
+                console.log(`✓ Cache TTL refreshed for: ${id}`);
+                console.log(
+                  `⏰ New expiry: ${newExpiresDate.toLocaleString()}`
+                );
+                resolve(result);
+              } catch (error) {
+                console.error(`❌ Failed to refresh TTL for: ${id}`, error);
+                resolve(null);
+              }
             } else {
               // Delete expired cache
-              await this.deleteVideo(id);
+              console.log(`🗑️ Deleting expired cache: ${id}`);
+              try {
+                await this.deleteVideo(id);
+                console.log(`✓ Expired cache deleted: ${id}`);
+              } catch (error) {
+                console.error(
+                  `❌ Failed to delete expired cache: ${id}`,
+                  error
+                );
+              }
               resolve(null);
             }
           } else {
