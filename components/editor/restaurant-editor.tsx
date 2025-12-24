@@ -7,6 +7,7 @@ import { Trash2, Plus, Image as ImageIcon } from "lucide-react";
 import { ImageUploader } from "./ImageUploader";
 import CollapsibleSection from "./CollapsibleSection";
 import { AdvertisementEditor } from "./AdvertisementEditor";
+import { Badge } from "@/components/ui/badge";
 
 interface RestaurantEditorProps {
   config: any;
@@ -531,7 +532,7 @@ export function RestaurantEditor({
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
-              slide Speed
+              Slide Speed
             </label>
             <Input
               type="range"
@@ -547,23 +548,19 @@ export function RestaurantEditor({
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>3s</span>
               <span className="text-amber-400 font-medium">
-                {menuRotationSpeed / 1000}s
+                {slideSpeed / 1000}s
               </span>
               <span>20s</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              How long each menu item displays before rotating to the next
+              How fast the menu items scroll vertically
             </p>
           </div>
 
           <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
             <p className="text-xs text-blue-400">
-              Menu items will rotate every {menuRotationSpeed / 1000} seconds
-              {menuItems.length > 0 &&
-                ` | Full cycle: ${(
-                  (menuItems.length * menuRotationSpeed) /
-                  1000
-                ).toFixed(0)}s`}
+              Menu items scroll at {slideSpeed / 1000} speed
+              {menuItems.length > 0 && ` | Total items: ${menuItems.length}`}
             </p>
           </div>
         </div>
@@ -664,7 +661,7 @@ export function RestaurantEditor({
           <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
             <p className="text-sm text-amber-400">
               <strong>Menu Display:</strong> Your menu items will be displayed
-              on the left side of the screen. Add items with names,
+              on the left side with vertical scrolling. Add items with names,
               descriptions, prices, and images. Mark special items to highlight
               them!
             </p>
@@ -739,9 +736,15 @@ export function RestaurantEditor({
                     onChange={(e) =>
                       handleUpdateMenuItem(idx, "price", e.target.value)
                     }
-                    placeholder="$24.99"
+                    placeholder="900 /- (Normal) & 1099 /- (Large)"
                     className="bg-slate-700 border-slate-600 text-slate-50 text-sm"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    💡 For multiple portions, use <strong>&</strong> or{" "}
+                    <div>
+                      <strong>,</strong> • e.g., "Small 900 & Large 1400"
+                    </div>
+                  </p>
                 </div>
               </div>
 

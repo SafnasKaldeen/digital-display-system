@@ -54,7 +54,6 @@ export function MenuCarousel({
       lastTimeRef.current = timestamp;
 
       setScrollPosition((prev) => {
-        // Convert slideSpeed (1-100) to pixels per frame
         const speed = slideSpeed / 10000;
         const newPosition = prev + (speed * delta) / 16.67;
         return newPosition;
@@ -86,7 +85,7 @@ export function MenuCarousel({
     ...activeMenuItems,
   ];
 
-  const itemHeight = 180;
+  const itemHeight = 160;
   const totalHeight = activeMenuItems.length * itemHeight;
 
   // Render vertical scrolling marquee
@@ -126,7 +125,7 @@ export function MenuCarousel({
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-30">
           <h2
-            className="text-4xl font-bold text-center"
+            className="text-3xl font-bold text-center"
             style={{ color: primaryColor }}
           >
             Today's Menu
@@ -207,19 +206,19 @@ function MenuItemCard({
   defaultMenuImage: string;
 }) {
   return (
-    <div className="mb-5" style={{ height: `${itemHeight}px` }}>
+    <div className="mb-4" style={{ height: `${itemHeight}px` }}>
       <div
-        className="h-full rounded-2xl p-5 shadow-xl border-2 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group"
+        className="h-full rounded-2xl p-4 shadow-xl border-2 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group"
         style={{
           background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}20)`,
           borderColor: `${accentColor}60`,
         }}
       >
-        <div className="flex items-center h-full gap-6">
+        <div className="flex items-stretch h-full gap-4">
           {/* Menu Item Image */}
           {item.image && (
-            <div className="relative flex-shrink-0">
-              <div className="relative w-40 h-40 rounded-2xl overflow-hidden shadow-2xl group-hover:shadow-3xl transition-all duration-500">
+            <div className="relative flex-shrink-0 self-center">
+              <div className="relative w-36 h-36 rounded-2xl overflow-hidden shadow-2xl group-hover:shadow-3xl transition-all duration-500">
                 <div
                   className="absolute inset-0 opacity-60 blur-sm"
                   style={{
@@ -245,7 +244,7 @@ function MenuItemCard({
 
                 {/* Special Badge */}
                 {item.isSpecial && (
-                  <div className="absolute top-2 right-2 bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                  <div className="absolute top-1.5 right-1.5 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg">
                     ⭐ SPECIAL
                   </div>
                 )}
@@ -253,82 +252,104 @@ function MenuItemCard({
             </div>
           )}
 
-          {/* Menu Item Details */}
-          <div className="flex-1 space-y-1.5">
-            <div className="space-y-1">
-              {/* Name spanning full width */}
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-1.5 h-8 rounded-full"
-                  style={{
-                    backgroundColor: accentColor,
-                    boxShadow: `0 0 12px ${accentColor}`,
-                  }}
-                />
-                <p
-                  className="text-2xl font-black tracking-tight leading-tight flex-1"
-                  style={{
-                    color: "white",
-                    textShadow: `0 2px 15px ${accentColor}80`,
-                  }}
-                >
-                  {item.name}
-                </p>
+          {/* Content Section - Everything except image */}
+          <div className="flex-1 flex flex-col gap-3">
+            {/* Top Content Row */}
+            <div className="flex items-stretch flex-1 gap-4">
+              {/* Menu Item Details - Center */}
+              <div className="flex-1 flex flex-col justify-center space-y-1.5 min-w-0">
+                {/* Name */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-1.5 h-8 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: accentColor,
+                      boxShadow: `0 0 12px ${accentColor}`,
+                    }}
+                  />
+                  <h3
+                    className="text-2xl font-black tracking-tight leading-tight flex-1 truncate"
+                    style={{
+                      color: "white",
+                      textShadow: `0 2px 15px ${accentColor}80`,
+                    }}
+                  >
+                    {item.name}
+                  </h3>
+                </div>
+
+                {/* Description */}
+                {item.description && (
+                  <p
+                    className="text-sm font-medium line-clamp-2 leading-snug pl-4"
+                    style={{
+                      color: `${secondaryColor}EE`,
+                      textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    {item.description}
+                  </p>
+                )}
+
+                {/* Category Badge */}
+                {item.category && (
+                  <div className="flex items-center gap-2 pl-4">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
+                      style={{
+                        backgroundColor: accentColor,
+                      }}
+                    >
+                      <span className="text-white text-sm">🍽️</span>
+                    </div>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold shadow-lg"
+                      style={{
+                        backgroundColor: `${accentColor}40`,
+                        color: accentColor,
+                        border: `2px solid ${accentColor}80`,
+                      }}
+                    >
+                      {item.category}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Price below name */}
-              <div className="pl-4">
-                <span
-                  className="text-2xl font-bold tracking-wide"
+              {/* Price Box - Right */}
+              <div className="flex flex-col items-end justify-center w-[140px] flex-shrink-0">
+                <div
+                  className="px-4 py-3 rounded-2xl shadow-lg text-right w-full"
                   style={{
-                    color: primaryColor,
-                    textShadow: `0 2px 12px ${primaryColor}80`,
+                    background: `linear-gradient(135deg, ${primaryColor}30, ${secondaryColor}30)`,
+                    border: `2px solid ${primaryColor}80`,
                   }}
                 >
-                  {item.price}
-                </span>
+                  <div
+                    className="text-xs font-bold mb-1"
+                    style={{ color: `${primaryColor}DD` }}
+                  >
+                    PRICE
+                  </div>
+                  <div
+                    className="text-lg font-black leading-tight space-y-0.5"
+                    style={{
+                      color: primaryColor,
+                      textShadow: `0 2px 12px ${primaryColor}80`,
+                    }}
+                  >
+                    {item.price.split(/[,&]/).map((priceItem, idx) => (
+                      <div key={idx} className="whitespace-nowrap">
+                        {priceItem.trim()}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Description */}
-            {item.description && (
-              <p
-                className="text-lg font-medium line-clamp-2"
-                style={{
-                  color: `${secondaryColor}EE`,
-                  textShadow: "0 1px 4px rgba(0,0,0,0.3)",
-                }}
-              >
-                {item.description}
-              </p>
-            )}
-
-            {/* Category Badge */}
-            {item.category && (
-              <div className="flex items-center gap-3 pt-1">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg"
-                  style={{
-                    backgroundColor: accentColor,
-                  }}
-                >
-                  <span className="text-white text-lg">🍽️</span>
-                </div>
-                <span
-                  className="px-4 py-1.5 rounded-full text-sm font-bold shadow-lg"
-                  style={{
-                    backgroundColor: `${accentColor}40`,
-                    color: accentColor,
-                    border: `2px solid ${accentColor}80`,
-                  }}
-                >
-                  {item.category}
-                </span>
-              </div>
-            )}
-
-            {/* Divider */}
-            <div className="flex items-center gap-2 pt-1">
+            {/* Divider - Spans entire content section (excluding image) */}
+            <div className="flex items-center gap-2">
               <div
                 className="flex-1 h-0.5 rounded-full opacity-40"
                 style={{
@@ -336,10 +357,10 @@ function MenuItemCard({
                 }}
               />
               <div
-                className="w-3 h-3 rounded-full animate-pulse"
+                className="w-2.5 h-2.5 rounded-full animate-pulse flex-shrink-0"
                 style={{
                   backgroundColor: accentColor,
-                  boxShadow: `0 0 10px ${accentColor}`,
+                  boxShadow: `0 0 8px ${accentColor}`,
                 }}
               />
               <div
