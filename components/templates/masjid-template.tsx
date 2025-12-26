@@ -2312,7 +2312,7 @@ export function MasjidTemplate({
                     className="text-[22rem] px-4 font-extrabold font-mono tracking-wide"
                     style={{
                       color: customization.colors.text,
-                      textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
+                      textShadow: `0 0 10px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                       fontFamily: customization.font,
                       width: "fit-content",
                     }}
@@ -2339,7 +2339,7 @@ export function MasjidTemplate({
                         style={{
                           color: "#FF4444",
                           textShadow:
-                            "0 0 25px rgba(255, 68, 68, 0.6), 4px 4px 12px rgba(0, 0, 0, 0.9)",
+                            "0 0 15px rgba(255, 68, 68, 0.6), 4px 4px 12px rgba(0, 0, 0, 0.9)",
                           fontFamily: customization.font,
                         }}
                       >
@@ -2363,7 +2363,7 @@ export function MasjidTemplate({
                         className="inline-block w-32 text-right text-[7rem] font-extrabold font-mono tracking-tighter"
                         style={{
                           color: customization.colors.text,
-                          textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
+                          textShadow: `0 0 10px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                           fontFamily: customization.font,
                         }}
                       >
@@ -2374,7 +2374,7 @@ export function MasjidTemplate({
                         className="inline-block w-32 text-left text-[7rem] font-extrabold font-mono tracking-tighter ml-10"
                         style={{
                           color: customization.colors.text,
-                          textShadow: `0 0 30px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
+                          textShadow: `0 0 10px ${customization.colors.text}, 4px 4px 12px rgba(0, 0, 0, 0.9)`,
                           fontFamily: customization.font,
                         }}
                       >
