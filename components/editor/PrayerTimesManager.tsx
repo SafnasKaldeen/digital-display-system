@@ -50,11 +50,11 @@ interface PrayerNames {
 interface PrayerTimesManagerProps {
   displayId: string;
   prayerTimes: PrayerTimes;
-  prayerNames?: PrayerNames; // Add this
+  prayerNames?: PrayerNames;
   iqamahOffsets: IqamahOffsets;
   label: string;
   onPrayerTimesChange: (times: PrayerTimes) => void;
-  onPrayerNamesChange?: (names: PrayerNames) => void; // Add this
+  onPrayerNamesChange?: (names: PrayerNames) => void;
   onIqamahOffsetsChange: (offsets: IqamahOffsets) => void;
   onLabelChange: (label: string) => void;
 }
@@ -248,10 +248,10 @@ const ConsistentModal: React.FC<ModalProps> = ({
 export default function PrayerTimesManager({
   displayId,
   prayerTimes,
-  prayerNames, // Add this
+  prayerNames,
   iqamahOffsets,
   onPrayerTimesChange,
-  onPrayerNamesChange, // Add this
+  onPrayerNamesChange,
   onIqamahOffsetsChange,
   onLabelChange,
   label,
@@ -943,7 +943,7 @@ export default function PrayerTimesManager({
               )}
             </div>
 
-            {/* Prayer Names Editor - Add this section */}
+            {/* Prayer Names Editor */}
             {prayerNames && onPrayerNamesChange && (
               <div className="space-y-4 pt-4 border-t border-gray-700">
                 <div className="flex items-center justify-between">
@@ -974,7 +974,7 @@ export default function PrayerTimesManager({
                 </p>
 
                 <div className="space-y-3">
-                  {Object.entries(prayerTimes)
+                  {Object.entries(prayerNames)
                     .filter(([prayer]) => prayer !== "dhuhrIqamah")
                     .map(([key, value]) => {
                       const defaultNames = {
@@ -1019,7 +1019,7 @@ export default function PrayerTimesManager({
                             className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                           />
 
-                          {/* Example suggestions for Fajr */}
+                          {/* Example suggestions for each prayer */}
                           {key === "fajr" && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {[
@@ -1046,13 +1046,58 @@ export default function PrayerTimesManager({
                             </div>
                           )}
 
+                          {key === "dhuhr" && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {[
+                                "Dhuhr",
+                                "Noon Prayer",
+                                "ظهر",
+                                "Zuhr",
+                                "ழுஹர்",
+                              ].map((suggestion, index) => (
+                                <button
+                                  key={`${suggestion}-${index}`}
+                                  type="button"
+                                  onClick={() => {
+                                    const newNames = { ...prayerNames };
+                                    newNames.dhuhr = suggestion;
+                                    onPrayerNamesChange(newNames);
+                                  }}
+                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                >
+                                  {suggestion}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {key === "asr" && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {["Asr", "Afternoon Prayer", "عصر", "அஸ்ர்"].map(
+                                (suggestion, index) => (
+                                  <button
+                                    key={`${suggestion}-${index}`}
+                                    type="button"
+                                    onClick={() => {
+                                      const newNames = { ...prayerNames };
+                                      newNames.asr = suggestion;
+                                      onPrayerNamesChange(newNames);
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                  >
+                                    {suggestion}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          )}
+
                           {key === "maghrib" && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {[
                                 "Maghrib",
                                 "Sunset Prayer",
                                 "مغرب",
-                                "Maghrib",
                                 "மஹ்ரிப்",
                               ].map((suggestion, index) => (
                                 <button
@@ -1071,57 +1116,6 @@ export default function PrayerTimesManager({
                             </div>
                           )}
 
-                          {key === "asr" && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {[
-                                "Asr",
-                                "Afternoon Prayer",
-                                "عصر",
-                                "அஸ்ர்",
-                                "அஸ்ர்",
-                              ].map((suggestion, index) => (
-                                <button
-                                  key={`${suggestion}-${index}`}
-                                  type="button"
-                                  onClick={() => {
-                                    const newNames = { ...prayerNames };
-                                    newNames.asr = suggestion;
-                                    onPrayerNamesChange(newNames);
-                                  }}
-                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {key === "sunrise" && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {[
-                                "Sunrise",
-                                "Shuruq",
-                                "شروق",
-                                "Sunup",
-                                "உதயம்",
-                              ].map((suggestion, index) => (
-                                <button
-                                  key={`${suggestion}-${index}`}
-                                  type="button"
-                                  onClick={() => {
-                                    const newNames = { ...prayerNames };
-                                    newNames.sunrise = suggestion;
-                                    onPrayerNamesChange(newNames);
-                                  }}
-                                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Example suggestions for Isha */}
                           {key === "isha" && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {[
@@ -1147,22 +1141,21 @@ export default function PrayerTimesManager({
                             </div>
                           )}
 
-                          {/* Example suggestions for Dhuhr */}
-                          {key === "dhuhr" && (
+                          {key === "sunrise" && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {[
-                                "Dhuhr",
-                                "Noon Prayer",
-                                "ظهر",
-                                "Zuhr",
-                                "ழுஹர்",
+                                "Sunrise",
+                                "Shuruq",
+                                "شروق",
+                                "Sunup",
+                                "உதயம்",
                               ].map((suggestion, index) => (
                                 <button
                                   key={`${suggestion}-${index}`}
                                   type="button"
                                   onClick={() => {
                                     const newNames = { ...prayerNames };
-                                    newNames.dhuhr = suggestion;
+                                    newNames.sunrise = suggestion;
                                     onPrayerNamesChange(newNames);
                                   }}
                                   className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"

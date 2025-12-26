@@ -111,7 +111,7 @@ const translations = {
     nextAdhan: "அடுத்த அதான்",
     nextIqamah: "இகாமத்",
     currentTime: "தற்போதைய நேரம்",
-    islamicDate: "இஸ்லாமிய தேதி",
+    islamicDate: "இஸ்லாமிய திகதி",
     ishraqTime: "இஷ்ராக் தொழுகை",
     ishraqSubtitle: "இஷ்ராக் தொழுகைக்கான நேரம்",
     ishraqRemaining: "மீதமுள்ள நேரம்",
@@ -2030,7 +2030,7 @@ export function MasjidTemplate({
                 {/* Time with enhanced typography */}
                 <div className="mb-6 mt-4">
                   <p
-                    className="text-[14rem] font-black leading-none tracking-tighter font-mono"
+                    className="text-[12rem] font-black leading-none tracking-tighter font-mono"
                     style={{
                       color: customization.colors.text,
                       textShadow: `

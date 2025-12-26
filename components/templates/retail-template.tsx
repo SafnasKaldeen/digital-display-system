@@ -61,6 +61,7 @@ interface RetailShopCustomization {
   layout: "Authentic" | "Advanced";
   slideSpeed: number;
   productRotationSpeed: number;
+  carouselTitle: string;
 }
 
 interface RetailTemplateProps {
@@ -157,6 +158,7 @@ export default function RetailTemplate({
   const galleryImages = customization.galleryImages || [];
   const backgroundImages = customization.backgroundImages || [];
   const advertisements = customization.advertisements || [];
+  const carouselTitle = customization.carouselTitle || "Featured Products";
 
   // Time update
   useEffect(() => {
@@ -511,6 +513,7 @@ export default function RetailTemplate({
                 primaryColor={settings.primaryColor}
                 secondaryColor={settings.secondaryColor}
                 accentColor={settings.accentColor}
+                carouselTitle={carouselTitle}
               />
 
               {/* Right Side - Gallery Carousel */}

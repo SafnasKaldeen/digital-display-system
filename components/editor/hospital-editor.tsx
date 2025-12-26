@@ -451,7 +451,7 @@ export function HospitalEditor({
   return (
     <div className="space-y-8">
       {/* Layout Configuration */}
-      <CollapsibleSection title="🎛️ Layout Configuration">
+      {/* <CollapsibleSection title="🎛️ Layout Configuration">
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">
@@ -573,7 +573,7 @@ export function HospitalEditor({
             </>
           )}
         </div>
-      </CollapsibleSection>
+      </CollapsibleSection> */}
 
       {/* Hospital Branding */}
       <CollapsibleSection title="🏥 Hospital Branding">

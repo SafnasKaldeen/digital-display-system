@@ -22,6 +22,7 @@ interface MenuCarouselProps {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  carouselTitle?: string;
 }
 
 export function MenuCarousel({
@@ -32,6 +33,7 @@ export function MenuCarousel({
   primaryColor,
   secondaryColor,
   accentColor,
+  carouselTitle = "Featured Products",
 }: MenuCarouselProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const animationRef = useRef<number>(0);
@@ -122,13 +124,13 @@ export function MenuCarousel({
           }}
         />
 
-        {/* Header */}
+        {/* Header with Dynamic Title */}
         <div className="absolute top-0 left-0 right-0 bg-black/95 -blur-sm px-6 py-4 border-b border-white/60 z-30">
           <h2
             className="text-7xl font-bold text-center"
             style={{ color: primaryColor }}
           >
-            Today's Menu
+            {carouselTitle}
           </h2>
         </div>
 
@@ -338,10 +340,9 @@ function MenuItemCard({
                     className="text-2xl font-black leading-tight space-y-0.5 whitespace-nowrap"
                     style={{
                       color: primaryColor,
-                      // textShadow: `0 2px 12px ${primaryColor}80`,
                     }}
                   >
-                    {item.price.split(/[,&]/).map((priceItem, idx) => (
+                    {item.price.split(/[&]/).map((priceItem, idx) => (
                       <div key={idx}>{priceItem.trim()}</div>
                     ))}
                   </div>

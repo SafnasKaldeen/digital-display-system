@@ -61,6 +61,7 @@ interface RestaurantCustomization {
   layout: "Authentic" | "Advanced";
   slideSpeed: number;
   menuRotationSpeed: number;
+  carouselTitle: string;
 }
 
 interface RestaurantTemplateProps {
@@ -531,6 +532,7 @@ export default function RestaurantTemplate({
                 primaryColor={settings.primaryColor}
                 secondaryColor={settings.secondaryColor}
                 accentColor={settings.accentColor}
+                carouselTitle={customization.carouselTitle || "Today's Men"}
               />
 
               {/* Right Side - Gallery Carousel */}

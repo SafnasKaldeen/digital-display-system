@@ -90,6 +90,7 @@ export function RestaurantEditor({
   const slideSpeed = config.slideSpeed || 8000;
   const menuRotationSpeed = config.menuRotationSpeed || 8000;
   const customCategories = config.customCategories || [];
+  const carouselTitle = config.carouselTitle || "Today's Menu";
 
   // Handle basic field updates
   const handleFieldChange = (field: string, value: any) => {
@@ -664,6 +665,23 @@ export function RestaurantEditor({
               on the left side with vertical scrolling. Add items with names,
               descriptions, prices, and images. Mark special items to highlight
               them!
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">
+              Product Carousel Title
+            </label>
+            <Input
+              value={carouselTitle}
+              onChange={(e) =>
+                handleFieldChange("carouselTitle", e.target.value)
+              }
+              placeholder="Featured Products"
+              className="bg-slate-700 border-slate-600 text-slate-50"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              This title will appear at the top of your product carousel
             </p>
           </div>
 
