@@ -2,7 +2,6 @@ import { MasjidDisplay } from "@/components/displays/public/masjid-display";
 import { HospitalDisplay } from "@/components/displays/public/hospital-display";
 import { CorporateDisplay } from "@/components/displays/public/corporate-display";
 import { RestaurantDisplay } from "@/components/displays/public/restaurant-display";
-import
 
 interface DisplayPageProps {
   params: {
