@@ -338,7 +338,7 @@ function MenuItemCard({
                     className="text-2xl font-black leading-tight space-y-0.5 whitespace-nowrap"
                     style={{
                       color: primaryColor,
-                      textShadow: `0 2px 12px ${primaryColor}80`,
+                      // textShadow: `0 2px 12px ${primaryColor}80`,
                     }}
                   >
                     {item.price.split(/[,&]/).map((priceItem, idx) => (
