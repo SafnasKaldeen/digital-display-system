@@ -102,7 +102,7 @@ export default function GalleryCarousel({
               style={{ backgroundColor: accentColor }}
             />
             <span className="text-white font-bold text-lg">
-              RESTAURANT GALLERY
+              GALLERY
             </span>
           </div>
         </div>
